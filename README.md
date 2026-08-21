@@ -34,6 +34,16 @@ Claude Code:
 /plugin install veris-sim@veris
 ```
 
+Codex: the same directory is a Codex plugin (`veris-sim/.codex-plugin/plugin.json`),
+and the skills install into `.agents/skills` with the command below. The MCP
+server is configured in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.veris]
+url = "https://svc.api.veris.ai/mcp"
+env_http_headers = { "X-API-Key" = "VERIS_API_KEY" }
+```
+
 Any other agent, skills only:
 
 ```
