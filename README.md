@@ -49,6 +49,3 @@ Any other agent, skills only:
 ```
 npx skills add veris-ai/plugins
 ```
-
-This repository is internal to the organization; `gh auth setup-git` lets
-Claude Code refresh the marketplace in the background without prompting.
