@@ -2,7 +2,7 @@
   "mcpServers": {
     "veris": {
       "type": "http",
-      "url": "${VERIS_API_BASE:-https://api.veris.ai}/mcp",
+      "url": "${VERIS_API_BASE:-https://svc.api.veris.ai}/mcp",
       "headers": { "X-API-Key": "${VERIS_API_KEY}" }
     }
   }

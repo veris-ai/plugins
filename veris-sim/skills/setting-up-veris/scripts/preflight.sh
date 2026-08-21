@@ -10,7 +10,7 @@ set -u
 fail() { printf 'preflight: %s — %s\n' "$1" "$2" >&2; exit 2; }
 ok()   { printf 'preflight: %-12s ok%s\n' "$1" "${2:+ ($2)}"; }
 
-base="${VERIS_API_BASE:-https://api.veris.ai}"
+base="${VERIS_API_BASE:-https://svc.api.veris.ai}"
 base="${base%/}"
 
 [ -n "${VERIS_API_KEY:-}" ] \

@@ -17,7 +17,7 @@ receipt of what the sandbox received.
 | [`integration-testing`](veris-sim/skills/integration-testing) | a change that calls an external service needs exercising. Arranges state, arms a fault, drives the application through the proxy, reads back what the sandbox recorded, and shows the change red before and green after. |
 
 The plugin also registers the `veris` MCP server — `$VERIS_API_BASE/mcp`
-(default `https://api.veris.ai`) with `X-API-Key: $VERIS_API_KEY` from the
+(default `https://svc.api.veris.ai`) with `X-API-Key: $VERIS_API_KEY` from the
 environment — so the sandbox tools are available as soon as the plugin is
 enabled. Sandbox mechanics — state, seeding, faults, the clock, reset,
 callbacks, diagnosis — are documented once, under
