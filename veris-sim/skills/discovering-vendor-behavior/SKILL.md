@@ -26,12 +26,17 @@ code path only.
 
 ## What the twin can tell you
 
+If the task is about a failure — a timeout, a lost response, a retry, a
+refusal — that failure, made to happen, is the first probe. A direct call
+cannot produce it and the live vendor will not; it is the one thing the twin
+answers that documentation does not.
+
 | question | ask |
 |---|---|
+| What does the failure this task is about look like? | a `faults` row, then the real call through it — shapes below |
 | What does the vendor already offer for the thing this change is about? | `GET {control_url}/veris/manual` — the service's own notes, generated from what it declares plus what its authors added. Short, and different for every service — read it whole |
 | Is a claim about the vendor's data model true — uniqueness, a required field, an allowed value? | `GET {control_url}/veris/schema` — every table, its fields, and the rule that governs it where the service states one; then one probe. A value the vendor accepts twice is not an identity, and nothing keyed on it can tell two records apart |
 | What does the vendor do at the condition the change is about? | a probe — cause the condition and read what came back |
-| What does the failure this task is about look like? | a `faults` row, then the real call through it — shapes below |
 | What did the client actually send? What did the vendor store? | `GET {control_url}/veris/requests` — method, path, headers, body (the query string is not recorded yet); `GET {control_url}/veris/data?entity_type=<name>` |
 | What happens after time passes — expiry, retention? | the `clock` row via `PATCH /veris/data`; never backwards |
 | What does a rejected credential look like? | arm `auth.mode: enforced` first — in the default mode any well-formed key works, so the probe proves nothing otherwise |
