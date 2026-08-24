@@ -1,6 +1,6 @@
 ---
 name: veris-reference
-description: Knowledge the veris-sim commands read on demand - the twin's control surface, fault rows, the proxy run, worlds, webhooks, trust, troubleshooting, the PR evidence shape. Not a command; setup, build and fix name the file to read.
+description: Knowledge the veris-sim commands read on demand - the twin's control surface, fault rows, the proxy run, worlds, webhooks, trust, troubleshooting, the PR evidence shape. Not a command; setup, build, fix and test name the file to read.
 user-invocable: false
 disable-model-invocation: true
 ---
