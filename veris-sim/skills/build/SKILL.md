@@ -49,8 +49,9 @@ pointed at a sandbox, no vendor call changed to make a test pass.
 ## Gate 3 — the change through veris-proxy, with a receipt
 
 Run the changed flow from the boundary the task names — endpoint, worker,
-handler — through `.veris/run.sh` ([reference/proxy.md](../veris-reference/proxy.md)),
-against the conditions measured in gate 1, and read back what the vendor
+handler — through `.veris/run.sh` with `VERIS_SANDBOX_ID` set to the gate-1
+sandbox ([reference/proxy.md](../veris-reference/proxy.md)), against the
+conditions measured there, and read back what the vendor
 stored (`GET {control_url}/veris/data?entity_type=<table>`,
 `GET {control_url}/veris/requests`). **Not done until the receipt
 shows at least one request to the service from that run.** A green earned

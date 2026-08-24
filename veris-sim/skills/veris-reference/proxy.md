@@ -14,11 +14,13 @@ recorded default:
 .veris/run.sh -- pytest -x tests/integration/test_one.py
 ```
 
-Each run deploys a fresh sandbox of the environment, runs the command, prints
-the receipt, deletes the sandbox. It logs `sandbox ready sandbox_id=<id>`;
-`get_sandbox` with that id returns each service's `control_url`, so
-state, faults and read-back are available for as long as the run lives. To
-seed or arm before the code runs, start a session and work inside it:
+With `VERIS_SANDBOX_ID` set, the run attaches to that sandbox and leaves it
+running — set it to the task's sandbox, so the faults armed and the state
+read back are the ones the code met. Unset, each run deploys a fresh sandbox
+of the environment, runs the command, prints the receipt, deletes the
+sandbox; it logs `sandbox ready sandbox_id=<id>`, and `get_sandbox` with that
+id returns each service's `control_url` for as long as the run lives. To seed
+or arm inside a run of that kind, start a session and work inside it:
 
 ```
 .veris/run.sh -- sleep infinity &
@@ -28,6 +30,7 @@ kill %1                                                                        #
 
 | flag | what it does |
 |---|---|
+| `--sandbox <id>` (or `VERIS_SANDBOX_ID`) | attach to a sandbox that exists — the task's — and leave it; never together with `--environment` |
 | `--environment <id>` | a sandbox per run, deleted after; `--ttl-minutes` bounds one that outlives a crashed run |
 | `--require-service <name>[:count]`, `--require-host <host>[:count]` | makes a service, host, or call count the verdict |
 | `--strict` | a request to an unmapped host is answered `502` naming the host instead of reaching the real internet — the claim "the code reached nothing but the sandbox" |

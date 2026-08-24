@@ -29,7 +29,8 @@ lifecycle and every `/veris/*` call: [reference/twin.md](../veris-reference/twin
    [reference/faults.md](../veris-reference/faults.md) gives for what the issue
    reports, then drive the **repository's own code path** — the endpoint,
    worker or handler the issue names, unchanged — through it under
-   `.veris/run.sh` ([reference/proxy.md](../veris-reference/proxy.md)).
+   `.veris/run.sh` with `VERIS_SANDBOX_ID` set to this sandbox
+   ([reference/proxy.md](../veris-reference/proxy.md)).
 4. Read the ledger: `GET {control_url}/veris/data?entity_type=<table>` and
    `GET {control_url}/veris/requests`. Not done with this gate until they show the
    outcome the issue describes — the duplicate row, the lost write, the
@@ -53,8 +54,8 @@ pointed at a sandbox, no vendor call changed to make a test pass.
 
 ## Gate 3 — the same failure, closed, with a receipt
 
-Re-arm the same fault; drive the same code path through `.veris/run.sh`;
-read the ledger again. **Not done until the receipt shows at least one
+Re-arm the same fault; drive the same code path through `.veris/run.sh`
+(same `VERIS_SANDBOX_ID`); read the ledger again. **Not done until the receipt shows at least one
 request to the service from that run and the ledger shows the outcome the
 fix promises** — one row where there were two, the write recovered, the
 state right. Red before, green after, same flow: that is the proof.

@@ -59,13 +59,13 @@ Write `.veris/run.sh` and `.veris/setup.json`:
 ```sh
 #!/usr/bin/env sh
 # Written by /veris-sim:setup. Flags before -- pass through; a command after -- replaces the default.
+# VERIS_SANDBOX_ID set: attach to that sandbox (build and fix make one per task). Unset: a fresh one per run.
 set -eu
-for arg in "$@"; do
-  [ "$arg" = "--" ] && exec veris-proxy run --environment "${VERIS_ENVIRONMENT_ID:?}" \
-    --image myrepo-veris-tests -v "$PWD:/work" -w /work "$@"
-done
-exec veris-proxy run --environment "${VERIS_ENVIRONMENT_ID:?}" \
-  --image myrepo-veris-tests -v "$PWD:/work" -w /work "$@" -- make integration
+if [ -n "${VERIS_SANDBOX_ID:-}" ]; then target="--sandbox $VERIS_SANDBOX_ID"
+else target="--environment ${VERIS_ENVIRONMENT_ID:?}"; fi
+run() { exec veris-proxy run $target --image myrepo-veris-tests -v "$PWD:/work" -w /work "$@"; }
+for arg in "$@"; do [ "$arg" = "--" ] && run "$@"; done
+run "$@" -- make integration
 ```
 
 Mounts stay under the repository tree or a known dependency cache. Tell the
