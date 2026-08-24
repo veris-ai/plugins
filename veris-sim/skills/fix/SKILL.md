@@ -14,7 +14,7 @@ quote it. Name the failure in one sentence: what the vendor did, what the
 code did next. Anything the issue states about the vendor — what it
 supports, why it fails, what a field means — is a **claim**, the diagnosis
 included. No `.veris/run.sh` → stop; `setup` runs first. Sandbox
-lifecycle and every `/veris/*` call: [reference/twin.md](reference/twin.md).
+lifecycle and every `/veris/*` call: [reference/twin.md](../veris-reference/twin.md).
 
 ## Gate 1 — the failure reproduced before the first source edit
 
@@ -26,10 +26,10 @@ lifecycle and every `/veris/*` call: [reference/twin.md](reference/twin.md).
    a rule — or that nothing does; that is the first claim to check.
 3. Make the failure happen. The vendor will not produce it on demand; the
    twin will: arm a `faults` row in the shape
-   [reference/faults.md](reference/faults.md) gives for what the issue
+   [reference/faults.md](../veris-reference/faults.md) gives for what the issue
    reports, then drive the **repository's own code path** — the endpoint,
    worker or handler the issue names, unchanged — through it under
-   `.veris/run.sh` ([reference/proxy.md](reference/proxy.md)).
+   `.veris/run.sh` ([reference/proxy.md](../veris-reference/proxy.md)).
 4. Read the ledger: `GET {control_url}/veris/data?entity_type=<table>` and
    `GET {control_url}/veris/requests`. Not done with this gate until they show the
    outcome the issue describes — the duplicate row, the lost write, the
@@ -44,7 +44,7 @@ Before the fix keys, looks up, or dedupes on any field, read that field's
 rule in `GET {control_url}/veris/schema` (the table's description). A field the vendor accepts
 twice for distinct records is not an identity; a fix anchored on it trades
 one failure for another. Name the field the fix rests on, and why it is
-one, in the PR. Questions and their asks: [reference/twin.md](reference/twin.md).
+one, in the PR. Questions and their asks: [reference/twin.md](../veris-reference/twin.md).
 
 ## Implement
 
@@ -62,14 +62,14 @@ state right. Red before, green after, same flow: that is the proof.
 ## The PR
 
 Open a draft as the repository does. Its body has three sections, in the
-shape of [reference/evidence.md](reference/evidence.md): *what I verified,
+shape of [reference/evidence.md](../veris-reference/evidence.md): *what I verified,
 and how* — the fault armed, the before ledger, the after ledger, the receipt
 line; *what I am assuming rather than verifying*, and why that is
 acceptable; *limitations and risks* — including what a caller could still do
 wrong. Paste the sandbox id. Then `delete_sandbox` (or `DELETE …/sandboxes/<id>`).
 
-When a step needs it: [worlds.md](reference/worlds.md), [webhooks.md](reference/webhooks.md),
-[trust.md](reference/trust.md) (an SDK refusing the proxy's certificate),
-[troubleshooting.md](reference/troubleshooting.md). Note anything the
+When a step needs it: [worlds.md](../veris-reference/worlds.md), [webhooks.md](../veris-reference/webhooks.md),
+[trust.md](../veris-reference/trust.md) (an SDK refusing the proxy's certificate),
+[troubleshooting.md](../veris-reference/troubleshooting.md). Note anything the
 sandbox got wrong or lacked and give it to the engineer at the end. Ask
 before sending repository code anywhere new. Never promote a sandbox.

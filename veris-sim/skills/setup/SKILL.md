@@ -77,8 +77,8 @@ engineer both files exist and are worth committing.
 prints a receipt — requests per service; an empty one exits 3. **Not done
 until the receipt names the environment's service with a count above
 zero.** A certificate error against a mapped host is an SDK bundling its own
-CA — [../fix/reference/trust.md](../fix/reference/trust.md); other signals —
-[../fix/reference/troubleshooting.md](../fix/reference/troubleshooting.md). Report the
+CA — [../veris-reference/trust.md](../veris-reference/trust.md); other signals —
+[../veris-reference/troubleshooting.md](../veris-reference/troubleshooting.md). Report the
 receipt line and stop: `build` or `fix` takes the task.
 
 Ask before installing the binary or sending repository code anywhere new.
