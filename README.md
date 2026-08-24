@@ -1,29 +1,28 @@
 # Veris plugins
 
+Veris runs stateful twins of the external services an application calls. An
+**environment** names a set of those services; a **sandbox** is one running
+deployment of it; `veris-proxy` reroutes the application's outbound HTTP(S)
+into a sandbox from outside the process, so the code under test keeps its
+production hostnames, credentials and client stack, and ends each run with a
+**receipt** of what the sandbox received.
+
 ## veris-sim
 
-Skills for coding agents that test an application against Veris, whose
-stateful twins stand in for the external services the application calls. An
-**environment** names which services; `VERIS_ENVIRONMENT_ID` points at one.
-A **sandbox** is one running deployment of an environment: `veris-proxy`
-deploys one per run, reroutes the application's outbound traffic into it from
-outside the process — the application is never modified — and prints a
-receipt of what the sandbox received.
+Three commands an engineer invokes with a task, plus the `veris` MCP server.
 
-| Skill | Use when |
-| --- | --- |
-| [`setting-up-veris`](veris-sim/skills/setting-up-veris) | the repository cannot yet run its tests under `veris-proxy`. Checks the prerequisites, derives a test image, writes the run command into the repository as `.veris/run.sh`, and proves the wiring with one smoke run. |
-| [`discovering-vendor-behavior`](veris-sim/skills/discovering-vendor-behavior) | a design depends on what the vendor does — on a retry, a duplicate, a lost response, a limit. Reads the service's manual and schema, probes the sandbox, makes the failure happen, and records what was measured. |
-| [`integration-testing`](veris-sim/skills/integration-testing) | a change that calls an external service needs exercising. Arranges state, arms a fault, drives the application through the proxy, reads back what the sandbox recorded, and shows the change red before and green after. |
+| command | what it does | not done until |
+|---|---|---|
+| `setup` | wires the repository to an environment, once: credential, `veris-proxy`, docker, environment, a test image, `.veris/run.sh` | a smoke run's receipt names the service |
+| `build <issue link \| prompt>` | measures every vendor claim the task rests on against the twin before designing, implements, exercises the change through `veris-proxy` | every claim measured before the first source edit; a receipt from the changed flow; a PR stating what was verified and what is assumed |
+| `fix <issue link \| prompt>` | reproduces the failure the issue describes through the repository's own code before designing, fixes it, proves the same failure closed | the failure reproduced before the first source edit; the same failure re-run green with a receipt; the PR as above |
 
-The plugin also registers the `veris` MCP server — `$VERIS_API_BASE/mcp`
-(default `https://svc.api.veris.ai`) with `X-API-Key: $VERIS_API_KEY` from the
-environment — so the sandbox tools are available as soon as the plugin is
-enabled. Sandbox mechanics — state, seeding, faults, the clock, reset,
-callbacks, diagnosis — are documented once, under
-[`veris-sim/skills/integration-testing/reference/`](veris-sim/skills/integration-testing/reference/).
-Each service in a sandbox serves what is specific to it: `/veris/manual` and
-`/veris/schema`.
+The reference set lives once, in `veris-reference/` — a directory with a
+`SKILL.md` nobody can invoke, so both installers copy it — and is read only
+when a command names a file. `setup` also carries `scripts/preflight.sh`
+and its own `reference/transport.md`. The sandbox API is
+called directly — the `veris` MCP tools for lifecycle, `curl` against
+`/veris/*` for the rest — with the exact calls in the references.
 
 ### Install
 
@@ -34,8 +33,18 @@ Claude Code:
 /plugin install veris-sim@veris
 ```
 
-Codex: the same directory is a Codex plugin (`veris-sim/.codex-plugin/plugin.json`),
-and the skills install into `.agents/skills` with the command below. The MCP
+The plugin registers the `veris` MCP server; it reads `VERIS_API_KEY` from
+your environment (`VERIS_API_BASE` defaults to `https://svc.api.veris.ai`).
+Then, in a repository:
+
+```
+/veris-sim:setup
+/veris-sim:build https://github.com/org/repo/issues/42
+/veris-sim:fix   "create_invoice duplicates the invoice when the response is lost"
+```
+
+Codex: the same directory is a Codex plugin (`veris-sim/.codex-plugin/plugin.json`);
+the skills install into `.agents/skills` with the command below, and the MCP
 server is configured in `~/.codex/config.toml`:
 
 ```toml
@@ -44,8 +53,26 @@ url = "https://svc.api.veris.ai/mcp"
 env_http_headers = { "X-API-Key" = "VERIS_API_KEY" }
 ```
 
-Any other agent, skills only:
+Codex mentions skills rather than namespacing them: `$setup`, `$build <issue
+link or prompt>`, `$fix <issue link or prompt>`. Everything else is the same
+files.
+
+Any of 76+ agents, through the `skills` CLI:
 
 ```
 npx skills add veris-ai/plugins
 ```
+
+### The credential
+
+`setup` reads `VERIS_API_KEY` from the environment. If it is not set, it
+gives you one command to run in your terminal (`echo 'export
+VERIS_API_KEY=<key>' >> ~/.zshrc && source ~/.zshrc`), waits, and confirms
+it is set. The skill writes the key nowhere; the MCP server reads the
+environment at session start, so restart the agent after setting it.
+
+### Versions
+
+0.2.0 — three commands (`setup`, `build`, `fix`) replace the 0.1 skills
+(`setting-up-veris`, `discovering-vendor-behavior`, `integration-testing`).
+The knowledge those carried is in `veris-reference/`.

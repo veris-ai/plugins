@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Asserts the preconditions for `veris-proxy run`, one per line, and exits 2
-# at the first one that fails. Written by the setting-up-veris skill; run it
-# before every session rather than trusting that setup still holds.
+# at the first one that fails. Run by /veris-sim:setup; run it before every
+# session rather than trusting that setup still holds.
 #
 #   scripts/preflight.sh            # uses VERIS_ENVIRONMENT_ID and .veris/setup.json
 #   scripts/preflight.sh <env-id>   # checks a different environment
@@ -14,7 +14,7 @@ base="${VERIS_API_BASE:-https://svc.api.veris.ai}"
 base="${base%/}"
 
 [ -n "${VERIS_API_KEY:-}" ] \
-  || fail credential "export VERIS_API_KEY (if the veris MCP server is registered, it is that server's X-API-Key header value)"
+  || fail credential "VERIS_API_KEY is not set in this shell"
 ok credential
 
 command -v veris-proxy >/dev/null 2>&1 && veris-proxy version >/dev/null 2>&1 \
@@ -52,3 +52,5 @@ if [ -f .veris/setup.json ]; then
     ok image "$image (stock image; the run pulls it)"
   fi
 fi
+
+[ -f .veris/run.sh ] && ok run.sh ".veris/run.sh recorded" || printf 'preflight: %-12s not yet recorded\n' run.sh

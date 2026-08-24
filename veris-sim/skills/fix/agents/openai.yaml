@@ -1,0 +1,13 @@
+interface:
+  display_name: "Veris fix"
+  short_description: "Fix a defect: reproduce the failure against the twin first, prove it closed through veris-proxy."
+  default_prompt: "$fix <issue link or prompt>"
+policy:
+  allow_implicit_invocation: false
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "veris"
+      description: "Veris control plane - environments and sandboxes. Configure the server in ~/.codex/config.toml; the skills also reach it over REST with curl."
+      transport: "streamable_http"
+      url: "https://svc.api.veris.ai/mcp"

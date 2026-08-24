@@ -1,10 +1,18 @@
 {
   "name": "veris-sim",
   "displayName": "Veris Sim",
-  "version": "0.1.0",
-  "description": "Test an application against Veris - stateful twins of the external services it calls. Three skills (set up once, discover vendor behaviour before designing, exercise a change through veris-proxy) and the veris MCP server.",
-  "author": { "name": "Veris", "url": "https://veris.ai" },
+  "version": "0.2.0",
+  "description": "Test an application against Veris - stateful twins of the external services it calls. Three commands: setup (wire a repo once), build <issue|prompt> (measure the vendor before designing, prove the change through veris-proxy), fix <issue|prompt> (reproduce the failure first, prove it closed). Plus the veris MCP server.",
+  "author": {
+    "name": "Veris",
+    "url": "https://veris.ai"
+  },
   "repository": "https://github.com/veris-ai/plugins",
   "license": "Apache-2.0",
-  "keywords": ["veris", "integration-testing", "sandbox", "mcp"]
+  "keywords": [
+    "veris",
+    "integration-testing",
+    "sandbox",
+    "mcp"
+  ]
 }
