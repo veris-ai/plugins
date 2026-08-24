@@ -17,10 +17,10 @@ Three commands an engineer invokes with a task, plus the `veris` MCP server.
 | `build <issue link \| prompt>` | measures every vendor claim the task rests on against the twin before designing, implements, exercises the change through `veris-proxy` | every claim measured before the first source edit; a receipt from the changed flow; a PR stating what was verified and what is assumed |
 | `fix <issue link \| prompt>` | reproduces the failure the issue describes through the repository's own code before designing, fixes it, proves the same failure closed | the failure reproduced before the first source edit; the same failure re-run green with a receipt; the PR as above |
 
-The reference set lives once, under `fix/reference/`, and is read only when a
-step names a file; `build` and `setup` link to it as a sibling, so install
-all three skills together. `setup` also carries `scripts/preflight.sh` and
-its own `reference/transport.md`. The sandbox API is
+The reference set lives once, in `veris-reference/` — a directory with a
+`SKILL.md` nobody can invoke, so both installers copy it — and is read only
+when a command names a file. `setup` also carries `scripts/preflight.sh`
+and its own `reference/transport.md`. The sandbox API is
 called directly — the `veris` MCP tools for lifecycle, `curl` against
 `/veris/*` for the rest — with the exact calls in the references.
 
@@ -75,4 +75,4 @@ environment at session start, so restart the agent after setting it.
 
 0.2.0 — three commands (`setup`, `build`, `fix`) replace the 0.1 skills
 (`setting-up-veris`, `discovering-vendor-behavior`, `integration-testing`).
-The knowledge those carried is in each command's `reference/`.
+The knowledge those carried is in `veris-reference/`.
