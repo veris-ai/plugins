@@ -73,6 +73,9 @@ environment at session start, so restart the agent after setting it.
 
 ### Versions
 
+0.2.1 — `setup` names the services it inferred when asking to create an
+environment; the reply may add or drop names.
+
 0.2.0 — three commands (`setup`, `build`, `fix`) replace the 0.1 skills
 (`setting-up-veris`, `discovering-vendor-behavior`, `integration-testing`).
 The knowledge those carried is in `veris-reference/`.
