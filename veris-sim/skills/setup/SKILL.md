@@ -12,12 +12,12 @@ command leaves in the tree what makes one run work: `.veris/run.sh` (the
 exact `veris-proxy run` invocation), `.veris/setup.json` (the same facts as
 data: `environment_id`, `image`, `dockerfile` or `null`, `workdir`, `mounts`,
 `test_command`), and `Dockerfile.veris` only when deriving an image took real
-work. `scripts/veris.sh` in this skill's directory does the mechanics (`sh`).
+work. `scripts/preflight.sh` in this skill's directory checks the preconditions.
 An environment id given with the command overrides `VERIS_ENVIRONMENT_ID`.
 
 ## 1. Credential
 
-`veris.sh preflight` reports the credential first. If `VERIS_API_KEY` is not
+`sh scripts/preflight.sh` reports the credential first. If `VERIS_API_KEY` is not
 set, say exactly this and end the turn:
 
 > Run this in your terminal, then tell me when it's done:
@@ -39,7 +39,8 @@ without `--image`; each proves a code path that is not the one that ships.
 
 ## 3. Environment
 
-`VERIS_ENVIRONMENT_ID` set → `veris.sh env` must list the services this code
+`VERIS_ENVIRONMENT_ID` set → `GET $VERIS_API_BASE/v1/environments/$VERIS_ENVIRONMENT_ID`
+(`X-API-Key`; or the `get_environment` MCP tool) must list the services this code
 calls. Not set → `GET $VERIS_API_BASE/v1/environments` lists the engineer's;
 ask which. Create one only after asking: `POST /v1/environments`
 `{"name":…,"services":[…]}`; `GET /v1/services` is the catalogue.

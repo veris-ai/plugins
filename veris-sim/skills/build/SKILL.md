@@ -13,12 +13,14 @@ and the PR says so.
 quote it. Anything it states about the vendor — what it supports, what a
 field means, what a repeat does — is a **claim**, listed as such; vendor
 documentation is a claim too. No `.veris/run.sh` → stop; `setup` runs first.
-`scripts/veris.sh` in this skill's directory does the mechanics (`sh`).
+Sandbox lifecycle and every `/veris/*` call: [reference/twin.md](reference/twin.md).
 
 ## Gate 1 — every claim measured before the first source edit
 
-1. `veris.sh sandbox create` — one sandbox for this whole task; keep its id.
-2. `veris.sh manual <id>` — the service's own notes, read whole once. It
+1. `create_sandbox` (MCP), or `POST $VERIS_API_BASE/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes`
+   with `{"ttl_minutes":60}`; then `get_sandbox` until `status` is `ready` —
+   one sandbox for this whole task; keep its id and each service's `control_url`.
+2. `GET {control_url}/veris/manual` — the service's own notes, read whole once. It
    names what the vendor already offers for this feature and the selector
    that makes a repeated write safe, or that none exists.
 3. For each claim: one probe against `url`, or one schema read, that answers
@@ -34,7 +36,7 @@ Write the source only after every claim has an answer.
 ## Gate 2 — the identity the design rests on
 
 Before the change keys, looks up, or dedupes on any field, read that field's
-rule in `veris.sh schema <id> [service] <table>`. A field the vendor accepts
+rule in `GET {control_url}/veris/schema` (the table's description). A field the vendor accepts
 twice for distinct records is not an identity; a design anchored on it
 collapses two real records or misses a repeat. Name the field the design
 rests on, and why it is one, in the PR.
@@ -49,7 +51,8 @@ pointed at a sandbox, no vendor call changed to make a test pass.
 Run the changed flow from the boundary the task names — endpoint, worker,
 handler — through `.veris/run.sh` ([reference/proxy.md](reference/proxy.md)),
 against the conditions measured in gate 1, and read back what the vendor
-stored (`veris.sh data`, `veris.sh requests`). **Not done until the receipt
+stored (`GET {control_url}/veris/data?entity_type=<table>`,
+`GET {control_url}/veris/requests`). **Not done until the receipt
 shows at least one request to the service from that run.** A green earned
 by changing the caller's call proves the caller changed.
 
@@ -59,7 +62,7 @@ Open a draft as the repository does. Its body has three sections, in the
 shape of [reference/evidence.md](reference/evidence.md): *what I verified,
 and how* — each claim, the probe, the receipt line; *what I am assuming
 rather than verifying*, and why that is acceptable; *limitations and risks*.
-Paste the sandbox id. Then `veris.sh sandbox delete <id>`.
+Paste the sandbox id. Then `delete_sandbox` (or `DELETE …/sandboxes/<id>`).
 
 When a step needs it: [worlds.md](reference/worlds.md), [webhooks.md](reference/webhooks.md),
 [trust.md](reference/trust.md) (an SDK refusing the proxy's certificate),

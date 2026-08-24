@@ -3,13 +3,16 @@
 Read this when the task is about a failure, or a case needs a condition the
 vendor will not produce on demand. A bad request — wrong content type,
 unknown field, bad id — gets the vendor's real error with no setup. Anything
-else is a `faults` row on the sandbox, armed with `veris.sh fault`:
+else is a `faults` row on the sandbox:
 
+```http
+POST {control_url}/veris/data
+{"data":{"faults":[{"method":"POST","path":"/v3/company/123/invoice","outcome":"hang","phase":"after","remaining":1}]}}
 ```
-veris.sh fault <sandbox> [service] <METHOD> <path> <outcome> [status] [phase] [remaining]
-veris.sh fault sb1 quickbooks POST /v3/company/123/invoice hang  0   after 1     # write commits, response lost
-veris.sh fault sb1 stripe     POST /v1/charges              error 429 before 2   # two throttles, then normal
-veris.sh fault sb1 stripe     POST /v1/charges              latency 8000        # 8 s delay
+
+```json
+{"data":{"faults":[{"method":"POST","path":"/v1/charges","outcome":"error","error":{"status":429,"code":"<listed-code>","headers":{"Retry-After":"2"}},"remaining":2}]}}
+{"data":{"faults":[{"method":"POST","path":"/v1/charges","outcome":"error","latency_ms":8000}]}}
 ```
 
 | the report says | the row |
@@ -21,15 +24,14 @@ veris.sh fault sb1 stripe     POST /v1/charges              latency 8000        
 | the request was lost before the write | `hang` with phase `before` |
 
 - `path` is the application's concrete path without scheme, host, query or
-  fragment; copy it from `veris.sh requests` when an SDK hides it.
+  fragment; copy it from `GET {control_url}/veris/requests` when an SDK hides it.
 - `remaining 1` spends the fault once. Delete persistent faults in cleanup:
   `DELETE {control_url}/veris/data` with the row's id.
-- The full row supports more than the script exposes — `match` on body or
+- A row can also carry `match` on body or
   query fields (`{"body.resource_id":"…"}`, `{"query.expand":"items"}`; the
   manual lists the keys a service supports), `error.code`, `error.headers`,
   `{"status":502,"raw":true}` for a non-JSON gateway response, and
-  `idempotency: "bind"|"unbound"` for whether an error replays on key reuse.
-  Post it yourself:
+  `idempotency: "bind"|"unbound"` for whether an error replays on key reuse:
   ```http
   POST {control_url}/veris/data
   {"data":{"faults":[{"method":"POST","path":"/vendor/path",
@@ -43,8 +45,8 @@ veris.sh fault sb1 stripe     POST /v1/charges              latency 8000        
 A fault proves nothing until the application's own code path meets it: the
 endpoint, worker, job or handler the task names — not a curl standing in for
 it. Arm the row, run that path under `veris-proxy` ([proxy.md](proxy.md)),
-then read the ledger: `veris.sh data <sandbox> <table>` shows whether the
-write landed, and `veris.sh requests` shows what the client did next. That
+then read the ledger: `GET {control_url}/veris/data?entity_type=<table>` shows whether
+the write landed, and `GET {control_url}/veris/requests` shows what the client did next. That
 before-and-after is the evidence the PR quotes.
 
 ## Credentials
@@ -61,7 +63,7 @@ PATCH {control_url}/veris/data
 and set it back to `"permissive"` when done. OAuth access and refresh tokens
 are the exception in both modes: only tokens the sandbox issued work. Run the
 application's own connect flow against the sandbox URLs, or take the seeded
-one from `veris.sh token`; never insert tokens by hand.
+one from `GET {control_url}/veris/data?entity_type=oauth_tokens`; never insert tokens by hand.
 
 ## The clock
 

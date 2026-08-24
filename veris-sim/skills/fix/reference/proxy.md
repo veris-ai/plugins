@@ -16,7 +16,7 @@ recorded default:
 
 Each run deploys a fresh sandbox of the environment, runs the command, prints
 the receipt, deletes the sandbox. It logs `sandbox ready sandbox_id=<id>`;
-`veris.sh sandbox status <id>` returns each service's `control_url`, so
+`get_sandbox` with that id returns each service's `control_url`, so
 state, faults and read-back are available for as long as the run lives. To
 seed or arm before the code runs, start a session and work inside it:
 
@@ -48,7 +48,7 @@ run:
 
 - the receipt names the service the tests were meant to reach — it counts
   every completed request to a mapped vendor host, setup traffic included;
-  the paths in `veris.sh requests` say whose it was;
+  the paths in `GET {control_url}/veris/requests` say whose it was;
 - the run executed the changed code on its way to the vendor: a flow from the
   boundary the task names, with the call the report describes, unchanged. A
   green earned by changing the caller's call proves the caller changed;
