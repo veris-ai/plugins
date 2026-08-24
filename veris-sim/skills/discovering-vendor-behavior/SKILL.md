@@ -1,6 +1,6 @@
 ---
 name: discovering-vendor-behavior
-description: Measures what an external service actually does before code is designed around it - on a repeat, a lost response, a duplicate, a limit, an expiry. Use when a design depends on how a vendor behaves, and whenever an issue, a comment, a docstring, a teammate, or your own memory asserts what a vendor does or does not support.
+description: Measures what an external service actually does before code is designed around it - on a repeat, a lost response, a duplicate, a limit, an expiry. Use when a design depends on how a vendor behaves, whenever an issue, a comment, a docstring, a teammate, or your own memory asserts what a vendor does or does not support, and before a design for a failure is fixed - the failure is made to happen here, not assumed.
 ---
 
 What Veris can tell you about a vendor, and how to ask.
@@ -27,9 +27,10 @@ code path only.
 ## What the twin can tell you
 
 If the task is about a failure — a timeout, a lost response, a retry, a
-refusal — that failure, made to happen, is the first probe. A direct call
-cannot produce it and the live vendor will not; it is the one thing the twin
-answers that documentation does not.
+refusal — make that failure happen against the environment and drive the
+change through it before the design is fixed. A direct call cannot produce
+it and the live vendor will not; a design built without producing its
+failure is unverified.
 
 | question | ask |
 |---|---|
