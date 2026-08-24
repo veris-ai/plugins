@@ -17,8 +17,10 @@ Three commands an engineer invokes with a task, plus the `veris` MCP server.
 | `build <issue link \| prompt>` | measures every vendor claim the task rests on against the twin before designing, implements, exercises the change through `veris-proxy` | every claim measured before the first source edit; a receipt from the changed flow; a PR stating what was verified and what is assumed |
 | `fix <issue link \| prompt>` | reproduces the failure the issue describes through the repository's own code before designing, fixes it, proves the same failure closed | the failure reproduced before the first source edit; the same failure re-run green with a receipt; the PR as above |
 
-Each command's directory carries a `reference/` set read only when a step
-needs it; `setup` also carries `scripts/preflight.sh`. The sandbox API is
+The reference set lives once, under `fix/reference/`, and is read only when a
+step names a file; `build` and `setup` link to it as a sibling, so install
+all three skills together. `setup` also carries `scripts/preflight.sh` and
+its own `reference/transport.md`. The sandbox API is
 called directly — the `veris` MCP tools for lifecycle, `curl` against
 `/veris/*` for the rest — with the exact calls in the references.
 

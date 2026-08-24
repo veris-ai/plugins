@@ -13,7 +13,7 @@ and the PR says so.
 quote it. Anything it states about the vendor — what it supports, what a
 field means, what a repeat does — is a **claim**, listed as such; vendor
 documentation is a claim too. No `.veris/run.sh` → stop; `setup` runs first.
-Sandbox lifecycle and every `/veris/*` call: [reference/twin.md](reference/twin.md).
+Sandbox lifecycle and every `/veris/*` call: [reference/twin.md](../fix/reference/twin.md).
 
 ## Gate 1 — every claim measured before the first source edit
 
@@ -24,12 +24,12 @@ Sandbox lifecycle and every `/veris/*` call: [reference/twin.md](reference/twin.
    names what the vendor already offers for this feature and the selector
    that makes a repeated write safe, or that none exists.
 3. For each claim: one probe against `url`, or one schema read, that answers
-   it — the questions and their asks are in [reference/twin.md](reference/twin.md).
+   it — the questions and their asks are in [reference/twin.md](../fix/reference/twin.md).
    Record the call and the answer; a measurement that contradicts the task
    is the finding, not an error.
 4. If the feature is about a failure — a lost response, a limit, a refusal —
    make it happen and drive the current code through it before designing:
-   [reference/faults.md](reference/faults.md).
+   [reference/faults.md](../fix/reference/faults.md).
 
 Write the source only after every claim has an answer.
 
@@ -49,7 +49,7 @@ pointed at a sandbox, no vendor call changed to make a test pass.
 ## Gate 3 — the change through veris-proxy, with a receipt
 
 Run the changed flow from the boundary the task names — endpoint, worker,
-handler — through `.veris/run.sh` ([reference/proxy.md](reference/proxy.md)),
+handler — through `.veris/run.sh` ([reference/proxy.md](../fix/reference/proxy.md)),
 against the conditions measured in gate 1, and read back what the vendor
 stored (`GET {control_url}/veris/data?entity_type=<table>`,
 `GET {control_url}/veris/requests`). **Not done until the receipt
@@ -59,13 +59,13 @@ by changing the caller's call proves the caller changed.
 ## The PR
 
 Open a draft as the repository does. Its body has three sections, in the
-shape of [reference/evidence.md](reference/evidence.md): *what I verified,
+shape of [reference/evidence.md](../fix/reference/evidence.md): *what I verified,
 and how* — each claim, the probe, the receipt line; *what I am assuming
 rather than verifying*, and why that is acceptable; *limitations and risks*.
 Paste the sandbox id. Then `delete_sandbox` (or `DELETE …/sandboxes/<id>`).
 
-When a step needs it: [worlds.md](reference/worlds.md), [webhooks.md](reference/webhooks.md),
-[trust.md](reference/trust.md) (an SDK refusing the proxy's certificate),
-[troubleshooting.md](reference/troubleshooting.md). Note anything the
+When a step needs it: [worlds.md](../fix/reference/worlds.md), [webhooks.md](../fix/reference/webhooks.md),
+[trust.md](../fix/reference/trust.md) (an SDK refusing the proxy's certificate),
+[troubleshooting.md](../fix/reference/troubleshooting.md). Note anything the
 sandbox got wrong or lacked and give it to the engineer at the end. Ask
 before sending repository code anywhere new. Never promote a sandbox.
