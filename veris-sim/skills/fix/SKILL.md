@@ -13,7 +13,7 @@ and the PR says so.
 quote it. Name the failure in one sentence: what the vendor did, what the
 code did next. Anything the issue states about the vendor — what it
 supports, why it fails, what a field means — is a **claim**, the diagnosis
-included. No `.veris/run.sh` → stop; `setup` runs first. Sandbox
+included. No `.veris/run.sh` and no direct-tier `.veris/setup.json` → stop; `setup` runs first. A `setup.json` with `"tier": "direct"` replaces `run.sh`: run the flow directly against the wired sandbox and read the trace where a gate reads the receipt ([direct.md](../setup/reference/direct.md)). Sandbox
 lifecycle and every `/veris/*` call: [reference/twin.md](../veris-reference/twin.md).
 
 ## Gate 1 — the failure reproduced before the first source edit

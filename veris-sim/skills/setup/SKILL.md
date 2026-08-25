@@ -20,14 +20,17 @@ still holds. Two transports, one contract each:
   [reference/direct.md](reference/direct.md) carries the contract; step 2
   gates entry. Leaves `.veris/setup.json` with `"tier": "direct"`.
 
-`scripts/preflight.sh` in this skill's directory checks the preconditions
-(`--direct` skips the binary/docker/image checks). An environment id given
+`scripts/preflight.sh` in this skill's directory checks the preconditions —
+invoked as `sh scripts/preflight.sh --direct [env-id]` under the direct
+tier, which skips the binary/docker/image checks; without the flag it
+requires all three. An environment id given
 with the command overrides `VERIS_ENVIRONMENT_ID`; service names given with
 the command seed the step-3 create question.
 
 ## 1. Credential
 
-`sh scripts/preflight.sh` reports the credential first. If `VERIS_API_KEY` is not
+`sh scripts/preflight.sh` (with `--direct` first when that tier was
+requested) reports the credential first. If `VERIS_API_KEY` is not
 set, say exactly this and end the turn:
 
 > Run this in your terminal, then tell me when it's done:

@@ -61,4 +61,12 @@ if [ "$direct" != 1 ] && [ -f .veris/setup.json ]; then
   fi
 fi
 
-[ -f .veris/run.sh ] && ok run.sh ".veris/run.sh recorded" || printf 'preflight: %-12s not yet recorded\n' run.sh
+if [ "$direct" = 1 ]; then
+  if [ -f .veris/setup.json ] && grep -q '"tier"[[:space:]]*:[[:space:]]*"direct"' .veris/setup.json; then
+    ok setup ".veris/setup.json (direct tier)"
+  else
+    printf 'preflight: %-12s not yet recorded (direct tier writes .veris/setup.json, no run.sh)\n' setup
+  fi
+else
+  [ -f .veris/run.sh ] && ok run.sh ".veris/run.sh recorded" || printf 'preflight: %-12s not yet recorded\n' run.sh
+fi
