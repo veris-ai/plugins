@@ -96,12 +96,17 @@ Container tier: write `.veris/run.sh` and `.veris/setup.json`:
 set -eu
 if [ -n "${VERIS_SANDBOX_ID:-}" ]; then target="--sandbox $VERIS_SANDBOX_ID"
 else target="--environment ${VERIS_ENVIRONMENT_ID:?}"; fi
-run() { exec veris-proxy run $target --image myrepo-veris-tests -v "$PWD:/work" -w /work "$@"; }
+run() { exec veris-proxy run $target --image myrepo-veris-tests -v "$PWD:/app" -v /app/node_modules -w /app "$@"; }
 for arg in "$@"; do [ "$arg" = "--" ] && run "$@"; done
 run "$@" -- make integration
 ```
 
-Mounts stay under the repository tree or a known dependency cache. Tell the
+Mount the repository over the directory the image installs the application
+into (`WORKDIR`), not beside it, so an edited file is the one that runs. If
+the image installs dependencies inside that directory, the mount hides them:
+name the dependency path as a bare `-v` (`-v /app/node_modules`,
+`-v /app/.venv`, `-v /app/vendor`) and the image's copy survives. Mount
+nothing outside the repository tree or a known dependency cache. Tell the
 engineer both files exist and are worth committing.
 
 ## 6. Prove it
