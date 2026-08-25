@@ -9,13 +9,14 @@ production hostnames, credentials and client stack, and ends each run with a
 
 ## veris-sim
 
-Three commands an engineer invokes with a task, plus the `veris` MCP server.
+Four commands an engineer invokes with a task, plus the `veris` MCP server.
 
 | command | what it does | not done until |
 |---|---|---|
 | `setup` | wires the repository to an environment, once: credential, `veris-proxy`, docker, environment, a test image, `.veris/run.sh` | a smoke run's receipt names the service |
 | `build <issue link \| prompt>` | measures every vendor claim the task rests on against the twin before designing, implements, exercises the change through `veris-proxy` | every claim measured before the first source edit; a receipt from the changed flow; a PR stating what was verified and what is assumed |
 | `fix <issue link \| prompt>` | reproduces the failure the issue describes through the repository's own code before designing, fixes it, proves the same failure closed | the failure reproduced before the first source edit; the same failure re-run green with a receipt; the PR as above |
+| `test [test file \| pattern \| -- command]` | runs the named test — or, unnamed, every test that reaches the vendor — through `veris-proxy`, one run per test | every candidate has a verdict: proven against the twin, never reached the vendor, or red with the twin's ledger |
 
 The reference set lives once, in `veris-reference/` — a directory with a
 `SKILL.md` nobody can invoke, so both installers copy it — and is read only
@@ -41,6 +42,7 @@ Then, in a repository:
 /veris-sim:setup
 /veris-sim:build https://github.com/org/repo/issues/42
 /veris-sim:fix   "create_invoice duplicates the invoice when the response is lost"
+/veris-sim:test  tests/integration/create-invoice-retry.test.ts
 ```
 
 Codex: the same directory is a Codex plugin (`veris-sim/.codex-plugin/plugin.json`);
@@ -54,7 +56,7 @@ env_http_headers = { "X-API-Key" = "VERIS_API_KEY" }
 ```
 
 Codex mentions skills rather than namespacing them: `$setup`, `$build <issue
-link or prompt>`, `$fix <issue link or prompt>`. Everything else is the same
+link or prompt>`, `$fix <issue link or prompt>`, `$test [test]`. Everything else is the same
 files.
 
 Any of 76+ agents, through the `skills` CLI:
@@ -72,6 +74,9 @@ it is set. The skill writes the key nowhere; the MCP server reads the
 environment at session start, so restart the agent after setting it.
 
 ### Versions
+
+0.3.0 — `test`: run one named test, or every test that reaches the vendor,
+through `veris-proxy`, with a per-test verdict on whether it reached the twin.
 
 0.2.1 — `setup` names the services it inferred when asking to create an
 environment; the reply may add or drop names.
