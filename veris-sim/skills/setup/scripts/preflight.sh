@@ -3,8 +3,9 @@
 # at the first one that fails. Run by /veris-sim:setup; run it before every
 # session rather than trusting that setup still holds.
 #
-#   scripts/preflight.sh            # uses VERIS_ENVIRONMENT_ID and .veris/setup.json
-#   scripts/preflight.sh <env-id>   # checks a different environment
+#   scripts/preflight.sh                      # uses VERIS_ENVIRONMENT_ID and .veris/setup.json
+#   scripts/preflight.sh <env-id>             # checks a different environment
+#   scripts/preflight.sh --direct [<env-id>]  # direct tier: credential + environment only
 set -u
 
 fail() { printf 'preflight: %s — %s\n' "$1" "$2" >&2; exit 2; }
@@ -13,10 +14,16 @@ ok()   { printf 'preflight: %-12s ok%s\n' "$1" "${2:+ ($2)}"; }
 base="${VERIS_API_BASE:-https://svc.api.veris.ai}"
 base="${base%/}"
 
+direct=0
+if [ "${1:-}" = "--direct" ]; then direct=1; shift; fi
+
 [ -n "${VERIS_API_KEY:-}" ] \
   || fail credential "VERIS_API_KEY is not set in this shell"
 ok credential
 
+if [ "$direct" = 1 ]; then
+  printf 'preflight: %-12s direct tier — binary/docker/image not required\n' transport
+else
 command -v veris-proxy >/dev/null 2>&1 && veris-proxy version >/dev/null 2>&1 \
   || fail binary "veris-proxy is not on PATH or does not run; ask the user, then: curl -fsSL https://raw.githubusercontent.com/veris-ai/veris-proxy/main/scripts/install.sh | sh  (a static binary into ~/.local/bin, no root)"
 ok binary "$(veris-proxy version 2>/dev/null | head -1)"
@@ -24,6 +31,7 @@ ok binary "$(veris-proxy version 2>/dev/null | head -1)"
 docker version >/dev/null 2>&1 \
   || fail docker "no docker daemon reachable (local socket or DOCKER_HOST); start one. The proxy image is pulled with a logged-in gcloud (gcloud auth login; on 401: gcloud auth configure-docker us-central1-docker.pkg.dev). No daemon reachable from here: stop and tell the user"
 ok docker
+fi
 
 env_id="${1:-${VERIS_ENVIRONMENT_ID:-}}"
 [ -n "$env_id" ] \
@@ -39,7 +47,7 @@ case "$body" in
   *) ok environment "$env_id, no promoted world — every sandbox boots the default world" ;;
 esac
 
-if [ -f .veris/setup.json ]; then
+if [ "$direct" != 1 ] && [ -f .veris/setup.json ]; then
   image="$(sed -n 's/.*"image"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' .veris/setup.json | head -1)"
   dockerfile="$(sed -n 's/.*"dockerfile"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' .veris/setup.json | head -1)"
   # A stock image is pulled by the run itself; only a tag built from a
