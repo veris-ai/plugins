@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Wire this repository to a Veris environment, once - the credential, the environment, the transport (veris-proxy + docker, or --direct for apps whose config carries the base URLs), and one smoke run with proof of arrival. Run before build or fix.
+description: Wire this repository to a Veris environment, once - the credential, the environment, the transport (veris-proxy + docker, or --direct for apps whose config carries the base URLs), and one smoke run with proof of arrival. Run before build or fix. Run when the engineer names this command.
 argument-hint: "[environment-id | service names...] [--direct]"
 disable-model-invocation: true
 ---
