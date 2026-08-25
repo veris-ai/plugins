@@ -13,7 +13,7 @@ Four commands an engineer invokes with a task, plus the `veris` MCP server.
 
 | command | what it does | not done until |
 |---|---|---|
-| `setup` | wires the repository to an environment, once: credential, `veris-proxy`, docker, environment, a test image, `.veris/run.sh` | a smoke run's receipt names the service |
+| `setup` | wires the repository to an environment, once: credential, environment, transport (proxy+docker, or `--direct` where the app's config carries the base URLs) | a smoke run's receipt — or, direct tier, the twin's trace — names the service |
 | `build <issue link \| prompt>` | measures every vendor claim the task rests on against the twin before designing, implements, exercises the change through `veris-proxy` | every claim measured before the first source edit; a receipt from the changed flow; a PR stating what was verified and what is assumed |
 | `fix <issue link \| prompt>` | reproduces the failure the issue describes through the repository's own code before designing, fixes it, proves the same failure closed | the failure reproduced before the first source edit; the same failure re-run green with a receipt; the PR as above |
 | `test [test file \| pattern \| -- command]` | runs the named test — or, unnamed, every test that reaches the vendor — through `veris-proxy`, one run per test | every candidate has a verdict: proven against the twin, never reached the vendor, or red with the twin's ledger |
@@ -74,6 +74,13 @@ it is set. The skill writes the key nowhere; the MCP server reads the
 environment at session start, so restart the agent after setting it.
 
 ### Versions
+
+0.4.0 — `setup --direct`: a direct-connection tier for applications whose
+config reads each service base URL from its `env_hint` variable — the
+shipped path on platforms without docker (Replit, most PaaS). Trust anchor
+becomes the twin's request trace instead of the proxy receipt;
+`reference/direct.md` carries the contract. `setup` also accepts service
+names to seed environment creation.
 
 0.3.0 — `test`: run one named test, or every test that reaches the vendor,
 through `veris-proxy`, with a per-test verdict on whether it reached the twin.

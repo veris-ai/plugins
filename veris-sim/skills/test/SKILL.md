@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 Run tests through the twin. The request that accompanied this invocation
 names a test — a file, a name pattern, or a full command after `--` — or
-names nothing. No `.veris/run.sh` → stop; `setup` runs first. Read
+names nothing. No `.veris/run.sh` and no direct-tier `.veris/setup.json` → stop; `setup` runs first. A `setup.json` with `"tier": "direct"` replaces `run.sh`: run the flow directly against the wired sandbox and read the trace where a gate reads the receipt ([direct.md](../setup/reference/direct.md)). Read
 `.veris/setup.json`: `test_command` is the runner the repository uses.
 
 ## 1. What to run

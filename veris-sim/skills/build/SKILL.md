@@ -12,7 +12,7 @@ and the PR says so.
 **The task.** A GitHub reference → `gh issue view <ref> --json title,body,comments`;
 quote it. Anything it states about the vendor — what it supports, what a
 field means, what a repeat does — is a **claim**, listed as such; vendor
-documentation is a claim too. No `.veris/run.sh` → stop; `setup` runs first.
+documentation is a claim too. No `.veris/run.sh` and no direct-tier `.veris/setup.json` → stop; `setup` runs first. A `setup.json` with `"tier": "direct"` replaces `run.sh`: run the flow directly against the wired sandbox and read the trace where a gate reads the receipt ([direct.md](../setup/reference/direct.md)).
 Sandbox lifecycle and every `/veris/*` call: [reference/twin.md](../veris-reference/twin.md).
 
 ## Gate 1 — every claim measured before the first source edit
