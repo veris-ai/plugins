@@ -43,24 +43,37 @@ Then, in a repository:
 /veris-sim:fix   "create_invoice duplicates the invoice when the response is lost"
 ```
 
-Codex: the same directory is a Codex plugin (`veris-sim/.codex-plugin/plugin.json`);
-the skills install into `.agents/skills` with the command below, and the MCP
-server is configured in `~/.codex/config.toml`:
+Codex reads the same marketplace (measured with Codex 0.149):
+
+```
+codex plugin marketplace add veris-ai/plugins
+codex plugin add veris-sim@veris
+```
+
+That installs the commands and registers the `veris` MCP server from
+`veris-sim/.codex-mcp.json`; the server reads `VERIS_API_KEY` from your
+environment. Its URL is literal, because Codex expands no variables — for a
+control plane other than production, override it in `~/.codex/config.toml`,
+where a `[mcp_servers.veris]` block wins over the plugin's.
+Codex names plugin commands after the plugin, so ask for them by name:
+`$veris-sim:setup`, `$veris-sim:build <issue link or prompt>`,
+`$veris-sim:fix <issue link or prompt>`. Installed through the `skills` CLI
+instead, they are `$setup`, `$build …`, `$fix …`.
+
+Any of 76+ agents, through the `skills` CLI:
+
+```
+npx skills add veris-ai/plugins --all
+```
+
+`--all` takes every skill without the picker; without it the command is
+interactive. This path does not register the MCP server — add it to
+`~/.codex/config.toml` (or your agent's equivalent) yourself:
 
 ```toml
 [mcp_servers.veris]
 url = "https://svc.api.veris.ai/mcp"
 env_http_headers = { "X-API-Key" = "VERIS_API_KEY" }
-```
-
-Codex mentions skills rather than namespacing them: `$setup`, `$build <issue
-link or prompt>`, `$fix <issue link or prompt>`. Everything else is the same
-files.
-
-Any of 76+ agents, through the `skills` CLI:
-
-```
-npx skills add veris-ai/plugins
 ```
 
 ### The credential
@@ -72,6 +85,13 @@ it is set. The skill writes the key nowhere; the MCP server reads the
 environment at session start, so restart the agent after setting it.
 
 ### Versions
+
+0.4.2 — Codex fixes measured in a clean box: the commands are listed to the
+model (a skill Codex is told never to invoke implicitly is not shown at all,
+so naming it did nothing), and Codex gets its own `.codex-mcp.json` — it
+expands neither `${VAR:-default}` nor Claude's `headers` key, so the server
+it registered from `.mcp.json` had an unreachable host and no API key.
+`codex plugin marketplace add` is the install path.
 
 0.4.1 — `test` removed: the suites it would run are mocked, so it reduced to
 setup's smoke run; `build` and `fix` write the vendor-reaching test in their gate.
