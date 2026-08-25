@@ -61,10 +61,11 @@ and environment checks run unchanged.
 
 `VERIS_ENVIRONMENT_ID` set → `GET $VERIS_API_BASE/v1/environments/$VERIS_ENVIRONMENT_ID`
 (`X-API-Key`; or the `get_environment` MCP tool) must list the services this code
-calls. Not set → `GET $VERIS_API_BASE/v1/environments` lists the engineer's;
-ask which. Create one only after asking, and in the question name the
-services you inferred from the code — the reply may add or drop names;
-check each against `GET /v1/services`, the catalogue. Then
+calls. Not set → `GET $VERIS_API_BASE/v1/environments` and keep the ones
+listing every service the code calls. **Exactly one → use it**, and name it
+in your report; several → ask which; none → ask before creating, and in the
+question name the services you inferred from the code — the reply may add or
+drop names; check each against `GET /v1/services`, the catalogue. Then
 `POST /v1/environments` `{"name":…,"services":[…]}`.
 
 ## 4. Image (container tier)
