@@ -1,6 +1,7 @@
 {
   "name": "veris-sim",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Test an application against Veris - stateful twins of the external services it calls. Three commands: setup (wire a repo once), build <issue|prompt> (measure the vendor before designing, prove the change through veris-proxy), fix <issue|prompt> (reproduce the failure first, prove it closed). Plus the veris MCP server.",
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "mcpServers": "./.codex-mcp.json"
 }
