@@ -17,6 +17,9 @@ Sandbox lifecycle and every `/veris/*` call: [reference/twin.md](../veris-refere
 
 ## Gate 1 — every claim measured before the first source edit
 
+0. `.veris/NOTES.md`, if present — what setup and earlier tasks already
+   measured about this environment; do not re-measure it. Append anything
+   measured in this task that outlives it.
 1. `create_sandbox` (MCP), or `POST $VERIS_API_BASE/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes`
    with `{"ttl_minutes":60}`; then `get_sandbox` until `status` is `ready` —
    one sandbox for this whole task; keep its id and each service's `control_url`.
@@ -27,7 +30,11 @@ Sandbox lifecycle and every `/veris/*` call: [reference/twin.md](../veris-refere
    excludes, the twin will refuse (`feature_not_supported`): one manual
    read answers in seconds what a chain of probes answers one refusal at a
    time, and an excluded surface is a finding for the engineer, not a wall
-   to probe around.
+   to probe around. The manual and the schema together are the complete
+   statement of what the twin models: a capability absent from both is
+   absent from the twin — record it as unsupported, cover that side by the
+   repository's own test conventions, report the gap, and never probe
+   endpoint by endpoint to rediscover an absence.
 3. The world. A sandbox boots the environment's default world, and the code
    path needs rows in it — the customer an invoice references, the account a
    charge posts to. `GET {control_url}/veris/data?entity_type=<table>` shows what
@@ -61,7 +68,11 @@ rests on, and why it is one, in the PR.
 ## Implement
 
 As the repository does it: its test conventions, its coverage gate, nothing
-pointed at a sandbox, no vendor call changed to make a test pass.
+pointed at a sandbox, no vendor call changed to make a test pass. The
+repository's full test gate runs once: backgrounded, no self-imposed
+timeout, polled to completion, its result read before the PR is written.
+Never kill a running suite to relaunch it; never report a result that was
+not read.
 
 ## Gate 3 — the change through veris-proxy, with a receipt
 
@@ -80,7 +91,9 @@ Open a draft as the repository does. Its body has three sections, in the
 shape of [reference/evidence.md](../veris-reference/evidence.md): *what I verified,
 and how* — each claim, the probe, the receipt line; *what I am assuming
 rather than verifying*, and why that is acceptable; *limitations and risks*.
-Paste the sandbox id. Then `delete_sandbox` (or `DELETE …/sandboxes/<id>`).
+Every task premise measured false is its own line in the body — the
+premise, the probe, the answer — and is never restated as fact after that
+measurement, in prose, code, or a name. Paste the sandbox id. Then `delete_sandbox` (or `DELETE …/sandboxes/<id>`).
 
 When a step needs it: [worlds.md](../veris-reference/worlds.md), [webhooks.md](../veris-reference/webhooks.md),
 [trust.md](../veris-reference/trust.md) (an SDK refusing the proxy's certificate),

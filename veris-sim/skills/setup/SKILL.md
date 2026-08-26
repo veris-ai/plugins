@@ -117,7 +117,13 @@ trace shows the application's own calls with a count above zero** — a green
 smoke with an empty trace means the app called the real vendor, not the
 sandbox. A certificate error against a mapped host is an SDK bundling its own
 CA — [../veris-reference/trust.md](../veris-reference/trust.md); other signals —
-[../veris-reference/troubleshooting.md](../veris-reference/troubleshooting.md). Report the
+[../veris-reference/troubleshooting.md](../veris-reference/troubleshooting.md).
+
+Either tier: alongside `.veris/setup.json`, write `.veris/NOTES.md` — what
+this session measured about the environment that a later task will need: a
+capability the twin lacks, a fact about the world's data, a matching or
+identity quirk, anything the twin got wrong. `build` and `fix` read it
+first; a fact left only in this transcript dies with it. Report the
 receipt line and stop: `build` or `fix` takes the task.
 
 Ask before installing the binary or sending repository code anywhere new.
