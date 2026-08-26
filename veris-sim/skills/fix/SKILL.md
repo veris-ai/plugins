@@ -38,7 +38,7 @@ does — the trigger is the boundary, never self-assessed obviousness.
 0. `.veris/NOTES.md`, if present — what setup and earlier tasks already
    measured about this environment; do not re-measure it. Append anything
    measured in this task that outlives it.
-1. `create_sandbox` (MCP), or `POST $VERIS_API_BASE/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes`
+1. `create_sandbox` (MCP), or `POST ${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes`
    with `{"ttl_minutes":60}`; then `get_sandbox` until `status` is `ready` —
    one sandbox for this whole task; keep its id and each service's `control_url`.
    A sandbox or proxy session kept alive from an earlier run is a net

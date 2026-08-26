@@ -60,10 +60,10 @@ by who should start from it:
   silently change what every other suite starts from.
 
   ```sh
-  curl -X POST "$VERIS_API_BASE/v1/environments/$VERIS_ENVIRONMENT_ID/snapshots" \
+  curl -X POST "${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/snapshots" \
     -H "X-API-Key: $VERIS_API_KEY" -H 'Content-Type: application/json' \
     -d '{"sandbox_id":"'"$SANDBOX_ID"'","name":"expired-trial"}'
-  curl -s "$VERIS_API_BASE/v1/environments/$VERIS_ENVIRONMENT_ID/snapshots" -H "X-API-Key: $VERIS_API_KEY"
+  curl -s "${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/snapshots" -H "X-API-Key: $VERIS_API_KEY"
   ```
 
   Many snapshots per environment; the default boot is unchanged.

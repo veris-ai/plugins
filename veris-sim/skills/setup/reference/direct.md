@@ -26,7 +26,7 @@ that is a container-tier signal, not a reason to fork the app's HTTP layer.
 ## Wiring
 
 1. `create_sandbox` (MCP) or
-   `POST $VERIS_API_BASE/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes`;
+   `POST ${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes`;
    poll to `ready`.
 2. `get_sandbox` lists each service's `env_hint` and `url`. Set each
    variable wherever the application's environment actually comes from — a
