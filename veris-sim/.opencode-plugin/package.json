@@ -1,0 +1,36 @@
+{
+  "name": "opencode-veris-sim",
+  "version": "0.6.1",
+  "description": "Test an application against Veris - stateful twins of the external services it calls. Three commands: setup (wire a repo once), build <issue|prompt> (measure the vendor before designing, prove the change through veris-proxy), fix <issue|prompt> (reproduce the failure first, prove it closed). Plus the veris MCP server.",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    "./server": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "skills",
+    "README.md"
+  ],
+  "scripts": {
+    "prepack": "rm -rf skills && cp -R ../skills ./skills"
+  },
+  "engines": {
+    "opencode": ">=1.16 <2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/veris-ai/plugins.git",
+    "directory": "veris-sim/.opencode-plugin"
+  },
+  "author": "Veris (https://veris.ai)",
+  "license": "Apache-2.0",
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "veris",
+    "integration-testing",
+    "sandbox",
+    "mcp"
+  ]
+}
