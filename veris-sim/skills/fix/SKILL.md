@@ -98,7 +98,19 @@ Before the fix keys, looks up, or dedupes on any field, read that field's
 rule in `GET {control_url}/veris/schema` (the table's description). A field the vendor accepts
 twice for distinct records is not an identity; a fix anchored on it trades
 one failure for another. Name the field the fix rests on, and why it is
-one, in the PR. Questions and their asks: [reference/twin.md](../veris-reference/twin.md).
+one, in the PR.
+
+A key the fix *computes* — parts joined, a value normalized, truncated or
+hashed — has no row in the schema to read: the collision lives in the
+derivation, not in the vendor's fields, and the schema read cannot clear
+it. Prove the derivation instead. Construct two inputs the code must keep
+apart that it maps to the same key — parts that regroup across the join
+(`a`+`bc` against `ab`+`c`), a pair the normalizer folds together, two
+values that agree up to the truncation — drive both through the same path,
+and count the rows the vendor stored. Two rows is the answer; one is the
+fix's own defect, caught before it ships. The derivation, the pair and the
+count go in the PR beside the field. Questions and their asks:
+[reference/twin.md](../veris-reference/twin.md).
 
 ## Implement
 
@@ -116,6 +128,15 @@ Re-arm the same fault; drive the same code path through `.veris/run.sh`
 request to the service from that run and the ledger shows the outcome the
 fix promises** — one row where there were two, the write recovered, the
 state right. Red before, green after, same flow: that is the proof.
+
+One green proves one path. Before the PR, list every entry point that
+reaches the lines you changed — grep the changed symbols for their callers,
+and the constants those callers branch on, out to the endpoints, workers,
+handlers and jobs that own them — and say which of them this run actually
+drove. The ones it did not are not covered: they belong under *limitations
+and risks*, named, with what a caller reaching the fix that way would still
+get. A shared helper reached three ways and driven once is a fix for one
+third of the defect.
 
 ## The PR
 

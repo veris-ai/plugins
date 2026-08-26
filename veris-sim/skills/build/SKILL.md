@@ -78,6 +78,17 @@ twice for distinct records is not an identity; a design anchored on it
 collapses two real records or misses a repeat. Name the field the design
 rests on, and why it is one, in the PR.
 
+A key the design *computes* — parts joined, a value normalized, truncated
+or hashed — has no row in the schema to read: the collision lives in the
+derivation, not in the vendor's fields, and the schema read cannot clear
+it. Prove the derivation instead. Construct two inputs the code must keep
+apart that it maps to the same key — parts that regroup across the join
+(`a`+`bc` against `ab`+`c`), a pair the normalizer folds together, two
+values that agree up to the truncation — drive both through the same path,
+and count the rows the vendor stored. Two rows is the answer; one is the
+design's own defect, caught before it ships. The derivation, the pair and
+the count go in the PR beside the field.
+
 ## Implement
 
 As the repository does it: its test conventions, its coverage gate, nothing
@@ -97,6 +108,15 @@ stored (`GET {control_url}/veris/data?entity_type=<table>`,
 `GET {control_url}/veris/requests`). **Not done until the receipt
 shows at least one request to the service from that run.** A green earned
 by changing the caller's call proves the caller changed.
+
+One green proves one path. Before the PR, list every entry point that
+reaches the lines you changed — grep the changed symbols for their callers,
+and the constants those callers branch on, out to the endpoints, workers,
+handlers and jobs that own them — and say which of them this run actually
+drove. The ones it did not are not covered: they belong under *limitations
+and risks*, named, with what a caller reaching the change that way would
+still get. A shared helper reached three ways and driven once is a change
+proved one third of the way.
 
 ## The PR
 
