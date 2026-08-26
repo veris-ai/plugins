@@ -16,8 +16,18 @@ supports, why it fails, what a field means — is a **claim**, the diagnosis
 included. No `.veris/run.sh` and no direct-tier `.veris/setup.json` → stop; `setup` runs first. A `setup.json` with `"tier": "direct"` replaces `run.sh`: run the flow directly against the wired sandbox and read the trace where a gate reads the receipt ([direct.md](../setup/reference/direct.md)). Sandbox
 lifecycle and every `/veris/*` call: [reference/twin.md](../veris-reference/twin.md).
 
+**The diagnosis.** Before any sandbox: read the code path the issue names
+and enumerate every distinct defect that could produce the symptom — the
+vendor's failures and the repository's own (state lost between requests, a
+queue, a cache, a race), which no twin can represent. The manual's fault
+catalog is one hypothesis source, never the selector: the twin confirms a
+diagnosis chosen from code evidence, it does not choose it.
+
 ## Gate 1 — the failure reproduced before the first source edit
 
+0. `.veris/NOTES.md`, if present — what setup and earlier tasks already
+   measured about this environment; do not re-measure it. Append anything
+   measured in this task that outlives it.
 1. `create_sandbox` (MCP), or `POST $VERIS_API_BASE/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes`
    with `{"ttl_minutes":60}`; then `get_sandbox` until `status` is `ready` —
    one sandbox for this whole task; keep its id and each service's `control_url`.
@@ -28,7 +38,11 @@ lifecycle and every `/veris/*` call: [reference/twin.md](../veris-reference/twin
    excludes, the twin will refuse (`feature_not_supported`): one manual read
    answers in seconds what a chain of probes answers one refusal at a time,
    and an excluded surface is a finding for the engineer, not a wall to
-   probe around.
+   probe around. The manual and the schema together are the complete
+   statement of what the twin models: a capability absent from both is
+   absent from the twin — record it as unsupported, cover that side by the
+   repository's own test conventions, report the gap, and never probe
+   endpoint by endpoint to rediscover an absence.
 3. The world. A sandbox boots the environment's default world, and the code
    path needs rows in it — the customer an invoice references, the account a
    charge posts to. `GET {control_url}/veris/data?entity_type=<table>` shows what
@@ -42,10 +56,13 @@ lifecycle and every `/veris/*` call: [reference/twin.md](../veris-reference/twin
    sandbox. A call that fails because a row was absent is not the
    failure the issue describes. The world dies with its sandbox — resetting one, or
    keeping one: [reference/worlds.md](../veris-reference/worlds.md).
-4. Make the failure happen. The vendor will not produce it on demand; the
-   twin will: arm a `faults` row in the shape
+4. Make the failure happen. The vendor will not produce it on demand. A
+   vendor-side defect: arm a `faults` row in the shape
    [reference/faults.md](../veris-reference/faults.md) gives for what the issue
-   reports, then drive the **repository's own code path** — the endpoint,
+   reports. A repository-side defect no fault can produce: reproduce it
+   through the application's own state — and when the twin cannot
+   represent it at all, that report is the Gate-1 outcome, not a reason to
+   switch diagnoses. Either way, drive the **repository's own code path** — the endpoint,
    worker or handler the issue names, unchanged — through it under
    `.veris/run.sh` with `VERIS_SANDBOX_ID` set to this sandbox
    ([reference/proxy.md](../veris-reference/proxy.md)).
@@ -67,7 +84,11 @@ one, in the PR. Questions and their asks: [reference/twin.md](../veris-reference
 ## Implement
 
 As the repository does it: its test conventions, its coverage gate, nothing
-pointed at a sandbox, no vendor call changed to make a test pass.
+pointed at a sandbox, no vendor call changed to make a test pass. The
+repository's full test gate runs once: backgrounded, no self-imposed
+timeout, polled to completion, its result read before the PR is written.
+Never kill a running suite to relaunch it; never report a result that was
+not read.
 
 ## Gate 3 — the same failure, closed, with a receipt
 
@@ -84,7 +105,9 @@ shape of [reference/evidence.md](../veris-reference/evidence.md): *what I verifi
 and how* — the fault armed, the before ledger, the after ledger, the receipt
 line; *what I am assuming rather than verifying*, and why that is
 acceptable; *limitations and risks* — including what a caller could still do
-wrong. Paste the sandbox id. Then `delete_sandbox` (or `DELETE …/sandboxes/<id>`).
+wrong. Every task premise measured false is its own line in the body — the
+premise, the probe, the answer — and is never restated as fact after that
+measurement, in prose, code, or a name. Paste the sandbox id. Then `delete_sandbox` (or `DELETE …/sandboxes/<id>`).
 
 When a step needs it: [worlds.md](../veris-reference/worlds.md), [webhooks.md](../veris-reference/webhooks.md),
 [trust.md](../veris-reference/trust.md) (an SDK refusing the proxy's certificate),
