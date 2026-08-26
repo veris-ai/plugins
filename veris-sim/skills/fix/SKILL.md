@@ -21,9 +21,14 @@ lifecycle and every `/veris/*` call: [reference/twin.md](../veris-reference/twin
 1. `create_sandbox` (MCP), or `POST $VERIS_API_BASE/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes`
    with `{"ttl_minutes":60}`; then `get_sandbox` until `status` is `ready` —
    one sandbox for this whole task; keep its id and each service's `control_url`.
-2. `GET {control_url}/veris/manual` — the service's own notes, read whole once. It
-   says what the vendor offers for exactly this — a retry selector, a limit,
-   a rule — or that nothing does; that is the first claim to check.
+2. `GET {control_url}/veris/manual` — the service's own notes, read whole,
+   **before any other call to the twin, the schema included**. It says what
+   the vendor offers for exactly this — a retry selector, a limit, a rule —
+   or that nothing does; that is the first claim to check. What the manual
+   excludes, the twin will refuse (`feature_not_supported`): one manual read
+   answers in seconds what a chain of probes answers one refusal at a time,
+   and an excluded surface is a finding for the engineer, not a wall to
+   probe around.
 3. The world. A sandbox boots the environment's default world, and the code
    path needs rows in it — the customer an invoice references, the account a
    charge posts to. `GET {control_url}/veris/data?entity_type=<table>` shows what
