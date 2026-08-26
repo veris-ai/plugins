@@ -12,8 +12,18 @@ and the PR says so.
 **The task.** A GitHub reference → `gh issue view <ref> --json title,body,comments`;
 quote it. Anything it states about the vendor — what it supports, what a
 field means, what a repeat does — is a **claim**, listed as such; vendor
-documentation is a claim too. No `.veris/run.sh` and no direct-tier `.veris/setup.json` → stop; `setup` runs first. A `setup.json` with `"tier": "direct"` replaces `run.sh`: run the flow directly against the wired sandbox and read the trace where a gate reads the receipt ([direct.md](../setup/reference/direct.md)).
+documentation is a claim too. Bulk reconnaissance — a wide code survey, a
+large data census — belongs in a delegated subagent when one is available,
+so this session's context stays small. No `.veris/run.sh` and no direct-tier `.veris/setup.json` → stop; `setup` runs first. A `setup.json` with `"tier": "direct"` replaces `run.sh`: run the flow directly against the wired sandbox and read the trace where a gate reads the receipt ([direct.md](../setup/reference/direct.md)).
 Sandbox lifecycle and every `/veris/*` call: [reference/twin.md](../veris-reference/twin.md).
+
+**The boundary.** Once the claims are listed, name where the vendor
+boundary sits in this task. A feature internal to the repository, with no
+vendor claim load-bearing: say so, verify by the repository's own test
+conventions, and spend the twin on one end-to-end confirmation of the
+changed flow instead of the full gate sequence. Spend the full gates where
+the task rests on what the vendor does — the trigger is the boundary,
+never self-assessed obviousness.
 
 ## Gate 1 — every claim measured before the first source edit
 
@@ -23,6 +33,9 @@ Sandbox lifecycle and every `/veris/*` call: [reference/twin.md](../veris-refere
 1. `create_sandbox` (MCP), or `POST $VERIS_API_BASE/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes`
    with `{"ttl_minutes":60}`; then `get_sandbox` until `status` is `ready` —
    one sandbox for this whole task; keep its id and each service's `control_url`.
+   A sandbox or proxy session kept alive from an earlier run is a net
+   save — reuse it, reading from the ledger what per-run receipt lines
+   would have shown.
 2. `GET {control_url}/veris/manual` — the service's own notes, read whole,
    **before any other call to the twin, the schema included**. It names
    what the vendor already offers for this feature and the selector that
