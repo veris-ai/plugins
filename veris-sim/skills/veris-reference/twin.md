@@ -2,7 +2,7 @@
 
 Read this when a design rests on a claim about the vendor, or when you need
 to see what the vendor actually did. Every `/veris/*` call goes to a
-service's `control_url` (from `get_sandbox`, or `GET $VERIS_API_BASE/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes/<id>`
+service's `control_url` (from `get_sandbox`, or `GET ${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes/<id>`
 with `X-API-Key`; it equals `url` for
 HTTP services). The application under test never calls `/veris/*` — only
 your probes, setup and read-back do.
@@ -24,12 +24,13 @@ MCP tools: `create_sandbox` → `get_sandbox` until `status` is `ready` →
 `delete_sandbox`. Over REST, with `X-API-Key: $VERIS_API_KEY`:
 
 ```
-POST   $VERIS_API_BASE/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes   {"ttl_minutes":60}
-GET    $VERIS_API_BASE/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes/<id>   until "status":"ready" ("failed" never becomes ready)
-DELETE $VERIS_API_BASE/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes/<id>
+POST   ${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes   {"ttl_minutes":60}
+GET    ${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes/<id>   until "status":"ready" ("failed" never becomes ready)
+DELETE ${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes/<id>
 ```
 
-`$VERIS_API_BASE` defaults to `https://svc.api.veris.ai`.
+Set `VERIS_API_BASE` only to aim at a control plane other than production;
+every command here already carries the default.
 
 Getting the rows a case needs into the world, and what becomes of
 them: [worlds.md](worlds.md).

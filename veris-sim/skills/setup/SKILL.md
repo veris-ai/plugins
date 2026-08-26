@@ -59,9 +59,9 @@ and environment checks run unchanged.
 
 ## 3. Environment
 
-`VERIS_ENVIRONMENT_ID` set → `GET $VERIS_API_BASE/v1/environments/$VERIS_ENVIRONMENT_ID`
+`VERIS_ENVIRONMENT_ID` set → `GET ${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID`
 (`X-API-Key`; or the `get_environment` MCP tool) must list the services this code
-calls. Not set → `GET $VERIS_API_BASE/v1/environments` lists the engineer's;
+calls. Not set → `GET ${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments` lists the engineer's;
 ask which. Create one only after asking, and in the question name the
 services you inferred from the code — the reply may add or drop names;
 check each against `GET /v1/services`, the catalogue. Then
@@ -77,7 +77,7 @@ only when the smoke run fails on what the proxy hands the workload.
 ## 5. Record
 
 Under `--direct`: create a sandbox (`create_sandbox`, or
-`POST $VERIS_API_BASE/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes`), read
+`POST ${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes`), read
 each service's `env_hint` and `url` from `get_sandbox`, and set those
 variables where the application's environment actually comes from — a
 platform Secrets pane, an env file, an export. Some panes are human-only
