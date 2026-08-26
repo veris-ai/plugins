@@ -23,6 +23,12 @@ completed.
 
 - A vendor-shaped `4xx`: read the response and `/veris/requests`. It is
   usually the real error for the request you sent.
+- `feature_not_supported`: the twin does not model that surface, and the
+  manual (`GET {control_url}/veris/manual`) already says so. One such answer
+  is final — another endpoint, another header, another API version returns
+  the same. Record it for the user and design around what the twin does
+  model; do not build on ids or fragments of the missing surface that
+  appear stamped on other rows.
 - `501` from a vendor path: a sandbox coverage gap. Record it for the user;
   do not change correct production client behaviour to work around it.
 - A bare `500`: capture the request and the trace as a sandbox defect.
