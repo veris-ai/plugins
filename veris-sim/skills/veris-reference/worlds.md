@@ -1,4 +1,4 @@
-# Worlds: the sandbox per run, isolation, reset, promote, snapshots
+# Worlds: the state a sandbox holds - seeding, isolation, reset, promote, snapshots
 
 ## The sandbox is the proxy's
 
@@ -6,6 +6,22 @@ A sandbox per run is hermetic; two runs never share state, faults, the clock,
 or a callback registration. Ending the run is the teardown. An interrupted
 session left in the background is a sandbox still alive that a later session
 could mistake for its own.
+
+## Seeding the world
+
+- Ids come from `GET {control_url}/veris/data?entity_type=<table>` — never guessed, never copied from another
+  sandbox. Use a vendor test value or named profile only when the manual
+  names it.
+- Seed exact rows in the shapes `/veris/schema` names:
+  ```http
+  POST {control_url}/veris/data
+  {"data":{"<entity>":[{"<primary-key>":"test-owned-id","<field>":"value"}]}}
+  ```
+  `PATCH` changes rows by primary key; `DELETE` removes them.
+- A clean slate between probes: `POST {control_url}/veris/reset` with
+  `{"profile":"default"}`.
+- A column holding a file's bytes answers `"content": "[content hidden]"`;
+  size and checksum columns return in full.
 
 ## Isolation inside one sandbox
 

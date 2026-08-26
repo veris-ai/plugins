@@ -31,21 +31,8 @@ DELETE $VERIS_API_BASE/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes/<id>
 
 `$VERIS_API_BASE` defaults to `https://svc.api.veris.ai`.
 
-## Arranging state
-
-- Ids come from `GET {control_url}/veris/data?entity_type=<table>` — never guessed, never copied from another
-  sandbox. Use a vendor test value or named profile only when the manual
-  names it.
-- Seed exact rows in the shapes `/veris/schema` names:
-  ```http
-  POST {control_url}/veris/data
-  {"data":{"<entity>":[{"<primary-key>":"test-owned-id","<field>":"value"}]}}
-  ```
-  `PATCH` changes rows by primary key; `DELETE` removes them.
-- A clean slate between probes: `POST {control_url}/veris/reset` with
-  `{"profile":"default"}`.
-- A column holding a file's bytes answers `"content": "[content hidden]"`;
-  size and checksum columns return in full.
+Getting the rows a case needs into the world, and what becomes of
+them: [worlds.md](worlds.md).
 
 ## Reading back
 
