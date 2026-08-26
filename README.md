@@ -60,6 +60,26 @@ Codex names plugin commands after the plugin, so ask for them by name:
 `$veris-sim:fix <issue link or prompt>`. Installed through the `skills` CLI
 instead, they are `$setup`, `$build …`, `$fix …`.
 
+OpenCode installs the plugin from npm:
+
+```
+opencode plugin opencode-veris-sim -g
+```
+
+(equivalently, add `"opencode-veris-sim"` to the `plugin` array in
+`~/.config/opencode/opencode.json`; upgrades pin a version:
+`opencode plugin opencode-veris-sim@<version> -g -f`). Before the npm
+release, clone this repository and put the absolute path of
+`veris-sim/.opencode-plugin` in that `plugin` array instead. The plugin
+registers the same three commands — `/veris-sim:setup`, `/veris-sim:build`,
+`/veris-sim:fix` — and the `veris` MCP server, reading `VERIS_API_KEY` from
+your environment at startup; `VERIS_API_BASE` is honored. The commands are
+plain OpenCode commands, which only the engineer can start — OpenCode
+ignores `disable-model-invocation`, and its skills are model-invoked, so
+the skills are not installed as skills there. An unset key shows the server
+as failed in `opencode mcp list`; export it and restart. An `mcp.veris` or
+`command` entry in your own opencode config wins over the plugin's.
+
 Any of 76+ agents, through the `skills` CLI:
 
 ```
