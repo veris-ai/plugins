@@ -3,7 +3,7 @@ interface:
   short_description: "Fix a defect: reproduce the failure against the twin first, prove it closed through veris-proxy."
   default_prompt: "$fix <issue link or prompt>"
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true
 dependencies:
   tools:
     - type: "mcp"

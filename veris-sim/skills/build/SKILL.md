@@ -1,6 +1,6 @@
 ---
 name: build
-description: Build a feature against the vendor's twin - measure every vendor claim the task rests on before designing, prove the change through veris-proxy with a receipt, write the PR with what was verified and assumed. Takes an issue link or a prompt.
+description: Build a feature against the vendor's twin - measure every vendor claim the task rests on before designing, prove the change through veris-proxy with a receipt, write the PR with what was verified and assumed. Takes an issue link or a prompt. Run when the engineer names this command.
 argument-hint: "<issue link | prompt>"
 disable-model-invocation: true
 ---

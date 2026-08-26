@@ -3,7 +3,7 @@ interface:
   short_description: "Wire this repository to a Veris environment, once."
   default_prompt: "$setup"
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true
 dependencies:
   tools:
     - type: "mcp"

@@ -3,7 +3,7 @@ interface:
   short_description: "Build a feature: measure the vendor's twin before designing, prove the change through veris-proxy."
   default_prompt: "$build <issue link or prompt>"
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true
 dependencies:
   tools:
     - type: "mcp"
