@@ -21,7 +21,17 @@ and enumerate every distinct defect that could produce the symptom — the
 vendor's failures and the repository's own (state lost between requests, a
 queue, a cache, a race), which no twin can represent. The manual's fault
 catalog is one hypothesis source, never the selector: the twin confirms a
-diagnosis chosen from code evidence, it does not choose it.
+diagnosis chosen from code evidence, it does not choose it. Bulk
+reconnaissance — a wide code survey, a large data census — belongs in a
+delegated subagent when one is available, so this session's context stays
+small.
+
+**The boundary.** Name where the vendor boundary sits in this task. A
+defect internal to the repository, with no vendor claim load-bearing: say
+so, verify by the repository's own test conventions, and spend the twin on
+one end-to-end confirmation of the changed flow instead of the full gate
+sequence. Spend the full gates where the task rests on what the vendor
+does — the trigger is the boundary, never self-assessed obviousness.
 
 ## Gate 1 — the failure reproduced before the first source edit
 
@@ -31,6 +41,9 @@ diagnosis chosen from code evidence, it does not choose it.
 1. `create_sandbox` (MCP), or `POST $VERIS_API_BASE/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes`
    with `{"ttl_minutes":60}`; then `get_sandbox` until `status` is `ready` —
    one sandbox for this whole task; keep its id and each service's `control_url`.
+   A sandbox or proxy session kept alive from an earlier run is a net
+   save — reuse it, reading from the ledger what per-run receipt lines
+   would have shown.
 2. `GET {control_url}/veris/manual` — the service's own notes, read whole,
    **before any other call to the twin, the schema included**. It says what
    the vendor offers for exactly this — a retry selector, a limit, a rule —
@@ -70,6 +83,12 @@ diagnosis chosen from code evidence, it does not choose it.
    `GET {control_url}/veris/requests`. Not done with this gate until they show the
    outcome the issue describes — the duplicate row, the lost write, the
    wrong state — with ids and counts you can quote.
+
+The order is the evidence. The red run is observed against the
+repository's unmodified code, before the first source edit; a red produced
+afterward by stashing the fix satisfies nothing — it can no longer
+challenge the diagnosis. The PR presents the red and green runs in the
+order they actually happened.
 
 If the failure will not reproduce, that is the finding: report what the
 twin did instead, with the trace, and stop before changing code.
