@@ -24,21 +24,33 @@ lifecycle and every `/veris/*` call: [reference/twin.md](../veris-reference/twin
 2. `GET {control_url}/veris/manual` — the service's own notes, read whole once. It
    says what the vendor offers for exactly this — a retry selector, a limit,
    a rule — or that nothing does; that is the first claim to check.
-3. Make the failure happen. The vendor will not produce it on demand; the
+3. The world. A sandbox boots the environment's default world, and the code
+   path needs rows in it — the customer an invoice references, the account a
+   charge posts to. `GET {control_url}/veris/data?entity_type=<table>` shows what
+   is already there; seed what is missing, in the shapes `GET {control_url}/veris/schema`
+   names:
+   ```http
+   POST {control_url}/veris/data
+   {"data":{"<entity>":[{"<primary-key>":"test-owned-id","<field>":"value"}]}}
+   ```
+   Ids come from the world, never guessed and never carried from another
+   sandbox. A call that fails because a row was absent is not the
+   failure the issue describes. The world dies with its sandbox — resetting one, or
+   keeping one: [reference/worlds.md](../veris-reference/worlds.md).
+4. Make the failure happen. The vendor will not produce it on demand; the
    twin will: arm a `faults` row in the shape
    [reference/faults.md](../veris-reference/faults.md) gives for what the issue
    reports, then drive the **repository's own code path** — the endpoint,
    worker or handler the issue names, unchanged — through it under
    `.veris/run.sh` with `VERIS_SANDBOX_ID` set to this sandbox
    ([reference/proxy.md](../veris-reference/proxy.md)).
-4. Read the ledger: `GET {control_url}/veris/data?entity_type=<table>` and
+5. Read the ledger: `GET {control_url}/veris/data?entity_type=<table>` and
    `GET {control_url}/veris/requests`. Not done with this gate until they show the
    outcome the issue describes — the duplicate row, the lost write, the
    wrong state — with ids and counts you can quote.
 
 If the failure will not reproduce, that is the finding: report what the
 twin did instead, with the trace, and stop before changing code.
-
 ## Gate 2 — the identity the fix rests on
 
 Before the fix keys, looks up, or dedupes on any field, read that field's
