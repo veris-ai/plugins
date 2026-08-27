@@ -159,6 +159,24 @@ sibling reported as covered fails this gate. In a repository large enough
 that this sweep spans many files, it is worth a subagent where one is
 available: ask for the entry points, each marked driven or not-driven.
 
+## Gate 4 — the measurements against the diff
+
+Every measurement this task took is one row in the ledger, written when you take
+it rather than reconstructed at the end — a ledger assembled after the code is
+a description of the code, not a check on it. Before the PR:
+`sh .veris/bin/ledger.sh --against-diff --task <id>`.
+
+Each row ends as exactly one of: **encoded**, naming the changed file and the
+symbol or decision that honors it; **non-load-bearing**, carrying a
+counterfactual — the different value the measurement could have taken without
+changing what the fix promises; **contradicted**; or **unresolved**. The last
+two are gate failures.
+
+**A contradiction is the code's problem, not the report's.** Change the code.
+The row format and the four dispositions are in
+[reference/proof.md](../veris-reference/proof.md); `ledger.sh init` prints the
+field contract.
+
 ## The PR
 
 Open a draft as the repository does. Its body has three sections, in the
