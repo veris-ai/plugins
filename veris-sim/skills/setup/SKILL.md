@@ -20,12 +20,23 @@ still holds. Two transports, one contract each:
   [reference/direct.md](reference/direct.md) carries the contract; step 2
   gates entry. Leaves `.veris/setup.json` with `"tier": "direct"`.
 
-`scripts/preflight.sh` in this skill's directory checks the preconditions —
-invoked as `sh scripts/preflight.sh --direct [env-id]` under the direct
-tier, which skips the binary/docker/image checks; without the flag it
-requires all three. An environment id given
-with the command overrides `VERIS_ENVIRONMENT_ID`; service names given with
-the command seed the step-3 create question.
+`scripts/preflight.sh` in this skill's directory checks the preconditions and
+reports **every** one that fails in a single run. Under the direct tier add
+`--direct`, which skips the binary/docker/image checks; without it all three are
+required. An environment id given with the command overrides
+`VERIS_ENVIRONMENT_ID`; service names given with the command seed the step-3
+create question.
+
+**Where to run it from.** On a first run nothing is staged yet, so invoke it from
+this skill's own directory: derive that absolute path from the path of the file
+you are reading, confirm it with `test -f <that path>/scripts/preflight.sh`, and
+run it there. Step 5 then copies it into `.veris/bin/`, and every later run —
+here, and in `build` and `fix` — uses `sh .veris/bin/preflight.sh` instead.
+
+**Pass the version you are running.** Add `--plugin-version 0.6.4` to every
+invocation. A staged copy cannot know which version is loaded, so unless it is
+told it cannot notice that it is out of date; without the flag it says
+`VERSION_UNCHECKED` rather than guessing.
 
 ## 1. Credential
 
@@ -44,8 +55,10 @@ work; nothing here needs them.
 
 ## 2. Preflight
 
-It names one missing precondition at a time with the fix on the same line —
-binary, docker, environment. Do that one thing, run it again. Installing
+It names every missing precondition in one pass, each with its fix on the same
+line — binary, docker, environment. Fix them together, then run it again; a
+check whose own precondition failed reports that rather than a second, derived
+failure. Installing
 the binary: ask first, never over a working one. What preflight cannot
 satisfy stops setup — no base-URL override, hand-written config, or run
 without `--image`; each proves a code path that is not the one that ships.
@@ -103,12 +116,48 @@ run "$@" -- make integration
 Mounts stay under the repository tree or a known dependency cache. Tell the
 engineer both files exist and are worth committing.
 
+**Either tier, `.veris/setup.json` also carries what later tasks would otherwise
+re-derive**, each measured here rather than guessed:
+
+- `plugin_version` — the version you passed to preflight;
+- `source_roots` — where this repository's production source lives;
+- `build_command` and `build_outputs` — the repository's own build, and the
+  directories it writes. Without them a later task cannot tell a fresh build
+  from a stale one, and says so instead of pretending otherwise;
+- `smoke_command` — filled in at step 6: the smallest command that produced a
+  non-empty receipt. Most repositories have vendor-facing tests that cannot
+  produce one at all; naming the one that can is worth more than a paragraph
+  about the ones that cannot.
+
+**Stage the scripts.** Copy `scripts/preflight.sh` from this skill's directory
+and `scripts/ledger.sh` and `scripts/record.sh` from the reference directory
+beside it into `.veris/bin/`. From here on every command runs them from that one
+path, so nothing has to resolve an install location mid-task. Re-running setup
+re-stages them, which is how a version mismatch is repaired.
+
+**Ignore what is generated, keep what is measured.** Append these to
+`.gitignore` if absent — targeted lines, never a blanket `.veris/`, which would
+take `setup.json` and `NOTES.md` with it:
+
+```gitignore
+.veris/bin/
+.veris/tasks/
+```
+
+Then ask once, and record the answer as `artifact_policy`: a task's diagnosis,
+ledger and execution record are rendered into the change description
+(`pr-body`, the default), kept on disk only (`local`), or committed under
+`.veris/tasks/<task-id>/` (`commit` — say plainly that this merges into the
+default branch and accumulates one directory per task). Under `commit`, drop the
+`.veris/tasks/` line above.
+
 ## 6. Prove it
 
 Container tier: `.veris/run.sh -- <the smallest test that calls the
 dependency>`. The proxy prints a receipt — requests per service; an empty one
 exits 3. **Not done until the receipt names the environment's service with a
-count above zero.**
+count above zero.** Write the command that did it into `.veris/setup.json` as
+`smoke_command`, exactly as run.
 
 Direct tier has no receipt; the twin's trace is the trust anchor. Run the
 smallest piece of the application that calls the dependency, then
