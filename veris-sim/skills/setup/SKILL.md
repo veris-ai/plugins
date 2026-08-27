@@ -33,7 +33,7 @@ you are reading, confirm it with `test -f <that path>/scripts/preflight.sh`, and
 run it there. Step 5 then copies it into `.veris/bin/`, and every later run —
 here, and in `build` and `fix` — uses `sh .veris/bin/preflight.sh` instead.
 
-**Pass the version you are running.** Add `--plugin-version 0.6.4` to every
+**Pass the version you are running.** Add `--plugin-version 0.6.5-rc.1` to every
 invocation. A staged copy cannot know which version is loaded, so unless it is
 told it cannot notice that it is out of date; without the flag it says
 `VERSION_UNCHECKED` rather than guessing.
