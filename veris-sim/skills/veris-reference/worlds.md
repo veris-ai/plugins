@@ -9,6 +9,9 @@ could mistake for its own.
 
 ## Seeding the world
 
+- `GET {control_url}/veris/data` with no parameters lists every table and its
+  row count — the cheapest way to see what a service holds before reading
+  any shape.
 - Ids come from `GET {control_url}/veris/data?entity_type=<table>` — never guessed, never copied from another
   sandbox. Use a vendor test value or named profile only when the manual
   names it.
@@ -20,8 +23,10 @@ could mistake for its own.
   `PATCH` changes rows by primary key; `DELETE` removes them.
 - A clean slate between probes: `POST {control_url}/veris/reset` with
   `{"profile":"default"}`.
-- A column holding a file's bytes answers `"content": "[content hidden]"`;
-  size and checksum columns return in full.
+- A column holding a file's bytes reads back as a placeholder string naming
+  the vendor download instead of the bytes; size and checksum columns return
+  in full. The bytes are still seedable, stored, and downloadable through the
+  vendor's own API.
 
 ## Isolation inside one sandbox
 
@@ -60,10 +65,10 @@ by who should start from it:
   silently change what every other suite starts from.
 
   ```sh
-  curl -X POST "${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/snapshots" \
+  curl --fail-with-body -sS -X POST "${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/snapshots" \
     -H "X-API-Key: $VERIS_API_KEY" -H 'Content-Type: application/json' \
     -d '{"sandbox_id":"'"$SANDBOX_ID"'","name":"expired-trial"}'
-  curl -s "${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/snapshots" -H "X-API-Key: $VERIS_API_KEY"
+  curl --fail-with-body -sS "${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/snapshots" -H "X-API-Key: $VERIS_API_KEY"
   ```
 
   Many snapshots per environment; the default boot is unchanged.

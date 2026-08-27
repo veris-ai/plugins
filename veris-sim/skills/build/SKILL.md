@@ -12,9 +12,10 @@ and the PR says so.
 **The task.** A GitHub reference → `gh issue view <ref> --json title,body,comments`;
 quote it. Anything it states about the vendor — what it supports, what a
 field means, what a repeat does — is a **claim**, listed as such; vendor
-documentation is a claim too. Bulk reconnaissance — a wide code survey, a
-large data census — belongs in a delegated subagent when one is available,
-so this session's context stays small. No `.veris/run.sh` and no direct-tier `.veris/setup.json` → stop; `setup` runs first. A `setup.json` with `"tier": "direct"` replaces `run.sh`: run the flow directly against the wired sandbox and read the trace where a gate reads the receipt ([direct.md](../setup/reference/direct.md)).
+documentation is a claim too. Where a code survey spans many files and a
+subagent is available, delegating it is worth the coordination. Reading the
+twin is not: a census, one projected table, or a filtered trace is small
+enough that delegating costs more than it saves. No `.veris/run.sh` and no direct-tier `.veris/setup.json` → stop; `setup` runs first. A `setup.json` with `"tier": "direct"` replaces `run.sh`: run the flow directly against the wired sandbox and read the trace where a gate reads the receipt ([direct.md](../setup/reference/direct.md)).
 Sandbox lifecycle and every `/veris/*` call: [reference/twin.md](../veris-reference/twin.md).
 
 **The boundary.** Once the claims are listed, name where the vendor
@@ -36,32 +37,29 @@ never self-assessed obviousness.
    A sandbox or proxy session kept alive from an earlier run is a net
    save — reuse it, reading from the ledger what per-run receipt lines
    would have shown.
-2. `GET {control_url}/veris/manual` — the service's own notes, read whole,
-   **before any other call to the twin, the schema included**. It names
-   what the vendor already offers for this feature and the selector that
-   makes a repeated write safe, or that none exists. What the manual
-   excludes, the twin will refuse (`feature_not_supported`): one manual
-   read answers in seconds what a chain of probes answers one refusal at a
-   time, and an excluded surface is a finding for the engineer, not a wall
-   to probe around. The manual is prose about the service, not the list of
-   operations it answers — that list is 3. Manual, schema and that list
-   together are the complete statement of what the twin models: a
-   capability absent from all three is absent from the twin — record it as
-   unsupported, cover that side by the repository's own test conventions,
-   report the gap, and never probe endpoint by endpoint to rediscover an
-   absence.
-3. `GET {control_url}/veris/operations` — the enumeration the manual is
-   not: where a service publishes one, it lists every operation the service
-   supports, and an operation absent from that list refuses. Most services
-   publish none and answer `404` — silence about the list, not a claim
-   about support; there the manual and the schema are the statement, and a
-   surface the change rests on gets one probe rather than an assumption
-   either way.
-4. The world. A sandbox boots the environment's default world, and the code
+2. `GET {control_url}/veris/manual` — the service's own notes, short, read
+   whole. It is authoritative for exactly these: the statuses and codes a
+   fault may inject, the `match` selector keys this service supports, its
+   API versions and selector, and its credential and setup notes — the
+   selector that makes a repeated write safe is named there or nowhere. It
+   is **not** a catalogue of what the service implements, and nothing is —
+   read no coverage claim into what it leaves out. A surface the change
+   rests on gets one probe, and what a refusal proves is in
+   [reference/troubleshooting.md](../veris-reference/troubleshooting.md):
+   some settle the question, most do not.
+3. The world. A sandbox boots the environment's default world, and the code
    path needs rows in it — the customer an invoice references, the account a
-   charge posts to. `GET {control_url}/veris/data?entity_type=<table>` shows what
-   is already there; seed what is missing, in the shapes `GET {control_url}/veris/schema`
-   names:
+   charge posts to. Take the census first — `GET {control_url}/veris/data`
+   with no parameters is every table and its row count in one small
+   response — then read the shape of only the tables that matter:
+   ```sh
+   curl --fail-with-body -sS "$CONTROL_URL/veris/schema" |
+     jq -e --arg table "$TABLE" \
+       '.properties[$table] // error("unknown table: \($table)")'
+   ```
+   A whole schema is far larger than any one task needs; project it.
+   `GET {control_url}/veris/data?entity_type=<table>` then shows what is
+   already there; seed what is missing, in the shapes the schema names:
    ```http
    POST {control_url}/veris/data
    {"data":{"<entity>":[{"<primary-key>":"test-owned-id","<field>":"value"}]}}
@@ -70,11 +68,11 @@ never self-assessed obviousness.
    sandbox. A call that fails because a row was absent has
    measured nothing. The world dies with its sandbox — resetting one, or
    keeping one: [reference/worlds.md](../veris-reference/worlds.md).
-5. For each claim: one probe against `url`, or one schema read, that answers
+4. For each claim: one probe against `url`, or one schema read, that answers
    it — the questions and their asks are in [reference/twin.md](../veris-reference/twin.md).
    Record the call and the answer; a measurement that contradicts the task
    is the finding, not an error.
-6. If the feature is about a failure — a lost response, a limit, a refusal —
+5. If the feature is about a failure — a lost response, a limit, a refusal —
    make it happen and drive the current code through it before designing:
    [reference/faults.md](../veris-reference/faults.md).
 
@@ -113,8 +111,9 @@ Run the changed flow from the boundary the task names — endpoint, worker,
 handler — through `.veris/run.sh` with `VERIS_SANDBOX_ID` set to the gate-1
 sandbox ([reference/proxy.md](../veris-reference/proxy.md)), against the
 conditions measured there, and read back what the vendor
-stored (`GET {control_url}/veris/data?entity_type=<table>`,
-`GET {control_url}/veris/requests`). **Not done until the receipt
+stored (`GET {control_url}/veris/data?entity_type=<table>`, and the trace at
+the tier the evidence is on — `tier=handler` for ordinary traffic,
+`tier=fault` for an injected one). **Not done until the receipt
 shows at least one request to the service from that run.** A green earned
 by changing the caller's call proves the caller changed.
 
@@ -131,7 +130,9 @@ the same request built inline, selected by a mode or type switch — cannot
 appear in a grep for the symbol you changed. Search for those siblings,
 name each one you found, and either drive it in the green run or put it
 under *limitations and risks* with why it is out of scope. An unexercised
-sibling reported as covered fails this gate.
+sibling reported as covered fails this gate. In a repository large enough
+that this sweep spans many files, it is worth a subagent where one is
+available: ask for the entry points, each marked driven or not-driven.
 
 ## The PR
 

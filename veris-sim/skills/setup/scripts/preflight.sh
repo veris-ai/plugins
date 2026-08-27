@@ -29,9 +29,15 @@ command -v veris-proxy >/dev/null 2>&1 && veris-proxy version >/dev/null 2>&1 \
 ok binary "$(veris-proxy version 2>/dev/null | head -1)"
 
 docker version >/dev/null 2>&1 \
-  || fail docker "no docker daemon reachable (local socket or DOCKER_HOST); start one. The proxy image is pulled with a logged-in gcloud (gcloud auth login; on 401: gcloud auth configure-docker us-central1-docker.pkg.dev). No daemon reachable from here: stop and tell the user"
+  || fail docker "no docker daemon reachable (local socket or DOCKER_HOST); start one. No daemon reachable from here: stop and tell the user"
 ok docker
 fi
+
+# Every projection example in the skills pipes through jq; without it they
+# fail as a shell error rather than as evidence.
+command -v jq >/dev/null 2>&1 \
+  || fail jq "jq is not on PATH; install it (macOS: brew install jq / Debian: apt-get install -y jq)"
+ok jq
 
 env_id="${1:-${VERIS_ENVIRONMENT_ID:-}}"
 [ -n "$env_id" ] \
