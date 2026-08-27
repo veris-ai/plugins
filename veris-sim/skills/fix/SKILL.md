@@ -51,12 +51,21 @@ does — the trigger is the boundary, never self-assessed obviousness.
    excludes, the twin will refuse (`feature_not_supported`): one manual read
    answers in seconds what a chain of probes answers one refusal at a time,
    and an excluded surface is a finding for the engineer, not a wall to
-   probe around. The manual and the schema together are the complete
-   statement of what the twin models: a capability absent from both is
-   absent from the twin — record it as unsupported, cover that side by the
-   repository's own test conventions, report the gap, and never probe
-   endpoint by endpoint to rediscover an absence.
-3. The world. A sandbox boots the environment's default world, and the code
+   probe around. The manual is prose about the service, not the list of
+   operations it answers — that list is 3. Manual, schema and that list
+   together are the complete statement of what the twin models: a
+   capability absent from all three is absent from the twin — record it as
+   unsupported, cover that side by the repository's own test conventions,
+   report the gap, and never probe endpoint by endpoint to rediscover an
+   absence.
+3. `GET {control_url}/veris/operations` — the enumeration the manual is
+   not: where a service publishes one, it lists every operation the service
+   supports, and an operation absent from that list refuses. Most services
+   publish none and answer `404` — silence about the list, not a claim
+   about support; there the manual and the schema are the statement, and a
+   surface the fix rests on gets one probe rather than an assumption
+   either way.
+4. The world. A sandbox boots the environment's default world, and the code
    path needs rows in it — the customer an invoice references, the account a
    charge posts to. `GET {control_url}/veris/data?entity_type=<table>` shows what
    is already there; seed what is missing, in the shapes `GET {control_url}/veris/schema`
@@ -69,7 +78,7 @@ does — the trigger is the boundary, never self-assessed obviousness.
    sandbox. A call that fails because a row was absent is not the
    failure the issue describes. The world dies with its sandbox — resetting one, or
    keeping one: [reference/worlds.md](../veris-reference/worlds.md).
-4. Make the failure happen. The vendor will not produce it on demand. A
+5. Make the failure happen. The vendor will not produce it on demand. A
    vendor-side defect: arm a `faults` row in the shape
    [reference/faults.md](../veris-reference/faults.md) gives for what the issue
    reports. A repository-side defect no fault can produce: reproduce it
@@ -79,7 +88,7 @@ does — the trigger is the boundary, never self-assessed obviousness.
    worker or handler the issue names, unchanged — through it under
    `.veris/run.sh` with `VERIS_SANDBOX_ID` set to this sandbox
    ([reference/proxy.md](../veris-reference/proxy.md)).
-5. Read the ledger: `GET {control_url}/veris/data?entity_type=<table>` and
+6. Read the ledger: `GET {control_url}/veris/data?entity_type=<table>` and
    `GET {control_url}/veris/requests`. Not done with this gate until they show the
    outcome the issue describes — the duplicate row, the lost write, the
    wrong state — with ids and counts you can quote.
@@ -100,16 +109,16 @@ twice for distinct records is not an identity; a fix anchored on it trades
 one failure for another. Name the field the fix rests on, and why it is
 one, in the PR.
 
-A key the fix *computes* — parts joined, a value normalized, truncated or
-hashed — has no row in the schema to read: the collision lives in the
-derivation, not in the vendor's fields, and the schema read cannot clear
-it. Prove the derivation instead. Construct two inputs the code must keep
-apart that it maps to the same key — parts that regroup across the join
-(`a`+`bc` against `ab`+`c`), a pair the normalizer folds together, two
-values that agree up to the truncation — drive both through the same path,
-and count the rows the vendor stored. Two rows is the answer; one is the
-fix's own defect, caught before it ships. The derivation, the pair and the
-count go in the PR beside the field. Questions and their asks:
+The gate binds on any identity, dedup key or external reference the fix
+sends across the vendor boundary, however the code got it — computed,
+copied from an input, reused from an id the caller already carries. Copying
+does not discharge it: what the value leaves out has no row in the schema
+to read, and the collision lives there. Prove it against the twin. Vary
+each component of the identity independently — including an input that
+omits one — drive them through the same path, and count the rows the vendor
+stored: distinct inputs must have left distinct records. Fewer is the fix's
+own defect, caught before it ships. The identity, what you varied and the
+counts go in the PR beside the field. Questions and their asks:
 [reference/twin.md](../veris-reference/twin.md).
 
 ## Implement
@@ -136,7 +145,13 @@ handlers and jobs that own them — and say which of them this run actually
 drove. The ones it did not are not covered: they belong under *limitations
 and risks*, named, with what a caller reaching the fix that way would still
 get. A shared helper reached three ways and driven once is a fix for one
-third of the defect.
+third of the defect. Callers are not the whole list: a branch that
+duplicates the behavior rather than calling it — the same response handled,
+the same request built inline, selected by a mode or type switch — cannot
+appear in a grep for the symbol you changed. Search for those siblings,
+name each one you found, and either drive it in the green run or put it
+under *limitations and risks* with why it is out of scope. An unexercised
+sibling reported as covered fails this gate.
 
 ## The PR
 

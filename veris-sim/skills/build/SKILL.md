@@ -43,12 +43,21 @@ never self-assessed obviousness.
    excludes, the twin will refuse (`feature_not_supported`): one manual
    read answers in seconds what a chain of probes answers one refusal at a
    time, and an excluded surface is a finding for the engineer, not a wall
-   to probe around. The manual and the schema together are the complete
-   statement of what the twin models: a capability absent from both is
-   absent from the twin — record it as unsupported, cover that side by the
-   repository's own test conventions, report the gap, and never probe
-   endpoint by endpoint to rediscover an absence.
-3. The world. A sandbox boots the environment's default world, and the code
+   to probe around. The manual is prose about the service, not the list of
+   operations it answers — that list is 3. Manual, schema and that list
+   together are the complete statement of what the twin models: a
+   capability absent from all three is absent from the twin — record it as
+   unsupported, cover that side by the repository's own test conventions,
+   report the gap, and never probe endpoint by endpoint to rediscover an
+   absence.
+3. `GET {control_url}/veris/operations` — the enumeration the manual is
+   not: where a service publishes one, it lists every operation the service
+   supports, and an operation absent from that list refuses. Most services
+   publish none and answer `404` — silence about the list, not a claim
+   about support; there the manual and the schema are the statement, and a
+   surface the change rests on gets one probe rather than an assumption
+   either way.
+4. The world. A sandbox boots the environment's default world, and the code
    path needs rows in it — the customer an invoice references, the account a
    charge posts to. `GET {control_url}/veris/data?entity_type=<table>` shows what
    is already there; seed what is missing, in the shapes `GET {control_url}/veris/schema`
@@ -61,11 +70,11 @@ never self-assessed obviousness.
    sandbox. A call that fails because a row was absent has
    measured nothing. The world dies with its sandbox — resetting one, or
    keeping one: [reference/worlds.md](../veris-reference/worlds.md).
-4. For each claim: one probe against `url`, or one schema read, that answers
+5. For each claim: one probe against `url`, or one schema read, that answers
    it — the questions and their asks are in [reference/twin.md](../veris-reference/twin.md).
    Record the call and the answer; a measurement that contradicts the task
    is the finding, not an error.
-5. If the feature is about a failure — a lost response, a limit, a refusal —
+6. If the feature is about a failure — a lost response, a limit, a refusal —
    make it happen and drive the current code through it before designing:
    [reference/faults.md](../veris-reference/faults.md).
 
@@ -78,16 +87,16 @@ twice for distinct records is not an identity; a design anchored on it
 collapses two real records or misses a repeat. Name the field the design
 rests on, and why it is one, in the PR.
 
-A key the design *computes* — parts joined, a value normalized, truncated
-or hashed — has no row in the schema to read: the collision lives in the
-derivation, not in the vendor's fields, and the schema read cannot clear
-it. Prove the derivation instead. Construct two inputs the code must keep
-apart that it maps to the same key — parts that regroup across the join
-(`a`+`bc` against `ab`+`c`), a pair the normalizer folds together, two
-values that agree up to the truncation — drive both through the same path,
-and count the rows the vendor stored. Two rows is the answer; one is the
-design's own defect, caught before it ships. The derivation, the pair and
-the count go in the PR beside the field.
+The gate binds on any identity, dedup key or external reference the design
+sends across the vendor boundary, however the code got it — computed,
+copied from an input, reused from an id the caller already carries. Copying
+does not discharge it: what the value leaves out has no row in the schema
+to read, and the collision lives there. Prove it against the twin. Vary
+each component of the identity independently — including an input that
+omits one — drive them through the same path, and count the rows the vendor
+stored: distinct inputs must have left distinct records. Fewer is the
+design's own defect, caught before it ships. The identity, what you varied
+and the counts go in the PR beside the field.
 
 ## Implement
 
@@ -116,7 +125,13 @@ handlers and jobs that own them — and say which of them this run actually
 drove. The ones it did not are not covered: they belong under *limitations
 and risks*, named, with what a caller reaching the change that way would
 still get. A shared helper reached three ways and driven once is a change
-proved one third of the way.
+proved one third of the way. Callers are not the whole list: a branch that
+duplicates the behavior rather than calling it — the same response handled,
+the same request built inline, selected by a mode or type switch — cannot
+appear in a grep for the symbol you changed. Search for those siblings,
+name each one you found, and either drive it in the green run or put it
+under *limitations and risks* with why it is out of scope. An unexercised
+sibling reported as covered fails this gate.
 
 ## The PR
 
