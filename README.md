@@ -106,7 +106,7 @@ environment at session start, so restart the agent after setting it.
 
 ### Versions
 
-0.7.0 — files. Bytes go in through `POST {control_url}/veris/files`, never
+0.6.5 — files. Bytes go in through `POST {control_url}/veris/files`, never
 `/veris/data`; rows first (the owner the files hang off), files second;
 a file's row shows the SHA-256 of its bytes, which is how an upload is
 checked. `setup` gains step 7: when the app works with files, seed the
