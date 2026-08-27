@@ -14,6 +14,7 @@ your probes, setup and read-back do.
 | Is a claim about the data model true — uniqueness, a required field, an allowed value? | `GET {control_url}/veris/schema` — each table's description states the rule that governs it; then one probe. **A value the vendor accepts twice for distinct records is not an identity, and nothing keyed on it can tell two records apart** |
 | What does the vendor do at the condition the change is about — a repeat, a duplicate, a limit? | a probe: cause the condition with a direct call at `url` and read what came back. Credentials are the ones the manual names; `GET {control_url}/veris/data?entity_type=oauth_tokens` holds a seeded OAuth token where the twin issues one |
 | What does the failure this task is about look like? | a fault row, then the real call through it — [faults.md](faults.md) |
+| Did the application upload the file it meant to? | the file's row in `GET {control_url}/veris/data?entity_type=<files table>` holds the SHA-256 of its bytes; compare it with `shasum -a 256` of the local file. The trace does not show a binary body usefully |
 | What did the client actually send? What did the vendor store? | `GET {control_url}/veris/requests` (method, path, status, bodies; the query string is not recorded yet); `GET {control_url}/veris/data?entity_type=<table>` |
 | What happens after time passes — expiry, retention? | the `clock` row — [faults.md](faults.md); never backwards |
 
@@ -25,7 +26,7 @@ MCP tools: `create_sandbox` → `get_sandbox` until `status` is `ready` →
 
 ```
 POST   ${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes   {"ttl_minutes":60}
-GET    ${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes/<id>   until "status":"ready" ("failed" never becomes ready)
+GET    ${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes/<id>   until "status":"ready" ("failed" never becomes ready; an environment holding many files takes a few minutes)
 DELETE ${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes/<id>
 ```
 

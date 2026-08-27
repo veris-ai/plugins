@@ -61,6 +61,9 @@ recovery usually needs both.
   not the operations the service answers.
 - A bare `500`: capture the request and the trace as a sandbox defect.
 - Widespread `502`: check sandbox status and expiry.
+- A sandbox that stays `creating` for a few minutes: the environment holds
+  many files and they are being copied in. Keep polling; only `failed` is
+  a failure.
 - A timeout: check armed faults, whether the request reached the trace, and
   the client's per-request timeout — an error path can be much slower than a
   success path.

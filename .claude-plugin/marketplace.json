@@ -9,7 +9,7 @@
       "name": "veris-sim",
       "source": "./veris-sim",
       "description": "Three commands - setup, build, fix - that measure the vendor's twin before designing and prove a change through veris-proxy, plus the veris MCP server.",
-      "version": "0.6.4",
+      "version": "0.7.0",
       "category": "testing",
       "tags": [
         "veris",

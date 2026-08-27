@@ -53,7 +53,9 @@ A container-tier sandbox lives for one run. A direct-tier sandbox is bound
 to a running application, so it lives until rotated. Set `ttl_minutes`
 generously but finitely; when the sandbox expires or the world must reset,
 the rotation is: create a new sandbox, re-set the `env_hint` variables,
-restart the application. Make token bootstrap part of application startup
+restart the application. A new sandbox boots the environment's default
+world: rows and files that were never promoted are gone, so load them
+again or promote once (`setup` step 7). Make token bootstrap part of application startup
 so rotation needs nothing else — a cached token from a dead sandbox is the
 first thing to fail after rotation.
 
