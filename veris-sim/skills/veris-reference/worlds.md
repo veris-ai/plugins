@@ -28,8 +28,11 @@ could mistake for its own.
 ## Files
 
 A file hangs off a row: a Drive file belongs to a user, a Dropbox file to an
-account, a Hub file to a repository, an object to a bucket. So the order is
-fixed — rows first, files second:
+account, a Hub file to a repository, an attachment to an issue. So the order
+is fixed — rows first, files second. Services whose files sit in a tree have
+`/veris/files`, and the manual shows it; a service whose files are
+attachments takes bytes only through its own upload API, the way the
+application sends them, and the manual says so.
 
 1. Read the owner table's shape in `/veris/schema`; the manual names which
    table owns files.
@@ -52,7 +55,7 @@ fixed — rows first, files second:
    files. The reply lists what was created.
 4. Read back: `GET {control_url}/veris/data?entity_type=<files table>`.
 
-Bytes never go through `/veris/data`. A file's content column shows the
+Bytes never go through `/veris/data`, on any service. A file's content column shows the
 SHA-256 of its bytes, and the vendor's own download endpoint returns the
 exact bytes. Limits: 1 GB per file, 20 GB and 25,000 files per environment;
 an import over a limit is refused with the number, nothing is truncated.

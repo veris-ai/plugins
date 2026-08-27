@@ -135,9 +135,10 @@ sandbox starts with the files instead of each task loading them again:
 1. Create a sandbox (`create_sandbox`), or use the direct-tier one.
 2. Seed the rows the files hang off — an owner, a folder, a repository — in
    the shapes `/veris/schema` names, or pick an owner already in the world.
-3. Post the files with that owner through `/veris/files` — rows first,
-   files second, exactly as [../veris-reference/worlds.md](../veris-reference/worlds.md)
-   lays out.
+3. Post the files with that owner through `/veris/files` where the
+   manual shows it, or through the vendor's own upload API where files are
+   attachments — rows first, files second, as
+   [../veris-reference/worlds.md](../veris-reference/worlds.md) lays out.
 4. Read them back and check the SHA-256 in each row against the local file.
 5. Ask the engineer, then `promote_sandbox`. This is the one place a
    command promotes, and only with a yes; `build` and `fix` never do.
