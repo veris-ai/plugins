@@ -106,6 +106,16 @@ environment at session start, so restart the agent after setting it.
 
 ### Versions
 
+0.6.4 — the manual is not a coverage catalogue: `build` and `fix` said it
+listed what a service does not implement, and named one service's refusal
+code as if every service used it, so an agent read a short manual as an
+absence. `/veris/operations` leaves both gates — no service publishes one.
+A refusal that names itself unsupported settles the question; an ordinary
+`400` or `404` does not, and is reported as uncertainty. Discovery runs
+cheapest-first (manual, the bare `/veris/data` census, one projected table),
+trace reads name their tier, and fault rows gain path templates, GraphQL
+selectors and frozen clock mode.
+
 0.4.3 — `build` and `fix` seed the world before they measure: neither command
 named the write side of `/veris/data`, so the rows a code path needs were
 nobody's step.

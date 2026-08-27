@@ -21,10 +21,11 @@ and enumerate every distinct defect that could produce the symptom — the
 vendor's failures and the repository's own (state lost between requests, a
 queue, a cache, a race), which no twin can represent. The manual's fault
 catalog is one hypothesis source, never the selector: the twin confirms a
-diagnosis chosen from code evidence, it does not choose it. Bulk
-reconnaissance — a wide code survey, a large data census — belongs in a
-delegated subagent when one is available, so this session's context stays
-small.
+diagnosis chosen from code evidence, it does not choose it. Where that
+survey spans many files and a subagent is available, delegating it is worth
+the coordination — ask for candidate defects, each with its file and line.
+Reading the twin is not that: a census, one projected table, or a filtered
+trace is small enough that delegating costs more than it saves.
 
 **The boundary.** Name where the vendor boundary sits in this task. A
 defect internal to the repository, with no vendor claim load-bearing: say
@@ -44,32 +45,28 @@ does — the trigger is the boundary, never self-assessed obviousness.
    A sandbox or proxy session kept alive from an earlier run is a net
    save — reuse it, reading from the ledger what per-run receipt lines
    would have shown.
-2. `GET {control_url}/veris/manual` — the service's own notes, read whole,
-   **before any other call to the twin, the schema included**. It says what
-   the vendor offers for exactly this — a retry selector, a limit, a rule —
-   or that nothing does; that is the first claim to check. What the manual
-   excludes, the twin will refuse (`feature_not_supported`): one manual read
-   answers in seconds what a chain of probes answers one refusal at a time,
-   and an excluded surface is a finding for the engineer, not a wall to
-   probe around. The manual is prose about the service, not the list of
-   operations it answers — that list is 3. Manual, schema and that list
-   together are the complete statement of what the twin models: a
-   capability absent from all three is absent from the twin — record it as
-   unsupported, cover that side by the repository's own test conventions,
-   report the gap, and never probe endpoint by endpoint to rediscover an
-   absence.
-3. `GET {control_url}/veris/operations` — the enumeration the manual is
-   not: where a service publishes one, it lists every operation the service
-   supports, and an operation absent from that list refuses. Most services
-   publish none and answer `404` — silence about the list, not a claim
-   about support; there the manual and the schema are the statement, and a
-   surface the fix rests on gets one probe rather than an assumption
-   either way.
-4. The world. A sandbox boots the environment's default world, and the code
+2. `GET {control_url}/veris/manual` — the service's own notes, short, read
+   whole. It is authoritative for exactly these: the statuses and codes a
+   fault may inject, the `match` selector keys this service supports, its
+   API versions and selector, and its credential and setup notes. It is
+   **not** a catalogue of what the service implements, and nothing is —
+   read no coverage claim into what it leaves out. A surface the fix rests
+   on gets one probe, and what a refusal proves is in
+   [reference/troubleshooting.md](../veris-reference/troubleshooting.md):
+   some settle the question, most do not.
+3. The world. A sandbox boots the environment's default world, and the code
    path needs rows in it — the customer an invoice references, the account a
-   charge posts to. `GET {control_url}/veris/data?entity_type=<table>` shows what
-   is already there; seed what is missing, in the shapes `GET {control_url}/veris/schema`
-   names:
+   charge posts to. Take the census first — `GET {control_url}/veris/data`
+   with no parameters is every table and its row count in one small
+   response — then read the shape of only the tables that matter:
+   ```sh
+   curl --fail-with-body -sS "$CONTROL_URL/veris/schema" |
+     jq -e --arg table "$TABLE" \
+       '.properties[$table] // error("unknown table: \($table)")'
+   ```
+   A whole schema is far larger than any one task needs; project it.
+   `GET {control_url}/veris/data?entity_type=<table>` then shows what is
+   already there; seed what is missing, in the shapes the schema names:
    ```http
    POST {control_url}/veris/data
    {"data":{"<entity>":[{"<primary-key>":"test-owned-id","<field>":"value"}]}}
@@ -78,7 +75,7 @@ does — the trigger is the boundary, never self-assessed obviousness.
    sandbox. A call that fails because a row was absent is not the
    failure the issue describes. The world dies with its sandbox — resetting one, or
    keeping one: [reference/worlds.md](../veris-reference/worlds.md).
-5. Make the failure happen. The vendor will not produce it on demand. A
+4. Make the failure happen. The vendor will not produce it on demand. A
    vendor-side defect: arm a `faults` row in the shape
    [reference/faults.md](../veris-reference/faults.md) gives for what the issue
    reports. A repository-side defect no fault can produce: reproduce it
@@ -88,10 +85,14 @@ does — the trigger is the boundary, never self-assessed obviousness.
    worker or handler the issue names, unchanged — through it under
    `.veris/run.sh` with `VERIS_SANDBOX_ID` set to this sandbox
    ([reference/proxy.md](../veris-reference/proxy.md)).
-6. Read the ledger: `GET {control_url}/veris/data?entity_type=<table>` and
-   `GET {control_url}/veris/requests`. Not done with this gate until they show the
-   outcome the issue describes — the duplicate row, the lost write, the
-   wrong state — with ids and counts you can quote.
+5. Read the ledger: `GET {control_url}/veris/data?entity_type=<table>` and
+   the trace. An injected fault's exchange is `tier=fault`, the traffic
+   around it `tier=handler`, and your own `/veris/*` calls `tier=control` —
+   ask for the tier the evidence is on rather than reading an unfiltered
+   page of your own seeding ([reference/troubleshooting.md](../veris-reference/troubleshooting.md)).
+   Not done with this gate until they show the outcome the issue describes —
+   the duplicate row, the lost write, the wrong state — with ids and counts
+   you can quote.
 
 The order is the evidence. The red run is observed against the
 repository's unmodified code, before the first source edit; a red produced
@@ -151,7 +152,9 @@ the same request built inline, selected by a mode or type switch — cannot
 appear in a grep for the symbol you changed. Search for those siblings,
 name each one you found, and either drive it in the green run or put it
 under *limitations and risks* with why it is out of scope. An unexercised
-sibling reported as covered fails this gate.
+sibling reported as covered fails this gate. In a repository large enough
+that this sweep spans many files, it is worth a subagent where one is
+available: ask for the entry points, each marked driven or not-driven.
 
 ## The PR
 

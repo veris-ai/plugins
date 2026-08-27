@@ -12,13 +12,14 @@ runs with every capability dropped — an entrypoint that switches users needs
 Everything else sits on the proxy's own container.
 
 *Trust* is still decided in-process. An SDK that ships its own CA bundle
-decides it alone; `integration-testing` carries that diagnosis.
+decides it alone; [trust.md](../../veris-reference/trust.md) carries that
+diagnosis.
 
 The binary also has a host tier — `run` without `--image`, proxy environment
 variables only. It covers only libraries that honour those variables and its
 gaps are silent, so it is never used for code under test. A discovery probe
-is not code under test; `discovering-vendor-behavior` says when curl or a
-script straight at the sandbox is the right tool.
+is not code under test; [twin.md](../../veris-reference/twin.md) says when a
+curl or a script straight at the sandbox is the right tool.
 
 There is no proxy config to maintain. The run names an `--environment`, and
 the routing — which production hostnames map to which services — comes from
