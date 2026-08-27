@@ -31,7 +31,10 @@ trace is small enough that delegating costs more than it saves.
 defect internal to the repository, with no vendor claim load-bearing: say
 so, verify by the repository's own test conventions, and spend the twin on
 one end-to-end confirmation of the changed flow instead of the full gate
-sequence. Spend the full gates where the task rests on what the vendor
+sequence. That one confirmation is a floor, not a discount: a reduced path
+that drove nothing through the twin has not spent less — it has left the
+change unproven, and the flow the issue names is the one it skipped. Spend
+the full gates where the task rests on what the vendor
 does — the trigger is the boundary, never self-assessed obviousness.
 
 ## Gate 1 — the failure reproduced before the first source edit
