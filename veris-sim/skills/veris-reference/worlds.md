@@ -32,7 +32,10 @@ account, a Hub file to a repository, an attachment to an issue. So the order
 is fixed — rows first, files second. Services whose files sit in a tree have
 `/veris/files`, and the manual shows it; a service whose files are
 attachments takes bytes only through its own upload API, the way the
-application sends them, and the manual says so.
+application sends them, and the manual says so. Posting to `/veris/files` on
+one of those answers `404 "this service does not support folder imports"` —
+a control-plane refusal in plain words, and one of the few `404`s here that
+is evidence rather than noise.
 
 1. Read the owner table's shape in `/veris/schema`; the manual names which
    table owns files.

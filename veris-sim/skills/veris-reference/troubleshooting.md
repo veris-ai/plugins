@@ -60,13 +60,14 @@ recovery usually needs both.
   `/veris/schema` either: the schema describes the state the world holds,
   not the operations the service answers.
 
-  The one catalogue that can exist is `GET {control_url}/veris/operations`
-  ([twin.md](twin.md)), and it is opt-in per service. A `404` there means *this
-  service publishes no catalogue* — it falls through to the vendor emulation and
-  arrives in the vendor's error envelope, so it is neither evidence about the
-  vendor nor evidence of a gap. Assume you will be arguing coverage from a
-  controlled probe rather than reading it off anything, and put what you
-  establish in `.veris/NOTES.md` so the next task does not pay for it again.
+  **But coverage is answerable, and not by reading a `404`.** Arm a fault at the
+  operation in question: the fault validator checks it against the same published
+  surface `/veris/operations` would list, and says so in words — *"does not match
+  a published operation of this service"*, or *"… is not published for path …;
+  allowed methods: [...]"*, or it accepts. Both doors are in [twin.md](twin.md).
+  That is a control-plane answer and it settles the question; the vendor-shaped
+  `404` above never will. Put what you establish in `.veris/NOTES.md` so the next
+  task does not pay for it again.
 - A bare `500`: capture the request and the trace as a sandbox defect.
 - Widespread `502`: check sandbox status and expiry.
 - A timeout: check armed faults, whether the request reached the trace, and
