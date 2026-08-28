@@ -57,7 +57,7 @@ recovery usually needs both.
   report it as *"possible twin coverage gap; indistinguishable from vendor
   behavior"* and stop. Never assert a coverage gap the available evidence
   cannot separate from real vendor behavior — and do not read one off
-  `/veris/schema` either: the schema describes the state the world holds,
+  `/veris/schema` either: the schema describes the state a sandbox holds,
   not the operations the service answers.
 
   **But coverage is answerable, and not by reading a `404`.** Arm a fault at the

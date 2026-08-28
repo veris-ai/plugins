@@ -1,4 +1,4 @@
-# Worlds: the state a sandbox holds - seeding, isolation, reset, promote, snapshots
+# Sandbox state: seeding rows, loading files, isolation, reset, promote, snapshots
 
 ## The sandbox is the proxy's
 
@@ -7,7 +7,7 @@ or a callback registration. Ending the run is the teardown. An interrupted
 session left in the background is a sandbox still alive that a later session
 could mistake for its own.
 
-## Seeding the world
+## Seeding rows
 
 - `GET {control_url}/veris/data` with no parameters lists every table and its
   row count — the cheapest way to see what a service holds before reading
@@ -41,7 +41,7 @@ is evidence rather than noise.
    table owns files.
 2. Seed the rows the files need — the owner, a folder, a repository —
    through `POST {control_url}/veris/data`, or pick an owner that is already
-   in the world from `/veris/data`.
+   in the sandbox from `/veris/data`.
 3. Post the bytes with that owner's id. One file:
    ```sh
    curl --fail-with-body -sS -X POST --data-binary @report.pdf \
@@ -65,7 +65,7 @@ an import over a limit is refused with the number, nothing is truncated.
 
 Files follow rows: a reset restores the seeded set; `promote_sandbox` and a
 snapshot keep them; files the application uploaded during a run go away
-with the sandbox unless the world is kept. A sandbox of a world that holds
+with the sandbox unless the state is kept. A sandbox whose baseline holds
 many files stays `creating` for a few minutes while they are copied in;
 keep polling — only `failed` is a failure.
 
@@ -81,7 +81,8 @@ are shared by every test in a sandbox.
 clock atomically; if one service fails, existing state stays. Do not send
 traffic during a reset, and save `/veris/requests` first — every reset clears
 request history. A sandbox booted from an image — a promoted environment's
-baseline or a snapshot — answers `409`: reseeding would replace that world.
+baseline or a snapshot — answers `409`: reseeding would replace what the
+image pinned.
 
 `POST {control_url}/veris/reset` resets one service and leaves the shared
 clock alone, and it still works on an image-booted sandbox. Send
@@ -90,15 +91,15 @@ for exact rows; neither may leave an empty dataset, and any other key is
 refused with `422`, leaving existing data. Or delete the sandbox and create
 another.
 
-## Keeping a world a session built
+## Keeping the state a session built
 
-What the tests need is discovered by writing them, so the world worth keeping
+What the tests need is discovered by writing them, so the state worth keeping
 usually exists only at the end of a live session. Two ways to keep it, chosen
 by who should start from it:
 
 - **Every future run** → `promote_sandbox` with the run's sandbox id, before
-  the run ends. Promotion copies the world, files included, into the
-  environment's default; every later `create_sandbox`, including the
+  the run ends. Promotion copies the sandbox's state, files included, into
+  the environment's default; every later `create_sandbox`, including the
   proxy's per-run ones, starts from it. The capture is a boundary — the sandbox is left frozen and
   scrubbed — so it is the last thing done with it.
 - **Only some runs** — an empty account and a populated one, a trial and an
@@ -119,5 +120,5 @@ by who should start from it:
   booted from it is alive; that delete answers `409` until the sandbox is
   gone.
 
-Verify a world reads back the way the tests expect before keeping it; every
+Verify the state reads back the way the tests expect before keeping it; every
 later boot inherits it.
