@@ -31,8 +31,19 @@ trace is small enough that delegating costs more than it saves.
 defect internal to the repository, with no vendor claim load-bearing: say
 so, verify by the repository's own test conventions, and spend the twin on
 one end-to-end confirmation of the changed flow instead of the full gate
-sequence. Spend the full gates where the task rests on what the vendor
+sequence. That one confirmation is a floor, not a discount: a reduced path
+that drove nothing through the twin has not spent less — it has left the
+change unproven, and the flow the issue names is the one it skipped. Spend
+the full gates where the task rests on what the vendor
 does — the trigger is the boundary, never self-assessed obviousness.
+
+**The base.** Before the first edit, pin what the change will be measured
+against: `sh .veris/bin/record.sh base --task <id> --paths <the files the
+diagnosis implicates>`. It writes the starting commit into
+`.veris/tasks/<id>/record.json`, and Gate 4 reads it from there. Without
+`--paths` it falls back to the whole source tree, which pins far more than the
+task touches. Do this at the start, not at the gate — a base chosen once the
+diff exists is chosen by the thing being measured.
 
 ## Gate 1 — the failure reproduced before the first source edit
 
@@ -157,6 +168,26 @@ under *limitations and risks* with why it is out of scope. An unexercised
 sibling reported as covered fails this gate. In a repository large enough
 that this sweep spans many files, it is worth a subagent where one is
 available: ask for the entry points, each marked driven or not-driven.
+
+## Gate 4 — the measurements against the diff
+
+Every measurement this task took is one row in the ledger, written when you take
+it rather than reconstructed at the end — a ledger assembled after the code is
+a description of the code, not a check on it. Before the PR:
+`sh .veris/bin/ledger.sh --against-diff --task <id>` — no `--base`: it reads
+the commit pinned at the start of the task. If it reports the base is unpinned,
+that is the task's mistake, not the gate's; it does not get a base at gate time.
+
+Each row ends as exactly one of: **encoded**, naming the changed file and the
+symbol or decision that honors it; **non-load-bearing**, carrying a
+counterfactual — the different value the measurement could have taken without
+changing what the fix promises; **contradicted**; or **unresolved**. The last
+two are gate failures.
+
+**A contradiction is the code's problem, not the report's.** Change the code.
+The row format and the four dispositions are in
+[reference/proof.md](../veris-reference/proof.md); `ledger.sh init` prints the
+field contract.
 
 ## The PR
 

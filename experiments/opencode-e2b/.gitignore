@@ -1,0 +1,4 @@
+.veris-e2b/
+node_modules/
+package.json
+package-lock.json

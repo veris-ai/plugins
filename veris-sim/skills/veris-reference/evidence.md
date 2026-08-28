@@ -6,8 +6,8 @@ A heading with nothing under it is information too.
 ## What I verified, and how
 
 <For each claim the change rests on: the run that showed it, the receipt line
-(the receipt's line for the service), and where the evidence is — a ledger row in
-.veris/MEASUREMENTS.md, a request in /veris/requests, a row in /veris/data.>
+(the receipt's line for the service), and where the evidence is — a request in
+/veris/requests, a row in /veris/data.>
 
 - **The failure, reproduced:** <the fault armed, the flow driven, the wrong
   outcome observed — before any code changed>
