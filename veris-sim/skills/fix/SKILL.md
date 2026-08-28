@@ -21,11 +21,15 @@ and enumerate every distinct defect that could produce the symptom — the
 vendor's failures and the repository's own (state lost between requests, a
 queue, a cache, a race), which no twin can represent. The manual's fault
 catalog is one hypothesis source, never the selector: the twin confirms a
-diagnosis chosen from code evidence, it does not choose it. Where that
-survey spans many files and a subagent is available, delegating it is worth
-the coordination — ask for candidate defects, each with its file and line.
-Reading the twin is not that: a census, one projected table, or a filtered
-trace is small enough that delegating costs more than it saves.
+diagnosis chosen from code evidence, it does not choose it.
+
+**A run costs roughly turns × context, and every large output stays resident for
+every turn after it.** The expensive mistake is not an extra call; it is pulling a
+big response into the thread that then has to carry it. So where subagents exist,
+delegate by default anything that reads wide or returns long — this survey, a
+full test-suite run, any output past a screenful — and keep the answer, not the
+transcript. Ask this one for candidate defects, each with its file and line.
+Read small things inline: a data census, one projected table, a filtered trace.
 
 **The boundary.** Name where the vendor boundary sits in this task. A
 defect internal to the repository, with no vendor claim load-bearing: say

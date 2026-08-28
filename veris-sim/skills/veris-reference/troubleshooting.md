@@ -59,6 +59,14 @@ recovery usually needs both.
   cannot separate from real vendor behavior — and do not read one off
   `/veris/schema` either: the schema describes the state the world holds,
   not the operations the service answers.
+
+  **There is no endpoint that lists what a service implements.** The manual is
+  not that catalogue, the schema is not, and `/veris/operations` answers `404`
+  through to the vendor emulation — measured on `stripe` and `github`, where it
+  comes back in the vendor's own error envelope and so cannot even be told apart
+  from the vendor saying no. A controlled probe is the only instrument, and
+  coverage is a conclusion you argue from it, never a lookup. What you learn this
+  way belongs in `.veris/NOTES.md`, so the next task does not pay for it again.
 - A bare `500`: capture the request and the trace as a sandbox defect.
 - Widespread `502`: check sandbox status and expiry.
 - A timeout: check armed faults, whether the request reached the trace, and

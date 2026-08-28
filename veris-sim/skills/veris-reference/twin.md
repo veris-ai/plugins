@@ -15,7 +15,7 @@ your probes, setup and read-back do.
 | What does the vendor do at the condition the change is about — a repeat, a duplicate, a limit? | a probe: cause the condition with a direct call at `url` and read what came back. Credentials are the ones the manual names; `GET {control_url}/veris/data?entity_type=oauth_tokens` holds a seeded OAuth token where the twin issues one |
 | What does the failure this task is about look like? | a fault row, then the real call through it — [faults.md](faults.md) |
 | Did the application upload the file it meant to? | the file's row in `GET {control_url}/veris/data?entity_type=<files table>` holds the SHA-256 of its bytes; compare it with `shasum -a 256` of the local file. The trace does not show a binary body usefully |
-| What did the client actually send? What did the vendor store? | `GET {control_url}/veris/requests` (method, path, status, bodies; the query string is not recorded yet); `GET {control_url}/veris/data?entity_type=<table>` |
+| What did the client actually send? What did the vendor store? | `GET {control_url}/veris/requests` (method, path, status, bodies; the query string is not recorded yet) — **it logs your own `/veris/*` reads too, so filter to the vendor's paths before counting anything**; `GET {control_url}/veris/data?entity_type=<table>` |
 | What happens after time passes — expiry, retention? | the `clock` row — [faults.md](faults.md); never backwards |
 
 ## Sandbox lifecycle
