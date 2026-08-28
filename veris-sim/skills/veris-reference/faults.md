@@ -33,6 +33,14 @@ the other is refused. A slow-but-normal response is `latency_ms` with **no**
   value — `/v1/payment_intents/{id}/confirm` matches every id, and binds
   `path.id` for `match` to narrow on. One templated row beats a row per id,
   and it is the only way to arm a fault before the id exists.
+- **An SDK may spend the fault before your code sees it.** Most vendor clients
+  retry `>=500` and connection errors internally, reusing the caller's
+  idempotency key; a Stripe Node client was measured doing exactly this in a
+  benchmarked run, absorbing an armed `500` inside a single call so it never
+  reached the code under test — which reads as the bug not reproducing. If an
+  armed failure vanishes, check the client's retry setting before doubting the
+  fault, and arm a class the SDK does not retry (a `4xx`, e.g. `429`) to isolate
+  the behaviour you actually mean to exercise.
 - `remaining 1` spends the fault once. Delete persistent faults in cleanup:
   `DELETE {control_url}/veris/data` with the row's id.
 - A row can also carry `match` on body, query or path fields
@@ -40,7 +48,9 @@ the other is refused. A slow-but-normal response is `latency_ms` with **no**
   `{"path.id":"pi_123"}`; the manual lists the keys a service supports),
   `error.code`, `error.headers`,
   `{"status":502,"raw":true}` for a non-JSON gateway response, and
-  `idempotency: "bind"|"unbound"` for whether an error replays on key reuse:
+  `idempotency: "bind"|"unbound"` for whether an error replays on key reuse —
+  `bind` is only accepted on a `phase: before`, `outcome: error` row with no
+  `raw`, since nothing else produces a response the key can store:
   ```http
   POST {control_url}/veris/data
   {"data":{"faults":[{"method":"POST","path":"/vendor/path",

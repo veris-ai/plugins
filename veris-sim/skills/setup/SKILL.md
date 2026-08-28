@@ -168,12 +168,29 @@ sandbox. A certificate error against a mapped host is an SDK bundling its own
 CA — [../veris-reference/trust.md](../veris-reference/trust.md); other signals —
 [../veris-reference/troubleshooting.md](../veris-reference/troubleshooting.md).
 
-Either tier: alongside `.veris/setup.json`, write `.veris/NOTES.md` — what
-this session measured about the environment that a later task will need: a
-capability the twin lacks, a fact about the world's data, a matching or
-identity quirk, anything the twin got wrong. `build` and `fix` read it
-first; a fact left only in this transcript dies with it. Report the
-receipt line; then step 7.
+Either tier: alongside `.veris/setup.json`, write `.veris/NOTES.md` — what this
+session measured about the environment that a later task will need. `build` and
+`fix` read it first; a fact left only in this transcript dies with it.
+
+Use these headings, and write *measured* under each or *not measured* — never
+leave one out, because a heading with nothing under it is itself a finding, and
+the next task can decide whether to go and get it:
+
+- **What this twin cannot represent.** No endpoint lists a service's coverage
+  ([troubleshooting.md](../veris-reference/troubleshooting.md)), so whatever you
+  established here is the only record of it.
+- **Identity and matching.** Which fields the service treats as the same record,
+  and any normalizing, truncating or joining it does on the way.
+- **Errors and the dedup key.** Which failure classes bind to an
+  idempotency/dedup key and replay on reuse, and which leave the key free. A fix
+  that retries is built on this answer.
+- **Credentials and versions.** The shape a key must have, the API version
+  pinned, and anything a made-up value gets away with.
+- **Where the repo's own tests do not reach the vendor.** Suites that mock
+  in-process produce a green with an empty receipt.
+- **Anything the twin got wrong.**
+
+Report the receipt line; then step 7.
 
 ## 7. The world, when files are involved
 

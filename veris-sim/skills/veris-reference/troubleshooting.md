@@ -59,6 +59,15 @@ recovery usually needs both.
   cannot separate from real vendor behavior — and do not read one off
   `/veris/schema` either: the schema describes the state the world holds,
   not the operations the service answers.
+
+  **But coverage is answerable, and not by reading a `404`.** Arm a fault at the
+  operation in question: the fault validator checks it against the same published
+  surface `/veris/operations` would list, and says so in words — *"does not match
+  a published operation of this service"*, or *"… is not published for path …;
+  allowed methods: [...]"*, or it accepts. Both doors are in [twin.md](twin.md).
+  That is a control-plane answer and it settles the question; the vendor-shaped
+  `404` above never will. Put what you establish in `.veris/NOTES.md` so the next
+  task does not pay for it again.
 - A bare `500`: capture the request and the trace as a sandbox defect.
 - Widespread `502`: check sandbox status and expiry.
 - A timeout: check armed faults, whether the request reached the trace, and

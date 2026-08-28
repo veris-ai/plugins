@@ -12,10 +12,15 @@ and the PR says so.
 **The task.** A GitHub reference → `gh issue view <ref> --json title,body,comments`;
 quote it. Anything it states about the vendor — what it supports, what a
 field means, what a repeat does — is a **claim**, listed as such; vendor
-documentation is a claim too. Where a code survey spans many files and a
-subagent is available, delegating it is worth the coordination. Reading the
-twin is not: a census, one projected table, or a filtered trace is small
-enough that delegating costs more than it saves. No `.veris/run.sh` and no direct-tier `.veris/setup.json` → stop; `setup` runs first. A `setup.json` with `"tier": "direct"` replaces `run.sh`: run the flow directly against the wired sandbox and read the trace where a gate reads the receipt ([direct.md](../setup/reference/direct.md)).
+documentation is a claim too.
+
+**A run costs roughly turns × context, and every large output stays resident for
+every turn after it.** The expensive mistake is not an extra call; it is pulling a
+big response into the thread that then has to carry it. So where subagents exist,
+delegate by default anything that reads wide or returns long — a code survey, a
+full test-suite run, any output past a screenful — and keep the answer, not the
+transcript. Read small things inline: a data census, one projected table, a
+filtered trace. No `.veris/run.sh` and no direct-tier `.veris/setup.json` → stop; `setup` runs first. A `setup.json` with `"tier": "direct"` replaces `run.sh`: run the flow directly against the wired sandbox and read the trace where a gate reads the receipt ([direct.md](../setup/reference/direct.md)).
 Sandbox lifecycle and every `/veris/*` call: [reference/twin.md](../veris-reference/twin.md).
 
 **The boundary.** Once the claims are listed, name where the vendor
