@@ -34,6 +34,7 @@ that is a container-tier signal, not a reason to fork the app's HTTP layer.
    human (Replit's Secrets pane is one, measured): name every variable and
    its value, wait for the engineer to confirm, and never print other
    secrets while doing it.
+   For a vendor MCP, use the service's `url` with the vendor's MCP path.
 3. Credentials stay vendor-shaped: the sandbox publishes working ones —
    `GET {control_url}/veris/data` per the service manual — or the
    application's own connect flow mints them against the identity service.
