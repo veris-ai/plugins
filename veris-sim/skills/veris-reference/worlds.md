@@ -23,10 +23,48 @@ could mistake for its own.
   `PATCH` changes rows by primary key; `DELETE` removes them.
 - A clean slate between probes: `POST {control_url}/veris/reset` with
   `{"profile":"default"}`.
-- A column holding a file's bytes reads back as a placeholder string naming
-  the vendor download instead of the bytes; size and checksum columns return
-  in full. The bytes are still seedable, stored, and downloadable through the
-  vendor's own API.
+- File bytes are not rows — see **Files** below.
+
+## Files
+
+A file hangs off a row: a Drive file belongs to a user, a Dropbox file to an
+account, a Hub file to a repository, an attachment to an issue. So the order
+is fixed — rows first, files second. Services whose files sit in a tree have
+`/veris/files`, and the manual shows it; a service whose files are
+attachments takes bytes only through its own upload API, the way the
+application sends them, and the manual says so.
+
+1. Read the owner table's shape in `/veris/schema`; the manual names which
+   table owns files.
+2. Seed the rows the files need — the owner, a folder, a repository —
+   through `POST {control_url}/veris/data`, or pick an owner that is already
+   in the world from `/veris/data`.
+3. Post the bytes with that owner's id. One file:
+   ```sh
+   curl --fail-with-body -sS -X POST --data-binary @report.pdf \
+     "$CONTROL_URL/veris/files?path=Inbox/report.pdf&owner=<owner id>"
+   ```
+   A whole tree, as a zip:
+   ```sh
+   curl --fail-with-body -sS -X POST --data-binary @fixtures.zip \
+     "$CONTROL_URL/veris/files?prefix=Client%20Uploads&owner=<owner id>"
+   ```
+   `mode=merge` (default) replaces matching paths and keeps the rest;
+   `mode=replace` needs a `prefix` and makes that subtree exactly the
+   upload. Leave `owner` out and the manual's default identity owns the
+   files. The reply lists what was created.
+4. Read back: `GET {control_url}/veris/data?entity_type=<files table>`.
+
+Bytes never go through `/veris/data`, on any service. A file's content column shows the
+SHA-256 of its bytes, and the vendor's own download endpoint returns the
+exact bytes. Limits: 1 GB per file, 20 GB and 25,000 files per environment;
+an import over a limit is refused with the number, nothing is truncated.
+
+Files follow rows: a reset restores the seeded set; `promote_sandbox` and a
+snapshot keep them; files the application uploaded during a run go away
+with the sandbox unless the world is kept. A sandbox of a world that holds
+many files stays `creating` for a few minutes while they are copied in;
+keep polling — only `failed` is a failure.
 
 ## Isolation inside one sandbox
 
@@ -56,9 +94,9 @@ usually exists only at the end of a live session. Two ways to keep it, chosen
 by who should start from it:
 
 - **Every future run** → `promote_sandbox` with the run's sandbox id, before
-  the run ends. Promotion copies the world into the environment's default;
-  every later `create_sandbox`, including the proxy's per-run ones, starts
-  from it. The capture is a boundary — the sandbox is left frozen and
+  the run ends. Promotion copies the world, files included, into the
+  environment's default; every later `create_sandbox`, including the
+  proxy's per-run ones, starts from it. The capture is a boundary — the sandbox is left frozen and
   scrubbed — so it is the last thing done with it.
 - **Only some runs** — an empty account and a populated one, a trial and an
   expired trial — → a named **snapshot**. Promoting one of them would

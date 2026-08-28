@@ -14,7 +14,8 @@ A heading with nothing under it is information too.
 - **The fix, through the shipping path:** <the same flow, green, from the
   boundary the task names; receipt from that run>
 - **What the vendor recorded:** <the /veris/data or /veris/requests read-back
-  that shows the change did what it claims, not a layer below it>
+  that shows the change did what it claims, not a layer below it; for a
+  file, the row's SHA-256 matching the local file>
 
 ## What I am assuming rather than verifying
 

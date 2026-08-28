@@ -34,6 +34,7 @@ that is a container-tier signal, not a reason to fork the app's HTTP layer.
    human (Replit's Secrets pane is one, measured): name every variable and
    its value, wait for the engineer to confirm, and never print other
    secrets while doing it.
+   For a vendor MCP, use the service's `url` with the vendor's MCP path.
 3. Credentials stay vendor-shaped: the sandbox publishes working ones —
    `GET {control_url}/veris/data` per the service manual — or the
    application's own connect flow mints them against the identity service.
@@ -53,7 +54,9 @@ A container-tier sandbox lives for one run. A direct-tier sandbox is bound
 to a running application, so it lives until rotated. Set `ttl_minutes`
 generously but finitely; when the sandbox expires or the world must reset,
 the rotation is: create a new sandbox, re-set the `env_hint` variables,
-restart the application. Make token bootstrap part of application startup
+restart the application. A new sandbox boots the environment's default
+world: rows and files that were never promoted are gone, so load them
+again or promote once (`setup` step 7). Make token bootstrap part of application startup
 so rotation needs nothing else — a cached token from a dead sandbox is the
 first thing to fail after rotation.
 

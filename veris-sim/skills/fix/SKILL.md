@@ -74,6 +74,8 @@ does — the trigger is the boundary, never self-assessed obviousness.
    POST {control_url}/veris/data
    {"data":{"<entity>":[{"<primary-key>":"test-owned-id","<field>":"value"}]}}
    ```
+   File bytes are not rows: seed the rows first, then post the files
+   through `/veris/files` ([reference/worlds.md](../veris-reference/worlds.md)).
    Ids come from the world, never guessed and never carried from another
    sandbox. A call that fails because a row was absent is not the
    failure the issue describes. The world dies with its sandbox — resetting one, or

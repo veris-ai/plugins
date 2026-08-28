@@ -4,7 +4,8 @@ Read this to exercise the change, and to know what a green proves.
 `veris-proxy` puts the application's unmodified code — production hostnames,
 credentials, client stack — in front of the sandbox by rerouting its outbound
 HTTP(S) from outside the process, and ends with a **receipt** of what the
-sandbox received. `.veris/run.sh` carries the command; `/veris-sim:setup`
+sandbox received. Vendor MCP servers are supported for the services that list
+one (the service catalog shows which); keep the production MCP URL. `.veris/run.sh` carries the command; `/veris-sim:setup`
 wrote it. Flags before `--` pass through; a command after `--` replaces the
 recorded default:
 
