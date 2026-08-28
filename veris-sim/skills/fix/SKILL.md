@@ -69,7 +69,7 @@ diff exists is chosen by the thing being measured.
    on gets one probe, and what a refusal proves is in
    [reference/troubleshooting.md](../veris-reference/troubleshooting.md):
    some settle the question, most do not.
-3. The world. A sandbox boots the environment's default world, and the code
+3. The state. A sandbox boots the environment's default state, and the code
    path needs rows in it — the customer an invoice references, the account a
    charge posts to. Take the census first — `GET {control_url}/veris/data`
    with no parameters is every table and its row count in one small
@@ -87,11 +87,11 @@ diff exists is chosen by the thing being measured.
    {"data":{"<entity>":[{"<primary-key>":"test-owned-id","<field>":"value"}]}}
    ```
    File bytes are not rows: seed the rows first, then post the files
-   through `/veris/files` ([reference/worlds.md](../veris-reference/worlds.md)).
-   Ids come from the world, never guessed and never carried from another
+   through `/veris/files` ([reference/state.md](../veris-reference/state.md)).
+   Ids come from the sandbox, never guessed and never carried from another
    sandbox. A call that fails because a row was absent is not the
-   failure the issue describes. The world dies with its sandbox — resetting one, or
-   keeping one: [reference/worlds.md](../veris-reference/worlds.md).
+   failure the issue describes. The state dies with its sandbox — resetting it, or
+   keeping it: [reference/state.md](../veris-reference/state.md).
 4. Make the failure happen. The vendor will not produce it on demand. A
    vendor-side defect: arm a `faults` row in the shape
    [reference/faults.md](../veris-reference/faults.md) gives for what the issue
@@ -204,7 +204,7 @@ wrong. Every task premise measured false is its own line in the body — the
 premise, the probe, the answer — and is never restated as fact after that
 measurement, in prose, code, or a name. Paste the sandbox id. Then `delete_sandbox` (or `DELETE …/sandboxes/<id>`).
 
-When a step needs it: [worlds.md](../veris-reference/worlds.md), [webhooks.md](../veris-reference/webhooks.md),
+When a step needs it: [state.md](../veris-reference/state.md), [webhooks.md](../veris-reference/webhooks.md),
 [trust.md](../veris-reference/trust.md) (an SDK refusing the proxy's certificate),
 [troubleshooting.md](../veris-reference/troubleshooting.md). Note anything the
 sandbox got wrong or lacked and give it to the engineer at the end. Ask

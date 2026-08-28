@@ -35,8 +35,8 @@ DELETE ${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRO
 Set `VERIS_API_BASE` only to aim at a control plane other than production;
 every command here already carries the default.
 
-Getting the rows a case needs into the world, and what becomes of
-them: [worlds.md](worlds.md).
+Getting the rows a case needs into the sandbox, and what becomes of
+them: [state.md](state.md).
 
 ## Reading back
 
