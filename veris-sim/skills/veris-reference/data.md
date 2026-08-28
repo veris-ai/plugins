@@ -1,13 +1,13 @@
-# Worlds: the state a sandbox holds - seeding, isolation, reset, promote, snapshots
+# Sandbox data: seeding, isolation, reset, promote, snapshots
 
 ## The sandbox is the proxy's
 
-A sandbox per run is hermetic; two runs never share state, faults, the clock,
+A sandbox per run is hermetic; two runs never share data, faults, the clock,
 or a callback registration. Ending the run is the teardown. An interrupted
 session left in the background is a sandbox still alive that a later session
 could mistake for its own.
 
-## Seeding the world
+## Seeding
 
 - Ids come from `GET {control_url}/veris/data?entity_type=<table>` — never guessed, never copied from another
   sandbox. Use a vendor test value or named profile only when the manual
@@ -35,7 +35,8 @@ are shared by every test in a sandbox.
 clock atomically; if one service fails, existing state stays. Do not send
 traffic during a reset, and save `/veris/requests` first — every reset clears
 request history. A sandbox booted from an image — a promoted environment's
-baseline or a snapshot — answers `409`: reseeding would replace that world.
+baseline or a snapshot — answers `409`: reseeding would replace what the
+image pinned.
 
 `POST {control_url}/veris/reset` resets one service and leaves the shared
 clock alone, and it still works on an image-booted sandbox. Send
@@ -44,14 +45,15 @@ for exact rows; neither may leave an empty dataset, and any other key is
 refused with `422`, leaving existing data. Or delete the sandbox and create
 another.
 
-## Keeping a world a session built
+## Keeping the data a session built
 
-What the tests need is discovered by writing them, so the world worth keeping
+What the tests need is discovered by writing them, so the data worth keeping
 usually exists only at the end of a live session. Two ways to keep it, chosen
 by who should start from it:
 
 - **Every future run** → `promote_sandbox` with the run's sandbox id, before
-  the run ends. Promotion copies the world into the environment's default;
+  the run ends. Promotion copies the sandbox's data into the environment's
+default;
   every later `create_sandbox`, including the proxy's per-run ones, starts
   from it. The capture is a boundary — the sandbox is left frozen and
   scrubbed — so it is the last thing done with it.
@@ -73,5 +75,5 @@ by who should start from it:
   booted from it is alive; that delete answers `409` until the sandbox is
   gone.
 
-Verify a world reads back the way the tests expect before keeping it; every
+Verify the data reads back the way the tests expect before keeping it; every
 later boot inherits it.

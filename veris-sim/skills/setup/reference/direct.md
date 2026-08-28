@@ -51,7 +51,7 @@ it work" question has the same two answers the proxy tier has — the trace
 
 A container-tier sandbox lives for one run. A direct-tier sandbox is bound
 to a running application, so it lives until rotated. Set `ttl_minutes`
-generously but finitely; when the sandbox expires or the world must reset,
+generously but finitely; when the sandbox expires or its data must reset,
 the rotation is: create a new sandbox, re-set the `env_hint` variables,
 restart the application. Make token bootstrap part of application startup
 so rotation needs nothing else — a cached token from a dead sandbox is the

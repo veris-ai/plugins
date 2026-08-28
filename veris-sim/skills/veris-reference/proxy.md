@@ -67,9 +67,9 @@ connection error against a mapped host is an SDK that bundles its own CA —
 SDK calls all failed TLS still prints a healthy receipt if anything else in
 the run completed a request on that host; read the paths.
 
-## Worlds
+## Sandbox data
 
-An environment's default world is usable without preparation; what a case
-needs beyond it is seeded through `/veris/data` in the run, and worlds worth
-keeping are kept as snapshots — [worlds.md](worlds.md). Never promote from a
+An environment's starting data is usable without preparation; what a case
+needs beyond it is seeded through `/veris/data` in the run, and data worth
+keeping is kept as snapshots — [data.md](data.md). Never promote from a
 command: promote re-pins the environment every later run boots from.

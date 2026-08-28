@@ -23,7 +23,7 @@ Sandbox lifecycle and every `/veris/*` call: [reference/twin.md](../veris-refere
 2. `GET {control_url}/veris/manual` — the service's own notes, read whole once. It
    names what the vendor already offers for this feature and the selector
    that makes a repeated write safe, or that none exists.
-3. The world. A sandbox boots the environment's default world, and the code
+3. The data. A sandbox boots the environment's starting data, and the code
    path needs rows in it — the customer an invoice references, the account a
    charge posts to. `GET {control_url}/veris/data?entity_type=<table>` shows what
    is already there; seed what is missing, in the shapes `GET {control_url}/veris/schema`
@@ -32,10 +32,10 @@ Sandbox lifecycle and every `/veris/*` call: [reference/twin.md](../veris-refere
    POST {control_url}/veris/data
    {"data":{"<entity>":[{"<primary-key>":"test-owned-id","<field>":"value"}]}}
    ```
-   Ids come from the world, never guessed and never carried from another
+   Ids come from the sandbox, never guessed and never carried from another
    sandbox. A call that fails because a row was absent has
-   measured nothing. The world dies with its sandbox — resetting one, or
-   keeping one: [reference/worlds.md](../veris-reference/worlds.md).
+   measured nothing. The data dies with its sandbox — resetting it, or
+   keeping what it holds: [reference/data.md](../veris-reference/data.md).
 4. For each claim: one probe against `url`, or one schema read, that answers
    it — the questions and their asks are in [reference/twin.md](../veris-reference/twin.md).
    Record the call and the answer; a measurement that contradicts the task
@@ -77,7 +77,7 @@ and how* — each claim, the probe, the receipt line; *what I am assuming
 rather than verifying*, and why that is acceptable; *limitations and risks*.
 Paste the sandbox id. Then `delete_sandbox` (or `DELETE …/sandboxes/<id>`).
 
-When a step needs it: [worlds.md](../veris-reference/worlds.md), [webhooks.md](../veris-reference/webhooks.md),
+When a step needs it: [data.md](../veris-reference/data.md), [webhooks.md](../veris-reference/webhooks.md),
 [trust.md](../veris-reference/trust.md) (an SDK refusing the proxy's certificate),
 [troubleshooting.md](../veris-reference/troubleshooting.md). Note anything the
 sandbox got wrong or lacked and give it to the engineer at the end. Ask

@@ -31,8 +31,8 @@ DELETE $VERIS_API_BASE/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes/<id>
 
 `$VERIS_API_BASE` defaults to `https://svc.api.veris.ai`.
 
-Getting the rows a case needs into the world, and what becomes of
-them: [worlds.md](worlds.md).
+Getting the rows a case needs into the sandbox, and what becomes of
+them: [data.md](data.md).
 
 ## Reading back
 

@@ -86,9 +86,11 @@ environment at session start, so restart the agent after setting it.
 
 ### Versions
 
-0.4.3 — `build` and `fix` seed the world before they measure: neither command
+0.4.3 — `build` and `fix` seed the sandbox before they measure: neither command
 named the write side of `/veris/data`, so the rows a code path needs were
-nobody's step.
+nobody's step. `worlds.md` is now `data.md`, and the word *world* is gone from
+the plugin — the team uses it for twin plus actor service, and the plugin used
+it for the rows a sandbox holds.
 
 0.4.2 — Codex fixes measured in a clean box: the commands are listed to the
 model (a skill Codex is told never to invoke implicitly is not shown at all,
