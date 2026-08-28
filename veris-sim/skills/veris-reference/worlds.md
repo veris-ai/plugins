@@ -62,7 +62,9 @@ an import over a limit is refused with the number, nothing is truncated.
 
 Files follow rows: a reset restores the seeded set; `promote_sandbox` and a
 snapshot keep them; files the application uploaded during a run go away
-with the sandbox unless the world is kept.
+with the sandbox unless the world is kept. A sandbox of a world that holds
+many files stays `creating` for a few minutes while they are copied in;
+keep polling — only `failed` is a failure.
 
 ## Isolation inside one sandbox
 
