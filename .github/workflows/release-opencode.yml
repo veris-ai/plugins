@@ -31,10 +31,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No registry-url: it makes setup-node write an .npmrc pinning token auth
+      # to a placeholder NODE_AUTH_TOKEN, and npm then never reaches for OIDC.
+      # That is what failed run 33198510143 — a token-authed PUT, no provenance
+      # line in the log, and npm's 404-for-bad-auth. The default registry is
+      # npmjs.org anyway, which is where this publishes.
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          registry-url: https://registry.npmjs.org
 
       # Trusted publishing needs npm >= 11.5.1.
       - run: npm install -g npm@latest
