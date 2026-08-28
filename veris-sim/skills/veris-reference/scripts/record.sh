@@ -127,17 +127,27 @@ if [ "$MODE" = base ]; then
     if [ -n "$roots" ]; then
       PATHS="$roots"
       flags="$flags PATHS_UNNARROWED"
-      note "no --paths: falling back to source_roots from $SETUP. Gate 0 names this task's files; pass them."
+      note "no --paths: falling back to source_roots from $SETUP, which pins the whole source tree. Pass --paths with the files this task changes."
     else
       die "no --paths and no source_roots in $SETUP. Name the files this task changes."
     fi
   else
     roots="$(setup_get '.source_roots[]?')"
     if [ -n "$roots" ]; then
+      # Does the path fall UNDER a declared root? The roots carry globs
+      # (packages/modules/*/src), so this is a glob match of the path against
+      # each root, not a string compare of one against the other.
       printf '%s\n' "$PATHS" | while IFS= read -r p; do
         [ -n "$p" ] || continue
-        printf '%s\n' "$roots" | grep -q "^$(printf '%s' "$p" | sed 's/[^/]*$//' | sed 's|/$||')" ||
-          printf '%s: note %s is outside the recorded source_roots — allowed, Gate 0 may implicate a file setup did not anticipate.\n' "$ME" "$p" >&2
+        _inside=''
+        for _r in $roots; do
+          # shellcheck disable=SC2254  # $_r is a pattern on purpose
+          case "$p" in
+            $_r|$_r/*) _inside=1; break ;;
+          esac
+        done
+        [ -n "$_inside" ] ||
+          printf '%s: note %s is outside the recorded source_roots — allowed; a diagnosis may implicate a file setup did not anticipate.\n' "$ME" "$p" >&2
       done
     fi
   fi

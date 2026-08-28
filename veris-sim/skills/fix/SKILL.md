@@ -38,10 +38,12 @@ the full gates where the task rests on what the vendor
 does — the trigger is the boundary, never self-assessed obviousness.
 
 **The base.** Before the first edit, pin what the change will be measured
-against: `sh .veris/bin/record.sh base`. It writes the starting commit into
-`.veris/tasks/<id>/record.json`, and Gate 4 reads it from there. Do this at the
-start, not at the gate — a base chosen once the diff exists is chosen by the
-thing being measured.
+against: `sh .veris/bin/record.sh base --task <id> --paths <the files the
+diagnosis implicates>`. It writes the starting commit into
+`.veris/tasks/<id>/record.json`, and Gate 4 reads it from there. Without
+`--paths` it falls back to the whole source tree, which pins far more than the
+task touches. Do this at the start, not at the gate — a base chosen once the
+diff exists is chosen by the thing being measured.
 
 ## Gate 1 — the failure reproduced before the first source edit
 
