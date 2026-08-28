@@ -151,11 +151,26 @@ fi
 [ -f "$LEDGER" ] || die "$LEDGER does not exist; run '$ME init --task $TASK' first"
 
 if [ "$MODE" = against-diff ]; then
+  RECORDED=''
   if [ -z "$BASE" ] && [ -f "$RECORD" ]; then
     BASE="$(jq -r '.base_commit // empty' "$RECORD" 2>/dev/null || true)"
+    [ -n "$BASE" ] && RECORDED=1
   fi
-  [ -n "$BASE" ] || die "no base commit: pass --base <ref>, or run 'record.sh base' first"
+  [ -n "$BASE" ] || die "no base commit: run 'record.sh base' when the task starts, or pass --base <full-sha>"
   git rev-parse --verify --quiet "$BASE" >/dev/null || die "base '$BASE' is not a commit in this repository"
+
+  # A base the change picks at gate time is not a base. `HEAD` is the case that
+  # bites: run the gate before committing and it names the starting commit; run
+  # it after and the changed set is empty, so every ENCODED row fails for a
+  # reason that has nothing to do with the measurements. Pin it when the task
+  # starts, before the first edit.
+  if [ -z "$RECORDED" ]; then
+    case "$BASE" in
+      *[!0-9a-f]*) PINNED='' ;;
+      *) [ "${#BASE}" -eq 40 ] && PINNED=1 || PINNED='' ;;
+    esac
+    [ -n "$PINNED" ] || die "base '$BASE' is a moving reference and no $RECORD exists. Run 'record.sh base' when the task starts, then call this without --base; or pass the full 40-character sha the task began at."
+  fi
   CHANGED="$(git diff --name-only "$BASE" -- 2>/dev/null; git diff --name-only --cached "$BASE" -- 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null)"
 fi
 
@@ -246,7 +261,10 @@ while IFS= read -r line || [ -n "$line" ]; do
         f="$(get '.code_ref.file')"
         if printf '%s\n' "$CHANGED" | grep -qxF "$f"; then
           sym="$(get '.code_ref.symbol')"
-          if [ -n "$sym" ] && ! git diff -U0 "$BASE" -- "$f" 2>/dev/null | grep -qF "$sym"; then
+          # Context, not -U0. A function whose body changed but whose signature
+          # line did not carries its own name only on a context line, so -U0
+          # reports it missing and the honest repair looks like editing the row.
+          if [ -n "$sym" ] && ! git diff -U10 "$BASE" -- "$f" 2>/dev/null | grep -qF "$sym"; then
             warn "$id: '$sym' does not appear in the changed hunks of $f (renamed? moved?)"
           fi
         else

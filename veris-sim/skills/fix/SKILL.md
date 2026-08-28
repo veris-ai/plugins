@@ -37,6 +37,12 @@ change unproven, and the flow the issue names is the one it skipped. Spend
 the full gates where the task rests on what the vendor
 does — the trigger is the boundary, never self-assessed obviousness.
 
+**The base.** Before the first edit, pin what the change will be measured
+against: `sh .veris/bin/record.sh base`. It writes the starting commit into
+`.veris/tasks/<id>/record.json`, and Gate 4 reads it from there. Do this at the
+start, not at the gate — a base chosen once the diff exists is chosen by the
+thing being measured.
+
 ## Gate 1 — the failure reproduced before the first source edit
 
 0. `.veris/NOTES.md`, if present — what setup and earlier tasks already
@@ -166,7 +172,9 @@ available: ask for the entry points, each marked driven or not-driven.
 Every measurement this task took is one row in the ledger, written when you take
 it rather than reconstructed at the end — a ledger assembled after the code is
 a description of the code, not a check on it. Before the PR:
-`sh .veris/bin/ledger.sh --against-diff --task <id>`.
+`sh .veris/bin/ledger.sh --against-diff --task <id>` — no `--base`: it reads
+the commit pinned at the start of the task. If it reports the base is unpinned,
+that is the task's mistake, not the gate's; it does not get a base at gate time.
 
 Each row ends as exactly one of: **encoded**, naming the changed file and the
 symbol or decision that honors it; **non-load-bearing**, carrying a
