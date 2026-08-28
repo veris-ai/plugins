@@ -60,13 +60,13 @@ recovery usually needs both.
   `/veris/schema` either: the schema describes the state the world holds,
   not the operations the service answers.
 
-  **There is no endpoint that lists what a service implements.** The manual is
-  not that catalogue, the schema is not, and `/veris/operations` answers `404`
-  through to the vendor emulation — measured on `stripe` and `github`, where it
-  comes back in the vendor's own error envelope and so cannot even be told apart
-  from the vendor saying no. A controlled probe is the only instrument, and
-  coverage is a conclusion you argue from it, never a lookup. What you learn this
-  way belongs in `.veris/NOTES.md`, so the next task does not pay for it again.
+  The one catalogue that can exist is `GET {control_url}/veris/operations`
+  ([twin.md](twin.md)), and it is opt-in per service. A `404` there means *this
+  service publishes no catalogue* — it falls through to the vendor emulation and
+  arrives in the vendor's error envelope, so it is neither evidence about the
+  vendor nor evidence of a gap. Assume you will be arguing coverage from a
+  controlled probe rather than reading it off anything, and put what you
+  establish in `.veris/NOTES.md` so the next task does not pay for it again.
 - A bare `500`: capture the request and the trace as a sandbox defect.
 - Widespread `502`: check sandbox status and expiry.
 - A timeout: check armed faults, whether the request reached the trace, and

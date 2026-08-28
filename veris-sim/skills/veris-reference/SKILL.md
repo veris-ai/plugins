@@ -16,5 +16,5 @@ Not a command. `setup`, `build` and `fix` link to the file a step needs:
 | `worlds.md` | the world a sandbox holds: seeding rows, loading files, isolation, reset, promote, snapshots |
 | `webhooks.md` | the application receives callbacks |
 | `trust.md` | an SDK refuses the proxy's certificate |
-| `troubleshooting.md` | what the receipt, an exit code and a vendor-shaped error each mean — which trace tier holds which evidence, and why no endpoint answers a coverage question |
+| `troubleshooting.md` | what the receipt, an exit code and a vendor-shaped error each mean — which trace tier holds which evidence, and how far the one coverage catalogue goes |
 | `proof.md` | what closes a claim: the three layers, the ledger's four dispositions, the identity a fix rests on |
