@@ -1,6 +1,6 @@
 {
   "name": "opencode-veris-sim",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "description": "Test an application against Veris - stateful twins of the external services it calls. Three commands: setup (wire a repo once), build <issue|prompt> (measure the vendor before designing, prove the change through veris-proxy), fix <issue|prompt> (reproduce the failure first, prove it closed). Plus the veris MCP server.",
   "type": "module",
   "main": "./index.js",

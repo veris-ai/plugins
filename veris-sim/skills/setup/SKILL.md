@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Wire this repository to a Veris environment, once - the credential, the environment, the transport (veris-proxy + docker, or --direct for apps whose config carries the base URLs), and one smoke run with proof of arrival. Run before build or fix. Run when the engineer names this command.
+description: Wire this repository to a Veris environment, once - the credential, the environment, the transport (veris-proxy + docker, or --direct for apps whose config carries the base URLs), one smoke run with proof of arrival, and, when the app works with files, the world they live in. Run before build or fix. Run when the engineer names this command.
 argument-hint: "[environment-id | service names...] [--direct]"
 disable-model-invocation: true
 ---
@@ -124,6 +124,27 @@ this session measured about the environment that a later task will need: a
 capability the twin lacks, a fact about the world's data, a matching or
 identity quirk, anything the twin got wrong. `build` and `fix` read it
 first; a fact left only in this transcript dies with it. Report the
-receipt line and stop: `build` or `fix` takes the task.
+receipt line; then step 7.
+
+## 7. The world, when files are involved
+
+Skip this when the application does not work with files. When it does —
+uploads, attachments, documents — set the world up once, so every later
+sandbox starts with the files instead of each task loading them again:
+
+1. Create a sandbox (`create_sandbox`), or use the direct-tier one.
+2. Seed the rows the files hang off — an owner, a folder, a repository — in
+   the shapes `/veris/schema` names, or pick an owner already in the world.
+3. Post the files with that owner through `/veris/files` where the
+   manual shows it, or through the vendor's own upload API where files are
+   attachments — rows first, files second, as
+   [../veris-reference/worlds.md](../veris-reference/worlds.md) lays out.
+4. Read them back and check the SHA-256 in each row against the local file.
+5. Ask the engineer, then `promote_sandbox`. This is the one place a
+   command promotes, and only with a yes; `build` and `fix` never do.
+6. Write what is in the world — owners, paths, hashes — into `.veris/NOTES.md`.
+
+Rows-only worlds are cheap to seed per task and do not need this. Report
+and stop: `build` or `fix` takes the task.
 
 Ask before installing the binary or sending repository code anywhere new.
