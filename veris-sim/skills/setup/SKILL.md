@@ -176,10 +176,8 @@ Use these headings, and write *measured* under each or *not measured* — never
 leave one out, because a heading with nothing under it is itself a finding, and
 the next task can decide whether to go and get it:
 
-- **What this twin cannot represent.** `/veris/operations` lists what a
-  service serves, never how faithfully it serves it
-  ([twin.md](../veris-reference/twin.md)), so a behaviour gap you hit here
-  is still the only record of it.
+- **What this twin cannot represent.** Whatever you established here is the
+  only record of it.
 - **Identity and matching.** Which fields the service treats as the same record,
   and any normalizing, truncating or joining it does on the way.
 - **Errors and the dedup key.** Which failure classes bind to an
