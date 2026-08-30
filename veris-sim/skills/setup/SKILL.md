@@ -176,9 +176,10 @@ Use these headings, and write *measured* under each or *not measured* — never
 leave one out, because a heading with nothing under it is itself a finding, and
 the next task can decide whether to go and get it:
 
-- **What this twin cannot represent.** No endpoint lists a service's coverage
-  ([troubleshooting.md](../veris-reference/troubleshooting.md)), so whatever you
-  established here is the only record of it.
+- **What this twin cannot represent.** `GET {control_url}/veris/operations`
+  lists the supported surface ([twin.md](../veris-reference/twin.md)), but
+  being listed is not a promise of deterministic fidelity, so what you
+  measured about *behaviour* is still the only record of it.
 - **Identity and matching.** Which fields the service treats as the same record,
   and any normalizing, truncating or joining it does on the way.
 - **Errors and the dedup key.** Which failure classes bind to an
