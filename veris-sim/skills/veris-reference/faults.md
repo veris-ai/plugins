@@ -110,11 +110,11 @@ service is; read it before concluding anything from an unchanged result.
 
 ## The clock
 
-One `clock` row is shared by every service in the sandbox:
+One virtual clock is shared by every service in the sandbox. Read it with
+`get_sandbox_clock`, and move it with `update_sandbox_clock`:
 
-```http
-PATCH {control_url}/veris/data
-{"data":{"clock":[{"id":1,"offset_seconds":2678400}]}}
+```json
+{"environment_id":"<env>","sandbox_id":"<sandbox>","offset_seconds":2678400}
 ```
 
 It advances vendor time — expiry, retention, replay windows. Advance the
@@ -126,10 +126,12 @@ Setting `mode` to `frozen` with a `frozen_time` (unix epoch seconds) stops
 vendor time at that instant, which is what makes a retention or expiry
 boundary reproducible instead of racing wall time:
 
-```http
-PATCH {control_url}/veris/data
-{"data":{"clock":[{"id":1,"mode":"frozen","frozen_time":1793491200}]}}
+```json
+{"environment_id":"<env>","sandbox_id":"<sandbox>","mode":"frozen","frozen_time":1793491200}
 ```
+
+On a direct connection without Veris MCP, patching the `clock` row through
+any service's `{control_url}/veris/data` changes the same sandbox-wide clock.
 
 Either way, the sandbox's clock is the only one that moves. A test that
 signs tokens or verifies signatures has to keep the application's clock — or

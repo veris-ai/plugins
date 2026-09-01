@@ -100,8 +100,8 @@ by who should start from it:
 - **Every future run** → `promote_sandbox` with the run's sandbox id, before
   the run ends. Promotion copies the sandbox's state, files included, into
   the environment's default; every later `create_sandbox`, including the
-  proxy's per-run ones, starts from it. The capture is a boundary — the sandbox is left frozen and
-  scrubbed — so it is the last thing done with it.
+  proxy's per-run ones, starts from it. The clock is briefly frozen while
+  capturing and then restored; run-scoped state is scrubbed from the image.
 - **Only some runs** — an empty account and a populated one, a trial and an
   expired trial — → a named **snapshot**. Promoting one of them would
   silently change what every other suite starts from.
@@ -115,10 +115,13 @@ by who should start from it:
 
   Many snapshots per environment; the default boot is unchanged.
   `create_sandbox` takes an optional `snapshot_id`, and an explicit snapshot
-  beats the environment's baseline pin. Snapshot management is HTTP-only;
-  only the boot side is on MCP. A snapshot cannot be deleted while a sandbox
-  booted from it is alive; that delete answers `409` until the sandbox is
-  gone.
+  beats the environment's baseline pin. When creating from either a snapshot
+  or the promoted baseline, choose `clock_restore` on that `create_sandbox`
+  call: `today` (default) runs at current time, `frozen` stays at the captured
+  time, and legacy `rebase` starts there and keeps ticking. Snapshot creation
+  and listing remain HTTP-only; only restoring a known snapshot is on MCP. A
+  snapshot cannot be deleted while a sandbox booted from it is alive; that
+  delete answers `409` until the sandbox is gone.
 
 Verify the state reads back the way the tests expect before keeping it; every
 later boot inherits it.
