@@ -22,8 +22,8 @@ export VERIS_API_KEY=<key>
 ```
 
 `VERIS_API_BASE` overrides the control plane (defaults to
-`https://svc.api.veris.ai`). Until the key is set, `opencode mcp list` shows
-the `veris` server as failed; the commands still run and `setup` walks you
+`https://svc.api.veris.ai`). Until the key is set the plugin registers no `veris` server (`opencode
+mcp list` does not list it); the commands still run and `setup` walks you
 through it.
 
 ## Commands
@@ -31,7 +31,7 @@ through it.
 | command | what it does |
 |---|---|
 | `/veris-sim:setup` | wires the repository to a Veris environment, once — credential, environment, transport, one smoke run with proof of arrival |
-| `/veris-sim:build <issue link \| prompt>` | measures every vendor claim the task rests on against the twin before designing, proves the change through veris-proxy with a receipt |
+| `/veris-sim:build <issue link \| prompt>` | measures every vendor claim the task rests on against the twin before designing, proves the change against the twin with a receipt |
 | `/veris-sim:fix <issue link \| prompt>` | reproduces the failure the issue describes before designing, proves the same failure closed with a receipt |
 
 The commands are plain OpenCode commands, typed by the engineer. The same

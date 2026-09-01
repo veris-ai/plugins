@@ -2,7 +2,7 @@
   "name": "veris-sim",
   "displayName": "Veris Sim",
   "version": "0.7.0",
-  "description": "Test an application against Veris - stateful twins of the external services it calls. Three commands: setup (wire a repo once), build <issue|prompt> (measure the vendor before designing, prove the change through veris-proxy), fix <issue|prompt> (reproduce the failure first, prove it closed). Plus the veris MCP server.",
+  "description": "Test an application against Veris - stateful twins of the external services it calls. Three commands: setup (wire a repo once), build <issue|prompt> (measure the vendor before designing, prove the change against the twin), fix <issue|prompt> (reproduce the failure first, prove it closed). Plus the veris MCP server.",
   "author": {
     "name": "Veris",
     "url": "https://veris.ai"

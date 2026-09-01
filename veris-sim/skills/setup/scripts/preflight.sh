@@ -9,6 +9,7 @@
 #   preflight.sh --direct [<env-id>]              direct tier: credential + environment only
 #   preflight.sh --fast [<env-id>]                already wired? say so and stop
 #   preflight.sh --plugin-version <v> [<env-id>]  also check the staged scripts are current
+#   preflight.sh --hosted [--plugin-version <v>]  hosted tier: jq, the staged scripts and .veris/session.md — nothing the sandbox cannot see
 #
 # Exit: 0 everything holds · 2 at least one precondition failed.
 set -u
@@ -24,11 +25,13 @@ base="${base%/}"
 
 direct=0
 fast=0
+hosted=0
 plugin_version=''
 while [ $# -gt 0 ]; do
   case "$1" in
     --direct)         direct=1; shift ;;
     --fast)           fast=1; shift ;;
+    --hosted)         hosted=1; shift ;;
     --plugin-version) plugin_version="${2:-}"; [ -n "$plugin_version" ] || { echo "preflight: --plugin-version needs a value" >&2; exit 2; }; shift 2 ;;
     *)                break ;;
   esac
@@ -36,10 +39,15 @@ done
 
 setup_get() { [ -f .veris/setup.json ] && sed -n "s/.*\"$1\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" .veris/setup.json | head -1 || true; }
 setup_has() { [ -f .veris/setup.json ] && grep -q "\"$1\"" .veris/setup.json; }
+# One `key: value` per line; a trailing ` # comment` is not part of the value.
+session_get() { [ -f .veris/session.md ] && sed -n "s/^$1:[[:space:]]*//p" .veris/session.md | sed 's/[[:space:]]#.*$//;s/[[:space:]]*$//' | head -1 || true; }
 
 # ------------------------------------------------------------------ credential
 
-if [ -n "${VERIS_API_KEY:-}" ]; then
+if [ "$hosted" = 1 ]; then
+  note credential "hosted tier — the session's sandbox already holds the twin; the key is the host's, not checked here"
+  have_key=0
+elif [ -n "${VERIS_API_KEY:-}" ]; then
   ok credential
   have_key=1
 else
@@ -49,7 +57,9 @@ fi
 
 # ------------------------------------------------------------------- transport
 
-if [ "$direct" = 1 ]; then
+if [ "$hosted" = 1 ]; then
+  note transport "hosted tier — the session provisioned the sandbox; binary/docker/image not required"
+elif [ "$direct" = 1 ]; then
   note transport "direct tier — binary/docker/image not required"
 else
   if command -v veris-proxy >/dev/null 2>&1 && veris-proxy version >/dev/null 2>&1; then
@@ -76,7 +86,9 @@ fi
 # ------------------------------------------------------------------ environment
 
 env_id="${1:-${VERIS_ENVIRONMENT_ID:-}}"
-if [ -z "$env_id" ]; then
+if [ "$hosted" = 1 ]; then
+  note environment "hosted tier — the environment id is a host-side variable the sandbox never sees; not checked"
+elif [ -z "$env_id" ]; then
   fail environment "export VERIS_ENVIRONMENT_ID or pass an environment id"
 elif [ "$have_key" = 0 ]; then
   skip environment credential
@@ -95,7 +107,7 @@ fi
 
 # ------------------------------------------------------------------------ image
 
-if [ "$direct" != 1 ] && [ -f .veris/setup.json ]; then
+if [ "$direct" != 1 ] && [ "$hosted" != 1 ] && [ -f .veris/setup.json ]; then
   image="$(setup_get image)"
   dockerfile="$(setup_get dockerfile)"
   # A stock image is pulled by the run itself; only a tag built from a recorded
@@ -123,11 +135,15 @@ if [ -d .veris/bin ]; then
   if [ -n "$missing" ]; then
     fail scripts "staged scripts are incomplete —$missing; re-run /veris-sim:setup"
   else
-    recorded="$(setup_get plugin_version)"
+    # On the hosted tier the scripts are fetched per session and a foreign-tier
+    # setup.json is left alone, so the version staged lives on session.md's
+    # staging: line — `npm 0.8.0` — not in setup.json.
+    if [ "$hosted" = 1 ]; then recorded="$(session_get staging | awk '{print $2}')"; else recorded="$(setup_get plugin_version)"; fi
     if [ -z "$plugin_version" ]; then
       note scripts "staged, VERSION_UNCHECKED — pass --plugin-version to compare"
     elif [ -z "$recorded" ]; then
-      fail scripts "no plugin_version in .veris/setup.json; re-run /veris-sim:setup"
+      if [ "$hosted" = 1 ]; then fail scripts "no version on the staging: line of .veris/session.md; re-run /veris-sim:setup"
+      else fail scripts "no plugin_version in .veris/setup.json; re-run /veris-sim:setup"; fi
     elif [ "$recorded" = "$plugin_version" ]; then
       ok scripts "staged from $recorded"
     else
@@ -135,7 +151,11 @@ if [ -d .veris/bin ]; then
     fi
   fi
 else
-  note scripts "not staged yet (setup copies them into .veris/bin/)"
+  if [ "$hosted" = 1 ]; then
+    fail scripts "not staged — on the hosted tier setup fetches them into .veris/bin/ every session, and Gate 4 has no route without them; re-run /veris-sim:setup"
+  else
+    note scripts "not staged yet (setup copies them into .veris/bin/)"
+  fi
 fi
 
 # ------------------------------------------------------- what later tasks need
@@ -154,7 +174,17 @@ fi
 
 # ------------------------------------------------------------------- artifacts
 
-if [ "$direct" = 1 ]; then
+if [ "$hosted" = 1 ]; then
+  if [ ! -f .veris/session.md ]; then
+    fail session ".veris/session.md is missing — setup's section 0 writes it every session; run /veris-sim:setup"
+  else
+    twin="$(session_get twin)"
+    run="$(session_get run)"
+    [ -n "$twin" ] || fail session ".veris/session.md names no twin: — section 0 did not finish; run /veris-sim:setup"
+    [ -n "$run" ]  || fail session ".veris/session.md has an empty run: — setup stopped before the smoke run (step 6); run /veris-sim:setup"
+    [ -n "$twin" ] && [ -n "$run" ] && ok session "twin $twin, run recorded"
+  fi
+elif [ "$direct" = 1 ]; then
   if [ -f .veris/setup.json ] && grep -q '"tier"[[:space:]]*:[[:space:]]*"direct"' .veris/setup.json; then
     ok setup ".veris/setup.json (direct tier)"
   else
@@ -173,7 +203,7 @@ if [ "$FAILED" -gt 0 ]; then
 fi
 
 if [ "$fast" = 1 ]; then
-  smoke="$(setup_get smoke_command)"
+  if [ "$hosted" = 1 ]; then smoke="$(session_get run)"; else smoke="$(setup_get smoke_command)"; fi
   if [ -n "$smoke" ]; then
     printf 'preflight: setup holds. Smallest verified smoke command:\n  %s\n' "$smoke"
   else

@@ -3,8 +3,14 @@ import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 
 const pkgDir = dirname(fileURLToPath(import.meta.url))
-// The three the plugin registers, as commands and as skills.
-const NAMES = ["setup", "build", "fix"]
+// Two lists, one role each. COMMANDS is what an engineer types as
+// /veris-sim:<name>; SKILL_PATHS is what opencode loads as a skill the model
+// may reach for on its own. They coincide today. tests/static.sh holds
+// SKILL_PATHS to the skill directories (less veris-reference) and COMMANDS to
+// a subset of SKILL_PATHS, so a skill can stop being a command, or a directory
+// can be added, without either list drifting unnoticed.
+const COMMANDS = ["setup", "build", "fix"]
+const SKILL_PATHS = ["setup", "build", "fix"]
 
 // This ships under the @veris-ai scope. opencode-veris-sim is the retired
 // name: the final release under it is this same working plugin, which says so
@@ -36,6 +42,12 @@ function skillDescription(file) {
 
 // Command templates go through opencode's shell/file interpolation, so they
 // must contain no backtick-bang or at-sign sequences. $ARGUMENTS appears once.
+//
+// The absolute path is the instruction; the skill tool is the fallback for a
+// session whose read tool runs somewhere this file is not. It is not the
+// other way round because opencode keeps skills in one flat namespace by
+// name, last write wins, and "setup", "build" and "fix" are the most
+// collision-prone names there are. The path is unambiguous; the name is not.
 function template(skillsDir, name) {
   const base = join(skillsDir, name)
   return [
@@ -46,6 +58,12 @@ function template(skillsDir, name) {
     `file (reference/..., scripts/...) resolve against ${base}/, and links`,
     `of the form ../veris-reference/... or ../setup/reference/... resolve`,
     `against ${skillsDir}/.`,
+    ``,
+    `If that path cannot be read (your read tool runs somewhere this file is`,
+    `not), load the skill named "${name}" with the built-in skill tool instead`,
+    `and follow its body exactly. The files it lists must sit under ${base}/;`,
+    `if they sit anywhere else, stop and say so: a different plugin's "${name}"`,
+    `was loaded in place of this one.`,
   ].join("\n")
 }
 
@@ -79,7 +97,7 @@ const VerisSimPlugin = async () => ({
       const moved =
         installedName() === RETIRED_PKG ? `[moved to ${PKG}] ` : ""
       cfg.command ??= {}
-      for (const name of NAMES) {
+      for (const name of COMMANDS) {
         const desc = skillsDir
           ? skillDescription(join(skillsDir, name, "SKILL.md"))
           : undefined
@@ -105,18 +123,23 @@ const VerisSimPlugin = async () => ({
       if (skillsDir) {
         cfg.skills ??= {}
         cfg.skills.paths ??= []
-        for (const name of NAMES) {
+        for (const name of SKILL_PATHS) {
           const dir = join(skillsDir, name)
           if (!cfg.skills.paths.includes(dir)) cfg.skills.paths.push(dir)
         }
       }
-      cfg.mcp ??= {}
-      // Plugin-injected config gets no {env:...} substitution; real values only.
-      cfg.mcp.veris ??= {
-        type: "remote",
-        url: (process.env.VERIS_API_BASE || "https://svc.api.veris.ai") + "/mcp",
-        headers: { "X-API-Key": process.env.VERIS_API_KEY ?? "" },
-        oauth: false,
+      // Plugin-injected config gets no {env:...} substitution; real values
+      // only. No key, no server: a registration with an empty X-API-Key
+      // would claim the `veris` name ahead of a plugin that has the key, and
+      // show as failed in `opencode mcp list` either way.
+      if (process.env.VERIS_API_KEY) {
+        cfg.mcp ??= {}
+        cfg.mcp.veris ??= {
+          type: "remote",
+          url: (process.env.VERIS_API_BASE || "https://svc.api.veris.ai") + "/mcp",
+          headers: { "X-API-Key": process.env.VERIS_API_KEY },
+          oauth: false,
+        }
       }
     } catch {
       // Never take opencode down; a failed registration surfaces in mcp list

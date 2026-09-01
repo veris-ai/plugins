@@ -14,7 +14,7 @@ Three commands an engineer invokes with a task, plus the `veris` MCP server.
 | command | what it does | not done until |
 |---|---|---|
 | `setup` | wires the repository to an environment, once: credential, environment, transport (proxy+docker, or `--direct` where the app's config carries the base URLs), and — when the app works with files — the state they live in, promoted with a yes | a smoke run's receipt — or, direct tier, the twin's trace — names the service |
-| `build <issue link \| prompt>` | measures every vendor claim the task rests on against the twin before designing, implements, exercises the change through `veris-proxy` | every claim measured before the first source edit; a receipt from the changed flow; a PR stating what was verified and what is assumed |
+| `build <issue link \| prompt>` | measures every vendor claim the task rests on against the twin before designing, implements, exercises the change against the twin | every claim measured before the first source edit; a receipt from the changed flow; a PR stating what was verified and what is assumed |
 | `fix <issue link \| prompt>` | reproduces the failure the issue describes through the repository's own code before designing, fixes it, proves the same failure closed | the failure reproduced before the first source edit; the same failure re-run green with a receipt; the PR as above |
 
 The reference set lives once, in `veris-reference/` — a directory with a
@@ -84,7 +84,7 @@ directory because OpenCode scans `skills.paths` recursively and honors
 neither `user-invocable` nor `disable-model-invocation`, so registering the
 parent would offer `veris-reference` — a table of files, not a skill — as
 something the model could invoke.
-An unset key shows the server as failed in `opencode mcp list`; export it
+With the key unset the plugin registers no `veris` server; export it
 and restart. An `mcp.veris`, `command` or `skills` entry in your own
 opencode config wins over the plugin's.
 
