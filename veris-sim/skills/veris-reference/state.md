@@ -118,10 +118,13 @@ by who should start from it:
   beats the environment's baseline pin. When creating from either a snapshot
   or the promoted baseline, choose `clock_restore` on that `create_sandbox`
   call: `today` (default) runs at current time, `frozen` stays at the captured
-  time, and legacy `rebase` starts there and keeps ticking. Snapshot creation
-  and listing remain HTTP-only; only restoring a known snapshot is on MCP. A
-  snapshot cannot be deleted while a sandbox booted from it is alive; that
-  delete answers `409` until the sandbox is gone.
+  time, and legacy `rebase` starts there and keeps ticking.
+  `captured_virtual_time` is the sandbox's virtual Unix time, in seconds, when
+  the snapshot or baseline was captured. A `frozen` restore freezes the
+  sandbox at this time. Snapshot creation and listing remain HTTP-only; only
+  restoring a known snapshot is on MCP. A snapshot cannot be deleted while a
+  sandbox booted from it is alive; that delete answers `409` until the sandbox
+  is gone.
 
 Verify the state reads back the way the tests expect before keeping it; every
 later boot inherits it.
