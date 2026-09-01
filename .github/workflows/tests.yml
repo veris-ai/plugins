@@ -1,0 +1,25 @@
+# The Stage-1 suite, tests/run.sh: static checks on the skills, unit tests
+# for the shipped scripts, one task end to end through the staged path. No
+# agent, no sandbox, no network. Until this file existed nothing ran it.
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  stage-1:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # integration.sh's fixture runs `node -e`; the same major the release
+      # workflow builds with.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - run: bash tests/run.sh

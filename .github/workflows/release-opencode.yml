@@ -63,6 +63,13 @@ jobs:
       # Trusted publishing needs npm >= 11.5.1.
       - run: npm install -g npm@latest
 
+      # The suite runs from the repository root, not the package directory,
+      # and before "Resolve version" so an emergency override of the version
+      # cannot make the four-manifest check disagree with itself.
+      - name: Stage 1
+        working-directory: ${{ github.workspace }}
+        run: bash tests/run.sh
+
       - name: Resolve version
         id: version
         run: |
@@ -81,13 +88,21 @@ jobs:
           fi
 
       # prepack copies ../skills into the tarball; prove it landed before publish.
+      # prepack copies ../skills into the tarball; prove every file landed
+      # before publish. A reference/*.md the tarball lacks is a link the
+      # installed plugin cannot open, and a scripts/*.sh it lacks is a
+      # .veris/bin/ the npm staging route cannot fill.
       - name: Pack and inspect
         run: |
           npm pack
           TGZ="veris-ai-veris-sim-opencode-${{ steps.version.outputs.version }}.tgz"
-          tar -tzf "$TGZ" | grep -q "package/skills/setup/SKILL.md" \
-            || { echo "skills/ missing from tarball" >&2; exit 1; }
-          tar -tzf "$TGZ"
+          LIST="$(tar -tzf "$TGZ")"
+          missing=''
+          for f in $(cd .. && find skills \( -name '*.md' -o -name '*.sh' -o -name '*.yaml' \) | sort); do
+            printf '%s\n' "$LIST" | grep -qxF "package/$f" || missing="$missing $f"
+          done
+          [ -z "$missing" ] || { echo "missing from tarball:$missing" >&2; exit 1; }
+          printf '%s\n' "$LIST"
 
       - name: Publish
         run: npm publish
