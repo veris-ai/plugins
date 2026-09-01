@@ -1,4 +1,4 @@
-# Publishes veris-sim/.opencode-plugin to npm as opencode-veris-sim.
+# Publishes veris-sim/.opencode-plugin to npm as @veris-ai/veris-sim-opencode.
 #
 # Run manually from the Actions tab. The version comes from
 # .claude-plugin/plugin.json -- the single place versions are bumped -- so the
@@ -8,7 +8,27 @@
 # Auth is npm trusted publishing (OIDC): configure once on npmjs.com under the
 # package's Settings -> Trusted Publisher (repo veris-ai/plugins, workflow
 # release-opencode.yml). No token, no secret; npm's 2FA rules don't apply to
-# OIDC and provenance comes for free.
+# OIDC and provenance comes for free. A package npm has never seen has no
+# settings page, so @veris-ai/veris-sim-opencode's first version goes out from
+# a laptop (npm publish; the manifest's publishConfig makes it public).
+# Configure the trusted publisher after that, and every later version comes
+# from here.
+#
+# The 0.7.0 cutover off opencode-veris-sim, run once from a laptop logged into
+# npm. Both publishes are manual: the new name has no settings page yet, and
+# this workflow's OIDC identity is bound to whatever name the manifest carries,
+# so it can no longer publish the old one.
+#
+#   cd veris-sim/.opencode-plugin
+#   npm publish                                   # @veris-ai/veris-sim-opencode
+#   npm pkg set name=opencode-veris-sim           # the retired name, one last time
+#   npm publish                                   # same working plugin, says where it moved
+#   git checkout package.json                     # put the real manifest back
+#   npm deprecate 'opencode-veris-sim@*' 'moved to @veris-ai/veris-sim-opencode'
+#
+# The retired name keeps working -- index.js reads the manifest it was published
+# under and prefixes every command description with [moved to ...]. Nothing
+# breaks; an engineer on it is told.
 name: release-opencode
 
 on:
@@ -50,12 +70,12 @@ jobs:
           [ -n "$VERSION" ] || VERSION="$(jq -r .version ../.claude-plugin/plugin.json)"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           npm pkg set version="$VERSION"
-          echo "Publishing opencode-veris-sim@$VERSION"
+          echo "Publishing @veris-ai/veris-sim-opencode@$VERSION"
 
       - name: Refuse a version npm already has
         run: |
-          if npm view "opencode-veris-sim@${{ steps.version.outputs.version }}" version >/dev/null 2>&1; then
-            echo "opencode-veris-sim@${{ steps.version.outputs.version }} is already on npm." >&2
+          if npm view "@veris-ai/veris-sim-opencode@${{ steps.version.outputs.version }}" version >/dev/null 2>&1; then
+            echo "@veris-ai/veris-sim-opencode@${{ steps.version.outputs.version }} is already on npm." >&2
             echo "Bump the version in .claude-plugin/plugin.json (and its siblings) first." >&2
             exit 1
           fi
@@ -64,9 +84,10 @@ jobs:
       - name: Pack and inspect
         run: |
           npm pack
-          tar -tzf "opencode-veris-sim-${{ steps.version.outputs.version }}.tgz" | grep -q "package/skills/setup/SKILL.md" \
+          TGZ="veris-ai-veris-sim-opencode-${{ steps.version.outputs.version }}.tgz"
+          tar -tzf "$TGZ" | grep -q "package/skills/setup/SKILL.md" \
             || { echo "skills/ missing from tarball" >&2; exit 1; }
-          tar -tzf "opencode-veris-sim-${{ steps.version.outputs.version }}.tgz"
+          tar -tzf "$TGZ"
 
       - name: Publish
         run: npm publish
@@ -79,5 +100,5 @@ jobs:
           git tag "$TAG"
           git push origin "$TAG"
           gh release create "$TAG" \
-            --title "opencode-veris-sim ${{ steps.version.outputs.version }}" \
-            --notes "https://www.npmjs.com/package/opencode-veris-sim/v/${{ steps.version.outputs.version }}"
+            --title "@veris-ai/veris-sim-opencode ${{ steps.version.outputs.version }}" \
+            --notes "https://www.npmjs.com/package/@veris-ai/veris-sim-opencode/v/${{ steps.version.outputs.version }}"

@@ -1,4 +1,4 @@
-# opencode-veris-sim
+# @veris-ai/veris-sim-opencode
 
 [Veris](https://veris.ai) for [OpenCode](https://opencode.ai): three
 engineer-invoked commands plus the `veris` MCP server. Veris runs stateful
@@ -10,10 +10,10 @@ client stack, and ends each run with a receipt of what the sandbox received.
 ## Install
 
 ```
-opencode plugin opencode-veris-sim -g
+opencode plugin @veris-ai/veris-sim-opencode -g
 ```
 
-(or add `"opencode-veris-sim"` to the `plugin` array in
+(or add `"@veris-ai/veris-sim-opencode"` to the `plugin` array in
 `~/.config/opencode/opencode.json`). Then export your credential and restart
 opencode:
 
@@ -34,7 +34,9 @@ through it.
 | `/veris-sim:build <issue link \| prompt>` | measures every vendor claim the task rests on against the twin before designing, proves the change through veris-proxy with a receipt |
 | `/veris-sim:fix <issue link \| prompt>` | reproduces the failure the issue describes before designing, proves the same failure closed with a receipt |
 
-The commands are plain OpenCode commands: only the engineer can start them,
-the model cannot invoke them on its own.
+The commands are plain OpenCode commands, typed by the engineer. The same
+three directories are registered as skills as well, one `skills.paths` entry
+each, so the model can load `setup`, `build` or `fix` by name when the work
+calls for it; both routes read the one copy of each file.
 
 Source and the shared skill files: https://github.com/veris-ai/plugins

@@ -63,22 +63,30 @@ instead, they are `$setup`, `$build …`, `$fix …`.
 OpenCode installs the plugin from npm:
 
 ```
-opencode plugin opencode-veris-sim -g
+opencode plugin @veris-ai/veris-sim-opencode -g
 ```
 
-(equivalently, add `"opencode-veris-sim"` to the `plugin` array in
+(equivalently, add `"@veris-ai/veris-sim-opencode"` to the `plugin` array in
 `~/.config/opencode/opencode.json`; upgrades pin a version:
-`opencode plugin opencode-veris-sim@<version> -g -f`). Before the npm
-release, clone this repository and put the absolute path of
-`veris-sim/.opencode-plugin` in that `plugin` array instead. The plugin
+`opencode plugin @veris-ai/veris-sim-opencode@<version> -g -f`). Through 0.6.x
+it was published as `opencode-veris-sim`; that name is deprecated and its last
+release only points here, so move the `plugin` entry over. To run from a
+checkout instead, put the absolute path of `veris-sim/.opencode-plugin` in
+that `plugin` array. The plugin
 registers the same three commands — `/veris-sim:setup`, `/veris-sim:build`,
-`/veris-sim:fix` — and the `veris` MCP server, reading `VERIS_API_KEY` from
-your environment at startup; `VERIS_API_BASE` is honored. The commands are
-plain OpenCode commands, which only the engineer can start — OpenCode
-ignores `disable-model-invocation`, and its skills are model-invoked, so
-the skills are not installed as skills there. An unset key shows the server
-as failed in `opencode mcp list`; export it and restart. An `mcp.veris` or
-`command` entry in your own opencode config wins over the plugin's.
+`/veris-sim:fix` — the same three as skills, one `skills.paths` entry each,
+and the `veris` MCP server, reading `VERIS_API_KEY` from your environment at
+startup; `VERIS_API_BASE` is honored. Both routes read the one directory the
+other surfaces read, so there is one copy of each instruction: type the
+command to start a task yourself, or let the model reach for the skill when
+the work calls for it. The paths are per skill rather than the parent
+directory because OpenCode scans `skills.paths` recursively and honors
+neither `user-invocable` nor `disable-model-invocation`, so registering the
+parent would offer `veris-reference` — a table of files, not a skill — as
+something the model could invoke.
+An unset key shows the server as failed in `opencode mcp list`; export it
+and restart. An `mcp.veris`, `command` or `skills` entry in your own
+opencode config wins over the plugin's.
 
 Any of 76+ agents, through the `skills` CLI:
 
@@ -105,6 +113,15 @@ it is set. The skill writes the key nowhere; the MCP server reads the
 environment at session start, so restart the agent after setting it.
 
 ### Versions
+
+0.7.0 — the npm package is `@veris-ai/veris-sim-opencode`, alongside
+`@veris-ai/daytona-opencode`. It shipped as `opencode-veris-sim`, outside the
+scope every other Veris package lives in, so nothing about the name said who
+published it. The old name is deprecated on npm and its last release is this
+same working plugin, which names its successor in every command description —
+an install on it keeps working, it is only told where to go. Move the `plugin`
+entry in `~/.config/opencode/opencode.json` over. The commands, the skills and
+the MCP server are unchanged.
 
 0.6.8 — the coverage catalogue is the first door, not the last. 0.6.4 read
 `/veris/operations` as unpublished and sent agents to arm a fault per
