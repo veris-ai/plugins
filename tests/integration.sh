@@ -161,9 +161,9 @@ EOF
 printf '#!/bin/sh\ncp src/pay.js dist/pay.js\n' > build.sh; chmod +x build.sh; ./build.sh
 git add -A; git commit -qm base
 
-# What setup's section 0 leaves on this tier: the scripts fetched into
-# .veris/bin/, a setup.json it wrote itself, and the session file with the
-# twin beside the readings. No run.sh; no key or environment id in the shell.
+# What setup leaves on this tier: the scripts fetched into .veris/bin/ and a
+# setup.json recording the tier. No run.sh; no key or environment id in the
+# shell.
 mkdir -p .veris/bin
 cp "$SRC_REF/ledger.sh" "$SRC_REF/record.sh" "$SRC_SETUP/preflight.sh" .veris/bin/
 chmod +x .veris/bin/*.sh
@@ -178,26 +178,15 @@ cat > .veris/setup.json <<'EOF'
   "plugin_version": "0.6.5-rc.1"
 }
 EOF
-cat > .veris/session.md <<'EOF'
-twin: sbx-fixture
-tier: hosted
-lifecycle: session
-control_url: pay https://pay-fixture.twin.example
-egress: boundary-refused    # 403, body begins "egress: host not allowlisted"
-staging: npm 0.6.5-rc.1
-issue_and_pr: engineer
-run: ./build.sh
-receipt: the receipt tool, called with no argument
-EOF
-printf '.veris/bin/\n.veris/tasks/\n.veris/session.md\n' >> .gitignore
+printf '.veris/bin/\n.veris/tasks/\n' >> .gitignore
 
 out="$(env -u VERIS_API_KEY -u VERIS_ENVIRONMENT_ID sh .veris/bin/preflight.sh --hosted --plugin-version 0.6.5-rc.1 2>&1)"; rc=$?
 [ "$rc" -eq 0 ] && ok 'preflight --hosted holds with no key, no environment id and no run.sh' \
                || bad "preflight --hosted failed (exit $rc)" "$out"
 printf '%s' "$out" | grep -q 'scripts     ok (staged from 0.6.5-rc.1)' \
-  && ok 'and matches the version the session staged' || bad 'staged-version check did not run' "$out"
-printf '%s' "$out" | grep -q 'session     ok' \
-  && ok 'and reads the twin and the run command from session.md' || bad 'session.md not read' "$out"
+  && ok 'and matches the staged version' || bad 'staged-version check did not run' "$out"
+printf '%s' "$out" | grep -q 'setup       ok (.veris/setup.json (hosted tier))' \
+  && ok 'and reads the tier from setup.json' || bad 'the hosted tier was not read from setup.json' "$out"
 
 T=fix-7
 step 'gate 0: ledger init'  0 sh .veris/bin/ledger.sh init --task "$T"

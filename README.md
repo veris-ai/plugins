@@ -90,11 +90,11 @@ opencode config wins over the plugin's.
 
 With `@veris-ai/daytona-opencode` (or the E2B plugin) in the same `plugin`
 array, the session already runs inside a sandbox with a twin attached, and
-its traffic is intercepted before the first turn. Nothing to install and
-nothing to choose: `setup` measures that for itself and writes
-`.veris/session.md`; `build` and `fix` read it. No proxy, no docker, and
-`setup` runs once per session, because the sandbox is new each time. The
-npm package's README carries the details.
+its traffic is intercepted before the first turn. Start with
+`/veris-sim:setup --hosted`: no proxy, no docker, nothing to install in the
+sandbox; `setup` fetches its scripts and proves the twin answers. It runs
+once per session, because the sandbox is new each time. The npm package's
+README carries the details.
 
 Any of 76+ agents, through the `skills` CLI:
 
@@ -122,23 +122,23 @@ environment at session start, so restart the agent after setting it.
 
 ### Versions
 
-0.8.0 — a session measures its own reach before it runs a gate. There are
-three tiers now, and one of them was decided by prose: an agent read a sentence
-about its own tool list and chose. A subagent cannot read that sentence — it may
-not carry the tool at all — so one task could hold two answers, and the one that
-hunts for a proxy receipt in a sandbox finds nothing and reports it as a failure.
-`setup` now opens with readings: the receipt tool's own report of whether a twin
-is attached, the control URL its `/veris/*` calls will use and one call proving it
-answers, one saying what a host the twin does not answer for looks like from here,
-and one saying whether the ledger scripts can be staged at all. They go into `.veris/session.md`
-with the twin id beside them, so a later task can tell a live contract from a dead
-one and re-measure rather than trust it — which on this tier is every task, because
-the sandbox is new each session and the base a fix pins does not outlive it.
-`build` and `fix` gained no branch and no gate: they read the two nouns they always
-did — the run command and the receipt — and that file says what each one is here.
-No skill names a sandbox platform; the platforms, with
-the dates they were measured and the package versions they were read from, are in
-`setup/reference/platforms.md`, which closes no gate.
+0.8.0 — the hosted tier. A session that already runs inside a sandbox with a
+twin attached — OpenCode with `@veris-ai/daytona-opencode` or the E2B plugin
+— has no proxy, no docker, no `run.sh`, and a receipt tool instead of a
+receipt file. `setup --hosted` checks that a twin is attached, fetches the
+three scripts from this repository's release tag (the skill files are not in
+the sandbox), proves the twin answers `/veris/schema` at the vendor's own
+host, and records `"tier": "hosted"` in `.veris/setup.json`, where `build`
+and `fix` already read the tier. They gained one paragraph, no gate: the run
+command is the application's own, the receipt is the tool and its count has
+to rise across a run, the sandbox is the session's and is never created,
+deleted or reset, and a reference link is fetched from the same tag rather
+than opened. `preflight.sh --hosted` checks what the sandbox can see — `jq`
+and the staged scripts — and nothing that is the host's. The stage-1 suite
+is tracked and runs on every pull request and before every publish; the
+plugin registers the `veris` MCP server only when `VERIS_API_KEY` is set,
+and its command template falls back to the skill tool for a session whose
+read tool runs inside the sandbox.
 
 0.7.0 — the npm package is `@veris-ai/veris-sim-opencode`, alongside
 `@veris-ai/daytona-opencode`. It shipped as `opencode-veris-sim`, outside the

@@ -43,13 +43,14 @@ calls for it; both routes read the one copy of each file.
 
 With `@veris-ai/daytona-opencode` (or the E2B plugin) in the same `plugin`
 array, the session already runs inside a sandbox with a twin attached, and
-its traffic is intercepted before the first turn. Nothing here changes:
-`setup` measures that for itself — the receipt tool, the twin's control URL,
-what a blocked host looks like, whether the scripts can be fetched — and
-writes `.veris/session.md`; `build` and `fix` read it. No proxy, no docker,
-no `.veris/run.sh`; `setup` runs once per session, because the sandbox is
-new each time. The two plugins' configuration does not collide: this one
-registers the `veris` MCP server only when `VERIS_API_KEY` is set, and
-whichever loads first keeps the name.
+its traffic is intercepted before the first turn. Start with
+`/veris-sim:setup --hosted`. It checks that a twin is attached, fetches the
+three scripts it needs from this repository's release tag (the skill files
+are not in the sandbox), proves the twin answers, and records the tier in
+`.veris/setup.json`; `build` and `fix` read it from there. No proxy, no
+docker, no `.veris/run.sh`; `setup` runs once per session, because the
+sandbox is new each time. The two plugins' configuration does not collide:
+this one registers the `veris` MCP server only when `VERIS_API_KEY` is set,
+and whichever loads first keeps the name.
 
 Source and the shared skill files: https://github.com/veris-ai/plugins

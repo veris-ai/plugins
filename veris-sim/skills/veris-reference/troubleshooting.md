@@ -19,13 +19,6 @@ the real vendor because the host is not in the environment's service map; or
 TLS trust failed inside the workload ([trust.md](trust.md)) so no request ever
 completed.
 
-On the hosted tier the receipt tool says it in words — `ZERO requests reached
-the twin` — and the same three causes apply, in the same order. Where
-`.veris/session.md` reads `egress: open`, the second cannot be told apart by a
-connection error: a request that succeeded may have reached the real vendor,
-and a connection error proves nothing. The twin's service list and the receipt
-decide.
-
 ## Which tier holds the evidence
 
 `?tier=` narrows the trace, and the right value depends on what you are
@@ -72,10 +65,8 @@ recovery usually needs both.
   surface, on every service, and a path or method absent from it is not
   served — see [twin.md](twin.md) for its shape and the `?surface=` filter.
   That is a control-plane answer and it settles the question; the
-  vendor-shaped `404` above never will. On every tier it is a read at
-  `control_url` — on the hosted tier the one `.veris/session.md` carries. Put
-  what you establish in `.veris/NOTES.md` so the next task does not pay for
-  it again.
+  vendor-shaped `404` above never will. Put what you establish in
+  `.veris/NOTES.md` so the next task does not pay for it again.
 - A bare `500`: capture the request and the trace as a sandbox defect.
 - Widespread `502`: check sandbox status and expiry.
 - A timeout: check armed faults, whether the request reached the trace, and

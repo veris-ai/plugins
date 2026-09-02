@@ -38,12 +38,6 @@ the receipt shows traffic for its host, read the paths in
 
 ## The fix
 
-On a sandbox whose gateway intercepts egress (`.veris/session.md` names it),
-the symptom is the same and none of the remedies below exist: the run command
-is not `veris-proxy run`, so there is no `-v` mount and no
-`--patch-bundled-cas`. The SDK cannot reach the twin from here. Report it as
-the Gate-1 outcome rather than patching the client.
-
 1. **`--patch-bundled-cas`** on the run command. It scans the image and the
    `-v` mounts for the bundles it knows — pip's vendored certifi, certifi,
    botocore, stripe, httplib2 — and for any file named `cacert.pem`,

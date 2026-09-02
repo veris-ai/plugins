@@ -21,9 +21,8 @@ your probes, setup and read-back do.
 
 ## Sandbox lifecycle
 
-One sandbox per task, deleted at the end, never promoted — unless the session
-provisioned it: then `.veris/session.md` names it (`lifecycle: session`), its
-id is read from there, and nothing here creates or deletes one. With the `veris`
+One sandbox per task, deleted at the end, never promoted — on the hosted
+tier the session's, which nothing here creates or deletes. With the `veris`
 MCP tools: `create_sandbox` → `get_sandbox` until `status` is `ready` →
 `delete_sandbox`. Over REST, with `X-API-Key: $VERIS_API_KEY`:
 

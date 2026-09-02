@@ -43,12 +43,12 @@ hits="$(grep -ln '501' $MD 2>/dev/null | grep -v 'troubleshooting.md' || true)"
 if [ -n "$hits" ]; then bad "a refusal code appears outside troubleshooting.md: $hits"
 else ok 'no universal refusal code outside the calibrated rule'; fi
 
-# A platform is measured by the session, never named by a skill. The one file
-# that may name one is the dated record of what each platform measured as.
+# The hosted tier is a contract — a sandbox the session provisioned, with a
+# twin attached — not a product. A skill that names one would age with it.
 PLATFORMS='daytona|e2b'
-hits="$(grep -nwiE "$PLATFORMS" $MD 2>/dev/null | grep -v "^$SKILLS/setup/reference/platforms.md:" || true)"
-if [ -n "$hits" ]; then bad "a platform is named outside setup/reference/platforms.md:"; printf '%s\n' "$hits" | sed 's/^/       /'
-else ok 'no platform name outside setup/reference/platforms.md'; fi
+hits="$(grep -nwiE "$PLATFORMS" $MD 2>/dev/null || true)"
+if [ -n "$hits" ]; then bad "a sandbox platform is named in a skill:"; printf '%s\n' "$hits" | sed 's/^/       /'
+else ok 'no sandbox platform is named in a skill'; fi
 
 # ------------------------------------------------------------------- linking
 
@@ -70,7 +70,7 @@ else ok 'every relative markdown link resolves'; fi
 
 # The check that would have caught .veris/MEASUREMENTS.md: an artifact named in
 # an instruction that nothing in the plugin creates or defines.
-ARTIFACTS='setup.json NOTES.md run.sh ca bin tasks session.md'
+ARTIFACTS='setup.json NOTES.md run.sh ca bin tasks'
 unknown=''
 for a in $(grep -ohE '\.veris/[A-Za-z0-9_.<>/-]+' $MD 2>/dev/null | sed 's|^\.veris/||' | cut -d/ -f1 | sort -u); do
   case " $ARTIFACTS " in *" $a "*) ;; *) unknown="$unknown $a" ;; esac
@@ -115,60 +115,6 @@ for f in $gated; do
   else ok "$f gates $(printf '%s' "$nums" | tr '\n' ' ')"; fi
 done
 
-# ------------------------------------------------------------ the session file
-
-head_ 'Session-file vocabulary — setup writes the words build and fix read'
-
-SETUP="$SKILLS/setup/SKILL.md"; BUILD="$SKILLS/build/SKILL.md"; FIX="$SKILLS/fix/SKILL.md"
-SESSION_KEYS='twin tier lifecycle control_url egress staging issue_and_pr run receipt'
-SESSION_VALUES='open boundary-refused unreachable npm raw sandbox engineer'
-SESSION_ENUM='egress staging issue_and_pr'   # the keys whose values are drawn from SESSION_VALUES
-
-# The template is the fenced block in setup whose lines are `key: ...` at
-# column 0. No other fenced block in setup may have that shape.
-tmpl_keys="$(awk '
-  /^[[:space:]]*```/ { infence = !infence; next }
-  infence && /^[a-z_]+:/ { sub(":.*", ""); print }
-' "$SETUP" | sort -u)"
-missing=''; extra=''
-for k in $SESSION_KEYS; do printf '%s\n' "$tmpl_keys" | grep -qx "$k" || missing="$missing $k"; done
-for k in $tmpl_keys; do case " $SESSION_KEYS " in *" $k "*) ;; *) extra="$extra $k" ;; esac; done
-if [ -n "$missing$extra" ]; then bad "setup's session.md template drifted from the contract:${missing:+ missing$missing}${extra:+ unknown$extra}"
-else ok "setup's session.md template carries exactly: $SESSION_KEYS"; fi
-
-# Every value setup can write is one setup names, in the template or beside it.
-unnamed=''
-for v in $SESSION_VALUES; do
-  grep -qE "^(egress|staging|issue_and_pr): $v( |$)|\`([a-z_]+: )?$v\`" "$SETUP" || unnamed="$unnamed $v"
-done
-if [ -n "$unnamed" ]; then bad "setup never names these session.md values:$unnamed"
-else ok 'setup names every session.md value'; fi
-
-# Every key and value setup writes is read in build or fix — as `key`,
-# `key:`, `key: value` or `value` in backticks. A word neither reads is a
-# fact nothing acts on.
-unread=''
-for k in $SESSION_KEYS; do grep -qE "\`$k(:[^\`]*)?\`" "$BUILD" "$FIX" || unread="$unread $k"; done
-for v in $SESSION_VALUES; do grep -qE "\`([a-z_]+: )?$v\`" "$BUILD" "$FIX" || unread="$unread $v"; done
-if [ -n "$unread" ]; then bad "session.md words setup writes that neither build nor fix reads:$unread"
-else ok 'every session.md key and value is read by build or fix'; fi
-
-# And every session-file word they read is one the template writes: a key
-# outside the list, or an enumerated key with a value outside it, never
-# matches a real file and fails silently.
-# A function, not a loop inside $( ): sh mis-parses a case pattern's `)` inside a
-# command substitution, the loop dies, and an empty result reads as a pass.
-session_unknown() {
-  grep -ohE "\`[a-z_]+:( [a-z][a-z-]*)?\`" "$BUILD" "$FIX" | tr -d '\`' | sort -u | while IFS=': ' read -r k v; do
-    case " $SESSION_KEYS " in *" $k "*) ;; *) printf ' %s:' "$k"; continue ;; esac
-    case " $SESSION_ENUM " in *" $k "*) ;; *) continue ;; esac
-    [ -z "$v" ] || case " $SESSION_VALUES " in *" $v "*) ;; *) printf ' %s:%s' "$k" "$v" ;; esac
-  done
-}
-unknown="$(session_unknown)"
-if [ -n "$unknown" ]; then bad "build or fix reads session.md words setup never writes:$unknown"
-else ok 'build and fix read no session.md word the template lacks'; fi
-
 # --------------------------------------------------------------------- curl
 
 head_ 'Examples fail visibly'
@@ -210,8 +156,8 @@ else
   bad "setup/SKILL.md says --plugin-version $lit, manifests read $v_claude"
 fi
 
-# Section 0's two staging fences pin the version as a shell literal, v=…, and
-# a fence that fetched the previous release would stage stale scripts silently.
+# Section 0's staging fence pins the version as a shell literal, v=…, and a
+# fence that fetched the previous release would stage stale scripts silently.
 vlits="$(grep -oE '^v=[0-9][^ ;]*' "$SKILLS/setup/SKILL.md" | cut -d= -f2 | sort -u)"
 if [ -z "$vlits" ]; then bad 'setup/SKILL.md names no v= staging literal'
 elif [ "$vlits" = "$v_claude" ]; then ok "setup/SKILL.md v= staging literals match the manifests ($v_claude)"

@@ -1,11 +1,9 @@
 # Sandbox state: seeding rows, loading files, isolation, reset, promote, snapshots
 
-## The sandbox is the proxy's, or the session's
+## The sandbox is the proxy's
 
 A sandbox per run is hermetic; two runs never share state, faults, the clock,
-or a callback registration. Ending the run is the teardown. A sandbox the
-session provisioned is one per session, and one task is one session: the same
-isolation, ended by the session rather than the run. An interrupted
+or a callback registration. Ending the run is the teardown. An interrupted
 session left in the background is a sandbox still alive that a later session
 could mistake for its own.
 
@@ -85,10 +83,6 @@ traffic during a reset, and save `/veris/requests` first — every reset clears
 request history. A sandbox booted from an image — a promoted environment's
 baseline or a snapshot — answers `409`: reseeding would replace what the
 image pinned.
-
-On the hosted tier, never reset during a task: `/veris/requests` is the receipt
-every gate reads, and the sandbox can reach `/veris/reset`. Read the receipt
-after the run; never clear it before.
 
 `POST {control_url}/veris/reset` resets one service and leaves the shared
 clock alone, and it still works on an image-booted sandbox. Send
