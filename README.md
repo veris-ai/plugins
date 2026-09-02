@@ -85,8 +85,9 @@ neither `user-invocable` nor `disable-model-invocation`, so registering the
 parent would offer `veris-reference` — a table of files, not a skill — as
 something the model could invoke.
 With the key unset the plugin registers no `veris` server; export it
-and restart. An `mcp.veris`, `command` or `skills` entry in your own
-opencode config wins over the plugin's.
+and restart. An `mcp.veris` or `command` entry in your own opencode config
+wins over the plugin's; the plugin's three `skills.paths` are appended to
+yours, not replaced by them.
 
 With `@veris-ai/daytona-opencode` (or the E2B plugin) in the same `plugin`
 array, the session already runs inside a sandbox with a twin attached, and

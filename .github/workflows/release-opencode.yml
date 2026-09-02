@@ -87,7 +87,6 @@ jobs:
             exit 1
           fi
 
-      # prepack copies ../skills into the tarball; prove it landed before publish.
       # prepack copies ../skills into the tarball; prove every file landed
       # before publish. A reference/*.md the tarball lacks is a link the
       # installed plugin cannot open, and a scripts/*.sh it lacks is a

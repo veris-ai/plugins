@@ -147,13 +147,13 @@ fi
 # setup's SKILL.md carries the running version as a literal, because a staged
 # script cannot know it. That literal has to track the manifests or the staleness
 # check reports drift that is not there.
-lit="$(grep -o -- '--plugin-version [0-9][^ `]*' "$SKILLS/setup/SKILL.md" | head -1 | awk '{print $2}')"
-if [ -z "$lit" ]; then
+lits="$(grep -o -- '--plugin-version [0-9][^ `]*' "$SKILLS/setup/SKILL.md" | awk '{print $2}' | sort -u)"
+if [ -z "$lits" ]; then
   bad 'setup/SKILL.md names no --plugin-version literal'
-elif [ "$lit" = "$v_claude" ]; then
-  ok "setup/SKILL.md --plugin-version matches the manifests ($lit)"
+elif [ "$lits" = "$v_claude" ]; then
+  ok "setup/SKILL.md --plugin-version literals match the manifests ($lits)"
 else
-  bad "setup/SKILL.md says --plugin-version $lit, manifests read $v_claude"
+  bad "setup/SKILL.md --plugin-version literals read $(printf '%s' "$lits" | tr '\n' ' '), manifests read $v_claude"
 fi
 
 # Section 0's staging fence pins the version as a shell literal, v=…, and a

@@ -75,7 +75,8 @@ running:
 v=0.8.0-rc.2; mkdir -p .veris/bin
 for f in setup/scripts/preflight.sh veris-reference/scripts/ledger.sh veris-reference/scripts/record.sh; do
   curl --fail-with-body -sSL -o ".veris/bin/$(basename "$f")" \
-    "https://raw.githubusercontent.com/veris-ai/plugins/opencode-v$v/veris-sim/skills/$f"
+    "https://raw.githubusercontent.com/veris-ai/plugins/opencode-v$v/veris-sim/skills/$f" \
+    || { echo "staging failed at $f — stop"; exit 1; }
 done
 ```
 

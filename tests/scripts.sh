@@ -120,7 +120,9 @@ EOF
 t 'a credential in a snapshot is refused' 2 sh "$LEDGER" check --task T
 rm -f "$D/snapshots/S2.json"
 
-row F1 '"TWIN"' ENCODED "$TWIN_EV"
+cat > "$D/measurements.jsonl" <<EOF
+{"id":"F1","claim":"the API key is read from the environment, never hardcoded","layer":"TWIN","probe":"read the trace | jq .status","observed":"the request carried an API key header","decision":"d","disposition":"ENCODED",$TWIN_EV}
+EOF
 t_out 'prose mentioning an API key is not a credential' 'ok' sh "$LEDGER" check --task T
 
 row X1 '"TRANSPORT"' ENCODED "$TWIN_EV"
