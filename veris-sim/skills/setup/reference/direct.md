@@ -13,7 +13,7 @@ that, is what `--direct` is for.
 Before accepting `--direct`, verify in the code — not from the engineer's
 answer — that every vendor call on the tested path builds its URL from the
 `env_hint` variables. One hardcoded vendor hostname (in the app or inside
-an SDK it calls) means the container tier; the host tier is not a fallback
+an SDK it calls) means the container tier; the hosted tier is not a fallback
 here either. Greenfield applications and agent-built applications usually
 pass this gate; retrofits usually do not.
 
@@ -41,11 +41,11 @@ that is a container-tier signal, not a reason to fork the app's HTTP layer.
 
 ## The trust anchor
 
-There is no proxy receipt. The twin's request trace replaces it: after the
-smallest real call the application can make,
+The run command is the application's own, and the receipt is the twin's
+request trace: after the smallest real call the application can make,
 `GET {control_url}/veris/requests` must show that call. An empty trace with
 a green smoke means the traffic went to the real vendor. Every later "did
-it work" question has the same two answers the proxy tier has — the trace
+it work" question has the same two answers the container tier has — the trace
 (what was sent) and `/veris/data` (what the vendor stored).
 
 ## Sandbox lifetime and rotation
