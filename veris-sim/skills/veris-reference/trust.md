@@ -38,6 +38,18 @@ the receipt shows traffic for its host, read the paths in
 
 ## The fix
 
+On the hosted tier none of the remedies below exist — the run command is not
+`veris-proxy run`, so there is no `-v` mount and no `--patch-bundled-cas` — so a
+certificate error the gateway's own leaf triggers (a strict verifier rejecting a
+missing AKI or SKI, as Python 3.13+ does under `VERIFY_X509_STRICT`) is an
+environmental limitation, reported as the Gate-1 outcome. To unblock the run
+until the gateway leaf carries the extension, relax only that one check and only
+outside the shipping path — a `sitecustomize.py` on `PYTHONPATH`, the test
+harness's own fixture, or an environment the run sets — never in a module the
+diff ships, and never CA verification itself. Record it as a twin-limitation
+workaround in the ledger and name it under the PR's limitations. Editing the
+application's own TLS code to pass is the failure this gate exists to catch.
+
 1. **`--patch-bundled-cas`** on the run command. It scans the image and the
    `-v` mounts for the bundles it knows — pip's vendored certifi, certifi,
    botocore, stripe, httplib2 — and for any file named `cacert.pem`,
