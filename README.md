@@ -88,6 +88,14 @@ With the key unset the plugin registers no `veris` server; export it
 and restart. An `mcp.veris`, `command` or `skills` entry in your own
 opencode config wins over the plugin's.
 
+With `@veris-ai/daytona-opencode` (or the E2B plugin) in the same `plugin`
+array, the session already runs inside a sandbox with a twin attached, and
+its traffic is intercepted before the first turn. Nothing to install and
+nothing to choose: `setup` measures that for itself and writes
+`.veris/session.md`; `build` and `fix` read it. No proxy, no docker, and
+`setup` runs once per session, because the sandbox is new each time. The
+npm package's README carries the details.
+
 Any of 76+ agents, through the `skills` CLI:
 
 ```
@@ -113,6 +121,24 @@ it is set. The skill writes the key nowhere; the MCP server reads the
 environment at session start, so restart the agent after setting it.
 
 ### Versions
+
+0.8.0 — a session measures its own reach before it runs a gate. There are
+three tiers now, and one of them was decided by prose: an agent read a sentence
+about its own tool list and chose. A subagent cannot read that sentence — it may
+not carry the tool at all — so one task could hold two answers, and the one that
+hunts for a proxy receipt in a sandbox finds nothing and reports it as a failure.
+`setup` now opens with readings: the receipt tool's own report of whether a twin
+is attached, the control URL its `/veris/*` calls will use and one call proving it
+answers, one saying what a host the twin does not answer for looks like from here,
+and one saying whether the ledger scripts can be staged at all. They go into `.veris/session.md`
+with the twin id beside them, so a later task can tell a live contract from a dead
+one and re-measure rather than trust it — which on this tier is every task, because
+the sandbox is new each session and the base a fix pins does not outlive it.
+`build` and `fix` gained no branch and no gate: they read the two nouns they always
+did — the run command and the receipt — and that file says what each one is here.
+No skill names a sandbox platform; the platforms, with
+the dates they were measured and the package versions they were read from, are in
+`setup/reference/platforms.md`, which closes no gate.
 
 0.7.0 — the npm package is `@veris-ai/veris-sim-opencode`, alongside
 `@veris-ai/daytona-opencode`. It shipped as `opencode-veris-sim`, outside the
