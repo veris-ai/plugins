@@ -50,7 +50,7 @@ here, and in `build` and `fix` — uses `sh .veris/bin/preflight.sh` instead. On
 the hosted tier this directory is not in the sandbox, so section 0 fetches the
 scripts first and every run uses the staged copy.
 
-**Pass the version you are running.** Add `--plugin-version 0.8.0-rc.2` to every
+**Pass the version you are running.** Add `--plugin-version 0.8.0-rc.3` to every
 invocation. A staged copy cannot know which version is loaded, so unless it is
 told it cannot notice that it is out of date; without the flag it says
 `VERSION_UNCHECKED` rather than guessing.
@@ -72,7 +72,7 @@ copying. Fetch the three scripts from the release tag of the version you are
 running:
 
 ```sh
-v=0.8.0-rc.2; mkdir -p .veris/bin
+v=0.8.0-rc.3; mkdir -p .veris/bin
 for f in setup/scripts/preflight.sh veris-reference/scripts/ledger.sh veris-reference/scripts/record.sh; do
   curl --fail-with-body -sSL -o ".veris/bin/$(basename "$f")" \
     "https://raw.githubusercontent.com/veris-ai/plugins/opencode-v$v/veris-sim/skills/$f" \
@@ -245,7 +245,7 @@ carries `/veris/*` at that host to the twin.
 curl --fail-with-body -sS "https://<the vendor host the application calls>/veris/schema" | jq -e '.properties | type == "object"'
 ```
 
-Exit 0 or stop. Last, `sh .veris/bin/preflight.sh --hosted --plugin-version 0.8.0-rc.2`
+Exit 0 or stop. Last, `sh .veris/bin/preflight.sh --hosted --plugin-version 0.8.0-rc.3`
 must exit 0.
 
 Every tier: alongside `.veris/setup.json`, write `.veris/NOTES.md` — what this
