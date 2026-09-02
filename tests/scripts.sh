@@ -288,6 +288,11 @@ t_out 'and says which line is missing' 'names no twin:' env -u VERIS_API_KEY sh 
 printf 'twin: sbx-fixture\ntier: hosted\nstaging: npm 0.6.5-rc.1\nrun:\n' > .veris/session.md
 t '--hosted with an empty run: fails — setup stopped before the smoke run' 2 env -u VERIS_API_KEY sh "$PREFLIGHT" --hosted
 t_out 'and says so' 'empty run:' env -u VERIS_API_KEY sh "$PREFLIGHT" --hosted
+# The template setup ships carries the hint as a trailing comment on the empty
+# line. The first sed eats every space before it, so the comment must be
+# stripped whether or not one remains -- or the hint reads as the run command.
+printf 'twin: sbx-fixture\ntier: hosted\nstaging: npm 0.6.5-rc.1\nrun:                        # written by step 6, once a smoke run has reached the twin\n' > .veris/session.md
+t '--hosted with an empty run: that still carries the template hint fails' 2 env -u VERIS_API_KEY sh "$PREFLIGHT" --hosted
 printf 'twin: sbx-fixture\ntier: hosted\nstaging: npm 0.6.5-rc.1\nrun: ./test.sh\n' > .veris/session.md
 t_out '--hosted matches the version the session staged' 'staged from 0.6.5-rc.1' \
   env -u VERIS_API_KEY sh "$PREFLIGHT" --hosted --plugin-version 0.6.5-rc.1

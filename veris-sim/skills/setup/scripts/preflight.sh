@@ -40,7 +40,7 @@ done
 setup_get() { [ -f .veris/setup.json ] && sed -n "s/.*\"$1\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" .veris/setup.json | head -1 || true; }
 setup_has() { [ -f .veris/setup.json ] && grep -q "\"$1\"" .veris/setup.json; }
 # One `key: value` per line; a trailing ` # comment` is not part of the value.
-session_get() { [ -f .veris/session.md ] && sed -n "s/^$1:[[:space:]]*//p" .veris/session.md | sed 's/[[:space:]]#.*$//;s/[[:space:]]*$//' | head -1 || true; }
+session_get() { [ -f .veris/session.md ] && sed -n "s/^$1:[[:space:]]*//p" .veris/session.md | sed 's/[[:space:]]*#.*$//;s/[[:space:]]*$//' | head -1 || true; }
 
 # ------------------------------------------------------------------ credential
 
