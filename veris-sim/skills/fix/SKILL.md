@@ -25,8 +25,13 @@ Hosted: `.veris/session.md` must exist, its `tier:` must read `hosted`, and its
 `twin:` must be this session's twin. It is written per session and does not
 outlive one, so a missing or stale file is the expected case, not an error —
 load the `setup` skill by name, run it now, then continue here. Everything
-below reads two nouns, **the run command** and **the receipt**; that file's
-`run:` and `receipt:` say what each is here. Its `control_url:` lines are where
+below reads two nouns, **the run command** and **the receipt**. On this tier
+the run command is the repository's own, for whatever flow the task names,
+run as it stands — that file's `run:` is the one setup proved reaches the
+twin, the shape to follow, not the command to rerun. Its `receipt:` is the
+tool, and the tool reports the session's whole history, so a gate that says
+*from that run* means the service's count rose across it: read it before the
+run as well as after. Its `control_url:` lines are where
 every `/veris/*` call below goes; `lifecycle: session` means create nothing and
 delete nothing; `staging:` (`npm` or `raw`, then the version staged) is where
 `.veris/bin/` came from, and `unreachable` there means setup did not finish.
@@ -114,8 +119,11 @@ base died with the session that pinned it. One task is one session here.
    whole. It is authoritative for exactly these: the statuses and codes a
    fault may inject, the `match` selector keys this service supports, its
    API versions and selector, and its credential and setup notes. It is
-   **not** a catalogue of what the service implements, and nothing is —
-   read no coverage claim into what it leaves out. A surface the fix rests
+   **not** a catalogue of what the service implements — read no coverage
+   claim into what it leaves out. The catalogue is
+   `GET {control_url}/veris/operations` (`?surface=rest|graphql|mcp`, paths
+   as templates): a method and path absent there is not served; one present
+   is answered, not necessarily faithfully. A surface the fix rests
    on gets one probe, and what a refusal proves is in
    [reference/troubleshooting.md](../veris-reference/troubleshooting.md):
    some settle the question, most do not.
@@ -141,18 +149,37 @@ base died with the session that pinned it. One task is one session here.
    Ids come from the sandbox, never guessed and never carried from another
    sandbox. A call that fails because a row was absent is not the
    failure the issue describes. The state dies with its sandbox — resetting it, or
-   keeping it: [reference/state.md](../veris-reference/state.md).
+   keeping it: [reference/state.md](../veris-reference/state.md). On the
+   hosted tier never `POST {control_url}/veris/reset` during a task: every
+   reset clears `/veris/requests`, which is where the receipt is read from.
 4. Make the failure happen. The vendor will not produce it on demand. A
-   vendor-side defect: arm a `faults` row in the shape
-   [reference/faults.md](../veris-reference/faults.md) gives for what the issue
-   reports. A repository-side defect no fault can produce: reproduce it
-   through the application's own state — and when the twin cannot
-   represent it at all, that report is the Gate-1 outcome, not a reason to
-   switch diagnoses. Either way, drive the **repository's own code path** — the endpoint,
-   worker or handler the issue names, unchanged — through it under the run
-   command: `.veris/run.sh` with `VERIS_SANDBOX_ID` set to this sandbox
+   vendor-side defect: arm a `faults` row — `POST {control_url}/veris/data`
+   with `{"data":{"faults":[…]}}`. The row names `method` and `path` (the
+   vendor's, no host or query; `{id}` templates a segment), then what the
+   issue reports: `"outcome":"error"` with an `error` object whose `status`
+   the manual lists (`{"status":429,"code":"<listed>","headers":{"Retry-After":"2"}}`)
+   for a refusal or a throttle; `"outcome":"hang"` with `"phase":"before"`
+   for a request lost before the write, or `"phase":"after"` for a write that
+   happened and was never answered — an `error` row carries `phase` too, a
+   5xx after the write; `latency_ms` alone for slow. `remaining` spends it
+   that many times, and a row without it fires on every match until
+   `DELETE {control_url}/veris/data` with its id. Most SDKs retry a `5xx` or a connection error
+   inside one call and the fault vanishes before your code sees it; check the
+   client's retry setting, and arm a `4xx` to isolate the behaviour you mean
+   to exercise. The full contract — `match` on body,
+   query, path and GraphQL operation, the credential and clock rows — is in
+   [reference/faults.md](../veris-reference/faults.md). A repository-side
+   defect no fault can produce: reproduce it through the application's own
+   state — and when the twin cannot represent it at all, that report is the
+   Gate-1 outcome, not a reason to switch diagnoses. Either way, on the hosted
+   tier first read the receipt and note the service's count — it reports the
+   session's whole history, and this run has to raise it — then drive the
+   **repository's own code path** — the endpoint, worker or handler the issue
+   names, unchanged — through it under the run command: `.veris/run.sh` with
+   `VERIS_SANDBOX_ID` set to this sandbox
    ([reference/proxy.md](../veris-reference/proxy.md)), or on the hosted tier
-   the command `.veris/session.md` names, run as it stands.
+   the repository's own command for that path, run as it stands (`run:` in
+   `.veris/session.md` is the shape, not the command).
 5. Read the ledger: `GET {control_url}/veris/data?entity_type=<table>` and
    the trace. An injected fault's exchange is `tier=fault`, the traffic
    around it `tier=handler`, and your own `/veris/*` calls `tier=control` —
@@ -160,7 +187,9 @@ base died with the session that pinned it. One task is one session here.
    page of your own seeding ([reference/troubleshooting.md](../veris-reference/troubleshooting.md)).
    Not done with this gate until they show the outcome the issue describes —
    the duplicate row, the lost write, the wrong state — with ids and counts
-   you can quote.
+   you can quote. On the hosted tier read the receipt again: the
+   count noted in step 4 has to have risen, and the red run's requests are
+   the ones that raised it.
 
 The order is the evidence. The red run is observed against the
 repository's unmodified code, before the first source edit; a red produced
@@ -202,11 +231,14 @@ not read.
 ## Gate 3 — the same failure, closed, with a receipt
 
 Re-arm the same fault; drive the same code path through the run command
-(`.veris/run.sh` with the same `VERIS_SANDBOX_ID`, or the same command
-`.veris/session.md` names); read the ledger again. **Not done until the receipt shows at least one
+(`.veris/run.sh` with the same `VERIS_SANDBOX_ID`, or on the hosted tier the
+same repository command as the red run); read the ledger again. **Not done until the receipt shows at least one
 request to the service from that run and the ledger shows the outcome the
 fix promises** — one row where there were two, the write recovered, the
-state right. Red before, green after, same flow: that is the proof.
+state right. Red before, green after, same flow: that is the proof. On the
+hosted tier the receipt is cumulative — the red run's requests are already in
+it — so read the service's count before the green run, and *from that run*
+means it rose.
 
 One green proves one path. Before the PR, list every entry point that
 reaches the lines you changed — grep the changed symbols for their callers,

@@ -28,8 +28,9 @@ receipt**.
   inside a sandbox the session provisioned, with a twin attached and egress
   intercepted before your first turn, so there is no transport to wire and
   steps 1 through 4 do not apply. Leaves `.veris/session.md`, per session;
-  `.veris/setup.json` as step 5 says. The run command is the one
-  `session.md` names; the receipt is the tool that reports what the twin
+  `.veris/setup.json` as step 5 says. The run command is the repository's
+  own, for the flow a task names; `session.md` records the one setup proved
+  reaches the twin. The receipt is the tool that reports what the twin
   received.
 
 `scripts/preflight.sh` in this skill's directory checks the preconditions and
@@ -120,17 +121,22 @@ head -1 /tmp/veris-egress-probe.body
 
 **3. Whether the scripts can be staged.** The skill files are not in the
 sandbox, so `.veris/bin/` cannot be filled by copying. Two routes, in order;
-record the one that worked and the version it staged:
+record the one that worked and the version it staged. Nothing but the three
+scripts lands in the repository — the tarball and its `package/` tree unpack
+in a temporary directory, or a later `git add -A` sweeps them into a commit:
 
 ```sh
-v=0.8.0; mkdir -p .veris/bin
-npm pack "@veris-ai/veris-sim-opencode@$v" && tar -xzf "veris-ai-veris-sim-opencode-$v.tgz" &&
-  cp package/skills/setup/scripts/preflight.sh \
-     package/skills/veris-reference/scripts/ledger.sh \
-     package/skills/veris-reference/scripts/record.sh .veris/bin/       # staging: npm
+v=0.8.0; d="$(mktemp -d)"; mkdir -p .veris/bin
+npm pack "@veris-ai/veris-sim-opencode@$v" --pack-destination "$d" &&
+  tar -xzf "$d/veris-ai-veris-sim-opencode-$v.tgz" -C "$d" &&
+  cp "$d/package/skills/setup/scripts/preflight.sh" \
+     "$d/package/skills/veris-reference/scripts/ledger.sh" \
+     "$d/package/skills/veris-reference/scripts/record.sh" .veris/bin/ &&
+  rm -rf "$d"                                                            # staging: npm
 ```
 
 ```sh
+v=0.8.0; mkdir -p .veris/bin   # again: a new shell call carries nothing from the last
 for f in setup/scripts/preflight.sh veris-reference/scripts/ledger.sh veris-reference/scripts/record.sh; do
   curl --fail-with-body -sSL -o ".veris/bin/$(basename "$f")" \
     "https://raw.githubusercontent.com/veris-ai/plugins/opencode-v$v/veris-sim/skills/$f"
@@ -325,13 +331,16 @@ CA — [../veris-reference/trust.md](../veris-reference/trust.md); other signals
 
 Hosted: the run command is the repository's own — the smallest piece of the
 application that calls the dependency, run as it stands; no `run.sh`, no exit
-code to read. Then the receipt: the tool, with no argument. **Not done until it
-names the environment's service with a count above zero.** `ZERO requests
-reached the twin` is the finding, not a formality: from inside the sandbox a
+code to read. The receipt is the session's whole history, so read it before
+the run and note the service's count; then run; then read it again. **Not done
+until the service's count rose.** `ZERO requests reached the twin`, or a count
+that did not move, is the finding, not a formality: from inside the sandbox a
 run that never reached the dependency and one that did are indistinguishable,
 and only the receipt separates them. Write the command that did it to `run:`
-in `.veris/session.md` and to `smoke_command` in `.veris/setup.json`, exactly
-as run. Then `sh .veris/bin/preflight.sh --hosted --plugin-version 0.8.0`: it
+in `.veris/session.md`, exactly as run — the shape setup proved reaches the
+twin; a task names its own flow — and to `smoke_command` in
+`.veris/setup.json` only where that file is this tier's; another tier's keeps
+its own. Then `sh .veris/bin/preflight.sh --hosted --plugin-version 0.8.0`: it
 reads `session.md`, exits 2 on a missing `twin:` or an empty `run:`, and
 reports a staged script older than the version passed. **Not done until it
 exits 0.**

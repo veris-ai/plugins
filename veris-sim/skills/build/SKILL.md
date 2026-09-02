@@ -25,8 +25,13 @@ Hosted: `.veris/session.md` must exist, its `tier:` must read `hosted`, and its
 `twin:` must be this session's twin. It is written per session and does not
 outlive one, so a missing or stale file is the expected case, not an error —
 load the `setup` skill by name, run it now, then continue here. Everything
-below reads two nouns, **the run command** and **the receipt**; that file's
-`run:` and `receipt:` say what each is here. Its `control_url:` lines are where
+below reads two nouns, **the run command** and **the receipt**. On this tier
+the run command is the repository's own, for whatever flow the task names,
+run as it stands — that file's `run:` is the one setup proved reaches the
+twin, the shape to follow, not the command to rerun. Its `receipt:` is the
+tool, and the tool reports the session's whole history, so a gate that says
+*from that run* means the service's count rose across it: read it before the
+run as well as after. Its `control_url:` lines are where
 every `/veris/*` call below goes; `lifecycle: session` means create nothing and
 delete nothing; `staging:` (`npm` or `raw`, then the version staged) is where
 `.veris/bin/` came from, and `unreachable` there means setup did not finish.
@@ -96,8 +101,11 @@ never self-assessed obviousness.
    fault may inject, the `match` selector keys this service supports, its
    API versions and selector, and its credential and setup notes — the
    selector that makes a repeated write safe is named there or nowhere. It
-   is **not** a catalogue of what the service implements, and nothing is —
-   read no coverage claim into what it leaves out. A surface the change
+   is **not** a catalogue of what the service implements — read no coverage
+   claim into what it leaves out. The catalogue is
+   `GET {control_url}/veris/operations` (`?surface=rest|graphql|mcp`, paths
+   as templates): a method and path absent there is not served; one present
+   is answered, not necessarily faithfully. A surface the change
    rests on gets one probe, and what a refusal proves is in
    [reference/troubleshooting.md](../veris-reference/troubleshooting.md):
    some settle the question, most do not.
@@ -123,14 +131,30 @@ never self-assessed obviousness.
    Ids come from the sandbox, never guessed and never carried from another
    sandbox. A call that fails because a row was absent has
    measured nothing. The state dies with its sandbox — resetting it, or
-   keeping it: [reference/state.md](../veris-reference/state.md).
+   keeping it: [reference/state.md](../veris-reference/state.md). On the
+   hosted tier never `POST {control_url}/veris/reset` during a task: every
+   reset clears `/veris/requests`, which is where the receipt is read from.
 4. For each claim: one probe against `url`, or one schema read, that answers
    it — the questions and their asks are in [reference/twin.md](../veris-reference/twin.md).
    Record the call and the answer; a measurement that contradicts the task
    is the finding, not an error.
 5. If the feature is about a failure — a lost response, a limit, a refusal —
-   make it happen and drive the current code through it before designing:
-   [reference/faults.md](../veris-reference/faults.md).
+   make it happen and drive the current code through it before designing. A
+   failure is a `faults` row on the sandbox: `POST {control_url}/veris/data`
+   with `{"data":{"faults":[…]}}`. The row names `method` and `path` (the
+   vendor's, no host or query; `{id}` templates a segment), then one of
+   `"outcome":"error"` with an `error` object whose `status` the manual lists
+   (`{"status":429,"code":"<listed>","headers":{"Retry-After":"2"}}`),
+   `"outcome":"hang"` with `"phase":"before"` (lost before the write) or
+   `"phase":"after"` (written, never answered) — an `error` row carries
+   `phase` too, a 5xx after the write — or `latency_ms` alone for slow;
+   `remaining` spends it that many times, and a row without it fires on
+   every match until `DELETE {control_url}/veris/data` with its id. Most SDKs retry a `5xx`
+   or a connection error inside one call and the fault vanishes before your
+   code sees it; check the client's retry setting, and arm a `4xx` to
+   isolate the behaviour you mean to exercise. The full contract —
+   `match` on body, query, path and GraphQL operation, the credential and
+   clock rows — is in [reference/faults.md](../veris-reference/faults.md).
 
 Write the source only after every claim has an answer.
 ## Gate 2 — the identity the design rests on
@@ -166,13 +190,16 @@ not read.
 Run the changed flow from the boundary the task names — endpoint, worker,
 handler — through the run command: `.veris/run.sh` with `VERIS_SANDBOX_ID` set
 to the gate-1 sandbox ([reference/proxy.md](../veris-reference/proxy.md)), or
-on the hosted tier the command `.veris/session.md` names, run as it stands —
+on the hosted tier the repository's own command for that flow, run as it
+stands (`run:` in `.veris/session.md` is the shape, not the command) —
 against the conditions measured there, and read back what the vendor
 stored (`GET {control_url}/veris/data?entity_type=<table>`, and the trace at
 the tier the evidence is on — `tier=handler` for ordinary traffic,
 `tier=fault` for an injected one). **Not done until the receipt
-shows at least one request to the service from that run.** A green earned
-by changing the caller's call proves the caller changed.
+shows at least one request to the service from that run.** On the hosted
+tier the receipt is cumulative — Gate 1's requests are already in it — so
+read the service's count before the run, and *from that run* means it rose.
+A green earned by changing the caller's call proves the caller changed.
 
 One green proves one path. Before the PR, list every entry point that
 reaches the lines you changed — grep the changed symbols for their callers,

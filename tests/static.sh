@@ -210,6 +210,13 @@ else
   bad "setup/SKILL.md says --plugin-version $lit, manifests read $v_claude"
 fi
 
+# Section 0's two staging fences pin the version as a shell literal, v=…, and
+# a fence that fetched the previous release would stage stale scripts silently.
+vlits="$(grep -oE '^v=[0-9][^ ;]*' "$SKILLS/setup/SKILL.md" | cut -d= -f2 | sort -u)"
+if [ -z "$vlits" ]; then bad 'setup/SKILL.md names no v= staging literal'
+elif [ "$vlits" = "$v_claude" ]; then ok "setup/SKILL.md v= staging literals match the manifests ($v_claude)"
+else bad "setup/SKILL.md v= staging literals read $(printf '%s' "$vlits" | tr '\n' ' '), manifests read $v_claude"; fi
+
 # .opencode-plugin/skills/ is prepack output. Tracking it means hand edits that
 # the next publish silently discards.
 if git ls-files --error-unmatch veris-sim/.opencode-plugin/skills >/dev/null 2>&1; then
