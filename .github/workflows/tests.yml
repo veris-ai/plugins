@@ -1,10 +1,11 @@
 # The Stage-1 suite, tests/run.sh: static checks on the skills, unit tests
 # for the shipped scripts, one task end to end through the staged path. No
-# agent, no sandbox, no network. Until this file existed nothing ran it.
+# agent, no sandbox, no network. Gates pull requests, once; the release
+# workflow runs it again before a publish. Not on push, or it would run
+# twice for every PR commit.
 name: tests
 
 on:
-  push:
   pull_request:
 
 permissions:
