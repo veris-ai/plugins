@@ -1,6 +1,6 @@
 interface:
   display_name: "Veris build"
-  short_description: "Build a feature: measure the vendor's twin before designing, prove the change through veris-proxy."
+  short_description: "Build a feature: measure the vendor's twin before designing, prove the change against the twin."
   default_prompt: "$build <issue link or prompt>"
 policy:
   allow_implicit_invocation: true

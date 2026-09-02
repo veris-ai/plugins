@@ -23,6 +23,13 @@ application's callback URL and as `client_base_url`; if the application
 refuses loopback or private addresses, expose the service `url` through the
 same tunnel too.
 
+**Where the session provisioned the sandbox** (`.veris/session.md` names it):
+the callback URL is the sandbox's own preview URL, from the tool the
+session's plugin provides for it; pass it as `client_base_url`, or set
+`client.default_base_url` through `PATCH /veris/data` at the session's
+`control_url`. Where the platform gives no such tool, the callback path cannot
+be exercised here — a Gate-1 outcome, reported, not a reason to tunnel.
+
 The manual names any signing key or service-specific setup.
 `POST {control_url}/veris/client/probe` checks that the receiver answers;
 confirm `last_probe_result` came from the application, not a tunnel error

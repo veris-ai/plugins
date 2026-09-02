@@ -1,6 +1,6 @@
 interface:
   display_name: "Veris fix"
-  short_description: "Fix a defect: reproduce the failure against the twin first, prove it closed through veris-proxy."
+  short_description: "Fix a defect: reproduce the failure against the twin first, prove it closed against the twin."
   default_prompt: "$fix <issue link or prompt>"
 policy:
   allow_implicit_invocation: true

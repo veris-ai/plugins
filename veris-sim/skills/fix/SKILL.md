@@ -1,6 +1,6 @@
 ---
 name: fix
-description: Fix a defect against the vendor's twin - reproduce the failure the issue describes through the repository's own code before designing, prove it closed through veris-proxy with a receipt, write the PR with what was verified and assumed. Takes an issue link or a prompt. Run when the engineer names this command.
+description: Fix a defect against the vendor's twin - reproduce the failure the issue describes through the repository's own code before designing, prove it closed against the twin, with a receipt, write the PR with what was verified and assumed. Takes an issue link or a prompt. Run when the engineer names this command.
 argument-hint: "<issue link | prompt>"
 disable-model-invocation: true
 ---
@@ -9,12 +9,56 @@ Fix the defect in the request that accompanied this invocation (a GitHub
 issue URL or number, or free text). Not done until every gate below is met
 and the PR says so.
 
+**The tier.** Before the task, and before any subagent exists, settle where this
+session runs. Call the tool that reports what the twin received, with no
+argument. A header naming a twin — `Veris receipt — twin <id>` — is the
+**hosted** tier: your commands already run inside a provisioned sandbox whose
+egress was intercepted before your first turn. A tool that answers that no twin
+is attached is a session without a trust anchor — stop, name `VERIS_API_KEY`
+and `VERIS_ENVIRONMENT_ID`, say a new session is required, and write nothing.
+No such tool is not hosted.
+
+`VERIS_SANDBOX_ID` decides nothing: the container tier exports it per task.
+Once the tool has said hosted, it is a convenient second reading of the same id.
+
+Hosted: `.veris/session.md` must exist, its `tier:` must read `hosted`, and its
+`twin:` must be this session's twin. It is written per session and does not
+outlive one, so a missing or stale file is the expected case, not an error —
+load the `setup` skill by name, run it now, then continue here. Everything
+below reads two nouns, **the run command** and **the receipt**; that file's
+`run:` and `receipt:` say what each is here. Its `control_url:` lines are where
+every `/veris/*` call below goes; `lifecycle: session` means create nothing and
+delete nothing; `staging:` (`npm` or `raw`, then the version staged) is where
+`.veris/bin/` came from, and `unreachable` there means setup did not finish.
+`egress:` says what a host the twin does not answer for looks like from here,
+and decides what a network error proves: `open` — nothing; a vendor the twin
+does not model is called for real, with real credentials, and only the receipt
+says what arrived; `boundary-refused` — a refusal matching the recorded status
+and first body line is the boundary, not the vendor, and means the host is not
+mapped, while one that does not match is the vendor's own; `unreachable` — a
+connection error is the boundary. `issue_and_pr:` (`sandbox` or `engineer`) is
+read under the task.
+
+A reference link you cannot open is not a gate you may skip: the gate text
+below stands alone, and where it does not, stop.
+
+Not hosted: no `.veris/run.sh` and no direct-tier `.veris/setup.json` → stop;
+`setup` runs first. A `setup.json` with `"tier": "direct"` replaces `run.sh`:
+run the flow directly against the wired sandbox and read the trace where a
+gate reads the receipt ([direct.md](../setup/reference/direct.md)).
+
+Settled once, here. State it as a fact in every subagent brief — a subagent
+does not re-derive it, and may not carry the tool that would let it.
+
 **The task.** A GitHub reference → `gh issue view <ref> --json title,body,comments`;
-quote it. Name the failure in one sentence: what the vendor did, what the
+quote it. Where `.veris/session.md` records `issue_and_pr: engineer`, `gh` is
+not usable here: ask for the issue text now and put the PR body in the
+transcript at the end. The gates are unchanged; only where the text comes from
+and goes is. Name the failure in one sentence: what the vendor did, what the
 code did next. Anything the issue states about the vendor — what it
 supports, why it fails, what a field means — is a **claim**, the diagnosis
-included. No `.veris/run.sh` and no direct-tier `.veris/setup.json` → stop; `setup` runs first. A `setup.json` with `"tier": "direct"` replaces `run.sh`: run the flow directly against the wired sandbox and read the trace where a gate reads the receipt ([direct.md](../setup/reference/direct.md)). Sandbox
-lifecycle and every `/veris/*` call: [reference/twin.md](../veris-reference/twin.md).
+included. Sandbox lifecycle and every `/veris/*` call:
+[reference/twin.md](../veris-reference/twin.md).
 
 **The diagnosis.** Before any sandbox: read the code path the issue names
 and enumerate every distinct defect that could produce the symptom — the
@@ -47,7 +91,11 @@ diagnosis implicates>`. It writes the starting commit into
 `.veris/tasks/<id>/record.json`, and Gate 4 reads it from there. Without
 `--paths` it falls back to the whole source tree, which pins far more than the
 task touches. Do this at the start, not at the gate — a base chosen once the
-diff exists is chosen by the thing being measured.
+diff exists is chosen by the thing being measured. On the hosted tier
+`.veris/bin/` is staged per session by `setup`; no staged scripts means setup
+is unfinished, which is a stop. A claimed task id whose
+`.veris/tasks/<id>/record.json` is absent is also a stop, not a resume: the
+base died with the session that pinned it. One task is one session here.
 
 ## Gate 1 — the failure reproduced before the first source edit
 
@@ -57,9 +105,11 @@ diff exists is chosen by the thing being measured.
 1. `create_sandbox` (MCP), or `POST ${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes`
    with `{"ttl_minutes":60}`; then `get_sandbox` until `status` is `ready` —
    one sandbox for this whole task; keep its id and each service's `control_url`.
-   A sandbox or proxy session kept alive from an earlier run is a net
-   save — reuse it, reading from the ledger what per-run receipt lines
-   would have shown.
+   Where `.veris/session.md` names a twin, that is your sandbox: read the id
+   and each service's `control_url` from there, create nothing, and delete
+   nothing at the end. A sandbox or proxy session kept alive from an earlier
+   run is a net save — reuse it, reading from the ledger what per-run receipt
+   lines would have shown.
 2. `GET {control_url}/veris/manual` — the service's own notes, short, read
    whole. It is authoritative for exactly these: the statuses and codes a
    fault may inject, the `match` selector keys this service supports, its
@@ -99,9 +149,10 @@ diff exists is chosen by the thing being measured.
    through the application's own state — and when the twin cannot
    represent it at all, that report is the Gate-1 outcome, not a reason to
    switch diagnoses. Either way, drive the **repository's own code path** — the endpoint,
-   worker or handler the issue names, unchanged — through it under
-   `.veris/run.sh` with `VERIS_SANDBOX_ID` set to this sandbox
-   ([reference/proxy.md](../veris-reference/proxy.md)).
+   worker or handler the issue names, unchanged — through it under the run
+   command: `.veris/run.sh` with `VERIS_SANDBOX_ID` set to this sandbox
+   ([reference/proxy.md](../veris-reference/proxy.md)), or on the hosted tier
+   the command `.veris/session.md` names, run as it stands.
 5. Read the ledger: `GET {control_url}/veris/data?entity_type=<table>` and
    the trace. An injected fault's exchange is `tier=fault`, the traffic
    around it `tier=handler`, and your own `/veris/*` calls `tier=control` —
@@ -150,8 +201,9 @@ not read.
 
 ## Gate 3 — the same failure, closed, with a receipt
 
-Re-arm the same fault; drive the same code path through `.veris/run.sh`
-(same `VERIS_SANDBOX_ID`); read the ledger again. **Not done until the receipt shows at least one
+Re-arm the same fault; drive the same code path through the run command
+(`.veris/run.sh` with the same `VERIS_SANDBOX_ID`, or the same command
+`.veris/session.md` names); read the ledger again. **Not done until the receipt shows at least one
 request to the service from that run and the ledger shows the outcome the
 fix promises** — one row where there were two, the write recovered, the
 state right. Red before, green after, same flow: that is the proof.
@@ -182,30 +234,52 @@ a description of the code, not a check on it. Before the PR:
 the commit pinned at the start of the task. If it reports the base is unpinned,
 that is the task's mistake, not the gate's; it does not get a base at gate time.
 
-Each row ends as exactly one of: **encoded**, naming the changed file and the
-symbol or decision that honors it; **non-load-bearing**, carrying a
-counterfactual — the different value the measurement could have taken without
-changing what the fix promises; **contradicted**; or **unresolved**. The last
-two are gate failures.
+Each row ends as exactly one of four dispositions — the ledger's own tokens,
+one line each:
+
+- `ENCODED` — name the changed file and the symbol or decision honouring it.
+- `NON_LOAD_BEARING` — carries a counterfactual: the different value this
+  measurement could have taken without changing what the fix promises. If you
+  cannot write one, it is load-bearing and this is not the row.
+- `CONTRADICTED` — the change does what the measurement says is wrong. A gate
+  failure.
+- `UNRESOLVED` — never settled. A gate failure.
 
 **A contradiction is the code's problem, not the report's.** Change the code.
-The row format and the four dispositions are in
-[reference/proof.md](../veris-reference/proof.md); `ledger.sh init` prints the
-field contract.
+`ledger.sh init` prints the field contract; the three layers a claim belongs
+to, and the identity invariants Gate 2 binds on, are in
+[reference/proof.md](../veris-reference/proof.md).
 
 ## The PR
 
-Open a draft as the repository does. Its body has three sections, in the
-shape of [reference/evidence.md](../veris-reference/evidence.md): *what I verified,
-and how* — the fault armed, the before ledger, the after ledger, the receipt
-line; *what I am assuming rather than verifying*, and why that is
-acceptable; *limitations and risks* — including what a caller could still do
-wrong. Every task premise measured false is its own line in the body — the
-premise, the probe, the answer — and is never restated as fact after that
-measurement, in prose, code, or a name. Paste the sandbox id. Then `delete_sandbox` (or `DELETE …/sandboxes/<id>`).
+Open a draft as the repository does — under `issue_and_pr: engineer`, put the
+body in the transcript and say so. The body has three sections, in this shape;
+a heading with nothing under it is information too:
+
+- **What I verified, and how** — the failure, reproduced: the fault armed, the
+  flow driven, the wrong outcome observed, before any code changed. The fix,
+  through the shipping path: the same flow, green, from the boundary the task
+  names, with the receipt from that run. What the vendor recorded: the before
+  ledger, the after ledger, the `/veris/data` or `/veris/requests` read-back
+  that shows the fix did what it claims, not a layer below it.
+- **What I am assuming rather than verifying** — every behaviour the fix
+  relies on with no measurement behind it, vendor documentation included, and
+  why assuming it is acceptable. A measurement in the ledger that points the
+  other way belongs here, stated, not omitted.
+- **Limitations and risks** — what the fix does not cover; what a caller could
+  still do wrong; what depends on a vendor setting this sandbox could not
+  exercise.
+
+Every task premise measured false is its own line in the body — the premise,
+the probe, the answer — and is never restated as fact after that measurement,
+in prose, code, or a name. Paste the sandbox id. Then `delete_sandbox` (or
+`DELETE …/sandboxes/<id>`) — unless the session owns it, in which case delete
+nothing. The same shape, as a template:
+[reference/evidence.md](../veris-reference/evidence.md).
 
 When a step needs it: [state.md](../veris-reference/state.md), [webhooks.md](../veris-reference/webhooks.md),
-[trust.md](../veris-reference/trust.md) (an SDK refusing the proxy's certificate),
-[troubleshooting.md](../veris-reference/troubleshooting.md). Note anything the
-sandbox got wrong or lacked and give it to the engineer at the end. Ask
-before sending repository code anywhere new. Never promote a sandbox.
+[trust.md](../veris-reference/trust.md) (a certificate or connection error
+against a mapped host while others intercept), [troubleshooting.md](../veris-reference/troubleshooting.md).
+Note anything the sandbox got wrong or lacked and give it to the engineer at
+the end. Ask before sending repository code anywhere new. Never promote a
+sandbox.

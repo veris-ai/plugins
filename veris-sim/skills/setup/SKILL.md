@@ -137,8 +137,9 @@ for f in setup/scripts/preflight.sh veris-reference/scripts/ledger.sh veris-refe
 done                                                                     # staging: raw
 ```
 
-Both fail → `staging: unreachable`, and **setup is unfinished — stop and say
-so.** There is no discipline-without-tooling path: `ledger.sh` is what closes
+The first route to succeed is the reading — `staging: npm` or `staging: raw`,
+then the version. Both fail → `staging: unreachable`, and **setup is
+unfinished — stop and say so.** There is no discipline-without-tooling path: `ledger.sh` is what closes
 `fix`'s Gate 4, and it dies without `jq` (every row is JSON). `command -v jq`
 absent: install it the way this sandbox installs packages, once; still absent
 is the same stop.
