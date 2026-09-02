@@ -52,7 +52,7 @@ here, and in `build` and `fix` — uses `sh .veris/bin/preflight.sh` instead. On
 the hosted tier that first-run path does not exist — this directory is not in
 the sandbox — and the copy section 0 fetches into `.veris/bin/` is the only one.
 
-**Pass the version you are running.** Add `--plugin-version 0.8.0` to every
+**Pass the version you are running.** Add `--plugin-version 0.8.0-rc.1` to every
 invocation. A staged copy cannot know which version is loaded, so unless it is
 told it cannot notice that it is out of date; without the flag it says
 `VERSION_UNCHECKED` rather than guessing.
@@ -126,7 +126,7 @@ scripts lands in the repository — the tarball and its `package/` tree unpack
 in a temporary directory, or a later `git add -A` sweeps them into a commit:
 
 ```sh
-v=0.8.0; d="$(mktemp -d)"; mkdir -p .veris/bin
+v=0.8.0-rc.1; d="$(mktemp -d)"; mkdir -p .veris/bin
 npm pack "@veris-ai/veris-sim-opencode@$v" --pack-destination "$d" &&
   tar -xzf "$d/veris-ai-veris-sim-opencode-$v.tgz" -C "$d" &&
   cp "$d/package/skills/setup/scripts/preflight.sh" \
@@ -136,7 +136,7 @@ npm pack "@veris-ai/veris-sim-opencode@$v" --pack-destination "$d" &&
 ```
 
 ```sh
-v=0.8.0; mkdir -p .veris/bin   # again: a new shell call carries nothing from the last
+v=0.8.0-rc.1; mkdir -p .veris/bin   # again: a new shell call carries nothing from the last
 for f in setup/scripts/preflight.sh veris-reference/scripts/ledger.sh veris-reference/scripts/record.sh; do
   curl --fail-with-body -sSL -o ".veris/bin/$(basename "$f")" \
     "https://raw.githubusercontent.com/veris-ai/plugins/opencode-v$v/veris-sim/skills/$f"
@@ -165,7 +165,7 @@ tier: hosted
 lifecycle: session          # the sandbox is not yours: create nothing, delete nothing
 control_url: stripe https://stripe-7f3a.twin.veris.ai   # one line per service; GET /veris/schema answered 200
 egress: boundary-refused    # <status>; body begins "<first line, verbatim>"
-staging: npm 0.8.0          # the route, then the version staged into .veris/bin/; jq present
+staging: npm 0.8.0-rc.1          # the route, then the version staged into .veris/bin/; jq present
 issue_and_pr: sandbox       # gh present and authenticated here
 run:                        # written by step 6, once a smoke run has reached the twin
 receipt: the receipt tool, called with no argument
@@ -340,7 +340,7 @@ and only the receipt separates them. Write the command that did it to `run:`
 in `.veris/session.md`, exactly as run — the shape setup proved reaches the
 twin; a task names its own flow — and to `smoke_command` in
 `.veris/setup.json` only where that file is this tier's; another tier's keeps
-its own. Then `sh .veris/bin/preflight.sh --hosted --plugin-version 0.8.0`: it
+its own. Then `sh .veris/bin/preflight.sh --hosted --plugin-version 0.8.0-rc.1`: it
 reads `session.md`, exits 2 on a missing `twin:` or an empty `run:`, and
 reports a staged script older than the version passed. **Not done until it
 exits 0.**
