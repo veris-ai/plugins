@@ -110,26 +110,51 @@ service is; read it before concluding anything from an unchanged result.
 
 ## The clock
 
-One `clock` row is shared by every service in the sandbox:
+One `clock` row is shared by every service in the sandbox. Call
+`set_sandbox_clock` with:
 
-```http
-PATCH {control_url}/veris/data
-{"data":{"clock":[{"id":1,"offset_seconds":2678400}]}}
+```json
+{
+  "environment_id":"<environment-id>",
+  "sandbox_id":"<sandbox-id>",
+  "offset_seconds":2678400
+}
 ```
 
 It advances vendor time — expiry, retention, replay windows. Advance the
 application's own test clock separately; never move it backwards during a
 suite.
 
+The REST equivalent is the sandbox resource, not one service's control URL:
+
+```sh
+curl --fail-with-body -sS -X PATCH \
+  "${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes/$VERIS_SANDBOX_ID/clock" \
+  -H "X-API-Key: $VERIS_API_KEY" -H 'Content-Type: application/json' \
+  -d '{"offset_seconds":2678400}'
+```
+
+`GET` the same URL to inspect the complete current row. A `PATCH` returns the
+complete resulting `clock` and any backwards-time `warnings`.
+
 `mode` is `live` by default, where `offset_seconds` is added to real time.
 Setting `mode` to `frozen` with a `frozen_time` (unix epoch seconds) stops
 vendor time at that instant, which is what makes a retention or expiry
 boundary reproducible instead of racing wall time:
 
-```http
-PATCH {control_url}/veris/data
-{"data":{"clock":[{"id":1,"mode":"frozen","frozen_time":1793491200}]}}
+Call `set_sandbox_clock` with:
+
+```json
+{
+  "environment_id":"<environment-id>",
+  "sandbox_id":"<sandbox-id>",
+  "mode":"frozen",
+  "frozen_time":1793491200
+}
 ```
+
+Return to wall-aligned time after the case with `set_sandbox_clock` and
+`{"mode":"live","offset_seconds":0,"frozen_time":null}`.
 
 Either way, the sandbox's clock is the only one that moves. A test that
 signs tokens or verifies signatures has to keep the application's clock — or
