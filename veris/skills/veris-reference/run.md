@@ -22,6 +22,10 @@ certificate environment variables set. It covers only libraries that honour thos
 variables, and its gaps are silent, so it is never used for code under test. A quick
 probe with curl is fine there.
 
+A third tier, for an explicit request to run remotely or a machine with no Docker
+daemon, is [hosted.md](hosted.md): the same unmodified code in a hosted box wired to
+the twin, with the trace as the receipt. That file points to the provider recipe.
+
 Trust is decided in-process in both tiers: an SDK that ships its own CA bundle
 refuses the proxy's certificate even when routing worked. `--patch-bundled-cas`
 handles that in the container tier; see

@@ -87,6 +87,17 @@ saved profile on every command.
 
 ### Versions
 
+0.7.2 — a hosted tier, with a Daytona provider recipe. `setup` can run tests remotely
+when requested, or when the code needs redirection and Docker is unavailable.
+`veris-reference/hosted.md` describes selection, remote workload preparation, trace
+evidence, project notes and cleanup; `veris-reference/daytona.md` holds the commands
+and provider limits. The flow is `veris up`, then `provision`, `push`, `exec` and
+`teardown` through `veris-daytona`, with the twin's trace as the receipt. `build` and
+`fix` reuse the recorded commands. The runner uses an exact published version through
+`npx`; setup checks that release contains all four CLI verbs before creating resources.
+Earlier Node/Stripe and Python/Stripe trials informed the guidance; these
+documentation changes were not run against a live box.
+
 0.7.1 — no MCP, and the first-run lessons of two measured sessions. The plugin
 registers commands only: `.mcp.json`, `.codex-mcp.json` and the OpenCode plugin's
 injected server are gone, since every mechanism is a `veris` command and a machine

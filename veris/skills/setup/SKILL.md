@@ -12,13 +12,14 @@ Three rules, always:
 - Never modify the application code, and never point it at a sandbox. The one
   exception is the direct tier in step 3, where the app already reads each vendor's
   URL from an environment variable and production sets that same variable. Everywhere
-  else, `veris run` redirects the app's traffic from outside the process, and the code
-  keeps its production hostnames and credentials.
+  else, the container or hosted tier redirects the app's traffic from outside the
+  process, and the code keeps its production hostnames and credentials.
 - Never print an API key. `veris` masks keys; keep it that way.
 - Ask before creating an environment, installing anything, or promoting a sandbox.
 
-Every command below is `veris`, and `veris <command> --help` lists its flags. You run
-without a terminal, so every answer you mean to give has to be a flag. `--yes` confirms.
+The main CLI is `veris`; hosted runners have their own provider commands.
+`veris <command> --help` lists its flags. You run without a terminal, so every answer
+you mean to give has to be a flag. `--yes` confirms.
 A command that would otherwise stop and ask refuses instead, and names the flag it needs.
 Every `get` and `list` takes `--json`. `env get` and `env use` accept the shortened id a
 table prints; `--from` needs the full id, which `--json` prints.
@@ -63,9 +64,12 @@ the same checks on stdout.
   another control plane: `veris login --profile dev --api-base <url>`. In CI nobody can
   approve a pairing, so `veris login --key-stdin` reads an existing key from stdin.
   `veris whoami` shows which key, organisation and plane a command would use.
-- `!` about Docker: the container tier in step 3 runs the tests inside Docker, so
-  Docker must be running. Ask the engineer to start it. Never fall back to running
-  without `--image` for code under test.
+- `!` about Docker: the container tier in step 3 needs a running daemon. If the
+  engineer requested hosted execution, check that tier's gateway and provider
+  prerequisites instead. Otherwise ask them to start Docker; if this machine cannot
+  run a daemon, the hosted tier in step 3 is the path. Never fall back to running
+  without `--image` for code under test. The hosted tier's gateway check is in
+  [../veris-reference/hosted.md](../veris-reference/hosted.md).
 - `✗` with `no such host` for the control plane, or `!` with `permission denied` on
   `docker.sock`, on a machine where the engineer says both work: you are sandboxed.
   [../veris-reference/troubleshooting.md](../veris-reference/troubleshooting.md),
@@ -110,8 +114,10 @@ and ask before creating anything.
 
 ## 3. Pick the tier, then build the image
 
-There are two ways to run the tests, and each one is called a tier. Decide which tier
-before building anything, and decide it from the code, not from the engineer's answer.
+There are three ways to run the tests, and each one is called a tier. Decide before
+building anything. An explicit request to run remotely selects the hosted paragraph
+below, even when Docker works. Otherwise apply the direct-tier gate from the code,
+then use `veris doctor` to choose between container and hosted execution.
 
 Look at every vendor call on the tested path. If each one builds its URL from an
 environment variable the app already reads, and production sets those same variables
@@ -125,16 +131,26 @@ there is no image and no proving run. Step 4's environment rules still apply to 
 environment that wiring makes, so read `veris env list --json` first and reuse one that
 already has every service. Step 4's proxy flags do not apply.
 
-One hardcoded vendor hostname, in the app or inside an SDK it calls, means the
-container tier below. So does a vendor base URL the app registers that no twin
-publishes an env hint for, unless no tested path reaches that base. In the direct tier
+One hardcoded vendor hostname, in the app or inside an SDK it calls, needs redirection
+through the container or hosted tier. So does a vendor base URL the app registers
+that no twin publishes an env hint for, unless no tested path reaches that base. In the direct tier
 such a base keeps talking to the real vendor and nothing catches it. `veris services`
 names the hint variable for every twin, and it needs no sandbox, so check for a
 missing hint here, before anything is running.
 
 The container tier is `veris run --image`: the tests run in a container with the proxy
-beside it. It is the tier for code under test. It covers every runtime, and it is the
-only tier that can patch an SDK's bundled certificates.
+beside it. It is the default for code needing redirection when Docker is available.
+It covers every runtime and can patch an SDK's bundled certificates.
+
+The hosted tier runs the tests in a remote box whose outbound proxy is the twin's
+gateway. Choose it when the engineer requests remote execution, or when the code
+needs redirection and `veris doctor` reports unavailable Docker that cannot be started
+here. With no explicit hosted request, the direct-tier gate above comes first.
+In it, go to [../veris-reference/hosted.md](../veris-reference/hosted.md), check its
+gates and follow the chosen provider's recipe for *What it needs*. Then rejoin
+here at step 4 with no image: leave `--image` out, so `proxy.image` stays unset.
+Step 5 is unchanged, and step 6 uses the provider's run steps and the hosted receipt
+rule. Skip the rest of this step.
 
 Use any image that runs the tests: the repository's own test image or a Dockerfile
 stage, or a stock toolchain image with the repository mounted. Build it now; step 4
@@ -246,6 +262,12 @@ veris run --patch-bundled-cas -- <the smallest test that calls the vendor>
 ```
 
 Add what the command needs, the same way `docker run` would.
+
+On the hosted tier there is no `veris run`. Use the provider's recipe to run the test
+command in the provisioned box. Its receipt is the twin's trace read since a watermark:
+[../veris-reference/hosted.md](../veris-reference/hosted.md), *Provider recipe* and
+*The receipt*. Its done-when is there. The rest of this step is the container tier's;
+rejoin at step 7.
 
 - `-v` to mount the repository where the image expects the code, when the image does
   not already contain it. `docker image inspect <tag>` names the image's WORKDIR.
@@ -376,7 +398,10 @@ fills them in on first use, with the reads in
   is no `veris run` line. Record how the variables are set and from what, and record
   the trace entry that proved the first real call;
   [../veris-reference/direct.md](../veris-reference/direct.md) calls it *The trust
-  anchor*.
+  anchor*. On the hosted tier, record the provider's actual run and teardown commands,
+  the watermark read and the same trace entry, as
+  [../veris-reference/hosted.md](../veris-reference/hosted.md#what-goes-in-the-files)
+  shows.
 - **What the twin cannot represent.** Hostnames without a twin, data-plane twins,
   anything the smoke could not exercise.
 - **Identity and matching.** Which fields the vendor treats as the same record, and
@@ -458,8 +483,10 @@ branch and accumulates one directory per task. If they choose it anyway, drop th
 ## 10. Finish
 
 `veris down --yes` deletes this folder's sandbox. After a promote in step 8 there is
-none left to delete. Tell the engineer what to commit: `.veris/twin.yaml`,
-`.veris/NOTES.md`, `.veris/setup.json`, and `Dockerfile.veris` if you wrote one. Report
-the receipt line from step 6; in the direct tier, report the trace entry that stood in
+none left to delete. On the hosted tier, delete the hosted box first using the
+provider's teardown command ([../veris-reference/hosted.md](../veris-reference/hosted.md#cleanup)).
+Tell the engineer what to commit: `.veris/twin.yaml`, `.veris/NOTES.md`,
+`.veris/setup.json`, and `Dockerfile.veris` if you wrote one. Report the receipt line
+from step 6; in the direct and hosted tiers, report the trace entry that stood in
 for it. `build` or `fix` takes the task from here. Ask before sending repository code
 anywhere new.
