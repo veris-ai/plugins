@@ -1,74 +1,155 @@
 # Troubleshooting
 
-What each signal means. Most suspected sandbox bugs turn out to be in the
-test setup, and the evidence to tell them apart is already recorded.
+What each signal means. Most suspected sandbox bugs turn out to be in the test setup,
+and the evidence to tell them apart is already recorded.
 
 | signal | what it says |
 |---|---|
-| the receipt | completed requests per mapped vendor host and service. A green suite with an empty receipt is not a pass; a red suite whose receipt shows the traffic arrived is a real integration finding. `/veris/*` reads at `control_url` are not on a mapped host and never appear in it; the suite's own setup traffic at a vendor hostname does |
-| `GET {control_url}/veris/requests` | the wire trace of every request and response (the query string is not recorded yet). The failing exchange can be replayed from it with curl before the sandbox, the proxy, or the code is blamed. Ask for the tier the evidence is on — see below |
-| `GET {control_url}/veris/data?entity_type=<name>` | what the vendor stored — the row a create produced, the replay it recorded, the state a callback left |
+| the receipt from `veris run` | completed requests per twin, two counts: what the proxy saw leave the app (`the sandbox received N request(s)`) and what the sandbox recorded (`the sandbox recorded N request(s) since the watermark`), then the verdict line (`✓ required <twin> ≥1: saw N   ✓ ledgers agree (N = N)`; `! ledgers differ` when they do not). A requirement passes when either count meets it; a `✓` one side alone decided says which, `(engine; …)` or `(sandbox ledger; not proxied)`. A green suite with an empty receipt is not a pass; a red suite whose receipt shows the traffic arrived is a real integration finding. Your own `veris sandbox` reads never count: the proxy does not see them, and the sandbox's ledger lists them on a separate `control-plane (/veris/*)` line marked not counted. The suite's own setup traffic at a vendor hostname does count. `--receipt <file>` keeps it as JSON |
+| `veris sandbox trace` | the wire trace of every request and response. The failing exchange can be replayed with curl before the sandbox, the proxy or the code is blamed. Ask for the tier the evidence is on |
+| `veris sandbox data get <twin> <table>` | what the vendor stored: the row a create produced, the replay it recorded, the state a callback left |
 
-## An empty receipt
+## An empty receipt, exit 3
 
-The run exits 3 on its own when an `--environment` run sent the sandbox
-nothing — deploying a sandbox for a suite that never called it is a failure,
-not a pass. Causes worth checking, in order: the suite genuinely never calls
-its dependency (mocks still active, tests filtered out); the traffic went to
-the real vendor because the host is not in the environment's service map; or
-TLS trust failed inside the workload ([trust.md](trust.md)) so no request ever
-completed.
+`veris run --fresh` exits 3 on its own when the run sent the sandbox nothing:
+deploying a sandbox for a suite that never called it is a failure, not a pass. A run
+against this folder's sandbox exits 3 when a `--require-*` is unmet. Causes, in
+order:
+
+1. The suite genuinely never calls its dependency: an in-process mock still active,
+   the tests filtered out. Pick a test that does.
+2. The traffic went to the real vendor because the hostname is not one of the
+   environment's twins. `veris services` lists the catalog, `veris env get` the
+   environment. `--strict` turns that leak into a refusal.
+3. TLS trust failed inside the workload, so no request ever completed. Next section.
+4. The vendor call comes from a process the run did not start. Last section.
+
+Never fix an exit 3 by changing the call or its base URL.
 
 ## Which tier holds the evidence
 
-`?tier=` narrows the trace, and the right value depends on what you are
-proving:
+`veris sandbox trace --tier` narrows the trace, and the right value depends on what
+you are proving:
 
 | you want | ask |
 |---|---|
-| ordinary traffic the application sent | `tier=handler` |
-| the exchange an armed fault produced | `tier=fault` |
-| a fault and the retry after it | both, separately — or one bounded unfiltered page, dropping `control` rows |
+| ordinary traffic the application sent | `--tier handler` |
+| the exchange an armed fault produced | `--tier fault` |
+| a fault and the retry after it | both, separately, or one bounded unfiltered page dropping `control` rows |
 
-`tier=control` is your own `/veris/*` seeding and read-back. It is recorded
-like anything else, so an unfiltered page after a heavy seed can be mostly
-your own writes — which reads as "the application sent nothing" when it
-sent plenty. `tier=handler` is **not** the universal read-back: a gate that
-reproduces a failure is usually looking at `tier=fault`, and a gate proving
-recovery usually needs both.
+`control` is your own seeding and read-back. It is recorded like anything else, so an
+unfiltered page after a heavy seed can be mostly your own writes, which reads as "the
+application sent nothing" when it sent plenty. `handler` is not the universal
+read-back either: a gate that reproduces a failure is usually looking at `fault`, and
+a gate proving recovery usually needs both.
+
+## An SDK refuses the proxy's certificate
+
+The proxy redirects traffic below every library, but trust is decided inside the
+process. An SDK that ships its own CA bundle and hands it straight to the TLS layer,
+Stripe's Python and Ruby clients, older botocore, httplib2, reads none of the trust
+environment and refuses the proxy's certificate even though routing worked.
+
+Symptoms: `CERTIFICATE_VERIFY_FAILED`, `SSLError`, "unable to get local issuer
+certificate", or a generic connection error against a twin's host while other twins
+intercept fine. Stripe's Python client hides it as `APIConnectionError` ("Could not
+verify Stripe's SSL certificate"), so any connection-shaped SDK error against a twin's
+host may be this.
+
+When a host rejected every handshake and completed no request, the run fails with
+one line: `<host>: N TLS handshake(s) rejected (<alert>) after the certificate was
+minted; 0 requests completed -- the client refused the interception CA.` followed by
+a `Next:` step. Follow the `Next:` step; it is computed from what the run already
+tried. A softer `<host>: N TLS handshake(s) ended after the certificate was minted;
+0 requests completed -- CA rejection or certificate pinning is likely ... not
+certain` appears when the connection closed without a TLS alert (Node does this). It
+does not fail the run unless the whole receipt is empty; then it does. A host that
+completed some requests and also rejected handshakes gets a non-fatal line
+(`rejected ... even though N request(s) completed -- another client in this run
+refused the interception CA`): two clients disagreed about the CA, and the one that
+completed may be a health check or a second client rather than the code under test.
+So when the SDK reports a connection error but the receipt shows traffic for that
+host, read the trace's paths to see whose traffic it was.
+
+The fix, in order:
+
+1. `veris run --patch-bundled-cas`. It scans the image and the `-v` mounts for the
+   bundles it knows (pip's vendored certifi, certifi, botocore, stripe for Python and
+   Ruby, httplib2), appends the proxy's certificate to a copy of each, and mounts the
+   copy read-only over the original. The SDK keeps loading its own file; it just
+   carries one more root. It prints one line per file over-mounted, one per file that
+   already carried the certificate, and a count; nothing for files it does not know.
+   A CA-bundle-shaped file outside that table (named `cacert.pem`,
+   `ca-certificates.crt`, `cacerts.txt`, `ca-bundle.crt`, `ca-bundle.pem` or
+   `cert.pem`) is **not** patched; when a host then rejects every handshake, the
+   failure line names it (`CA-bundle-shaped file(s) the scan does not know: ...`) for
+   step 3. Add the flag up front when the dependency set names one of these SDKs; it
+   costs nothing when there is nothing to patch.
+2. A JVM client reads a JKS truststore: build one containing the proxy's certificate
+   and pass `--java-truststore <path>` (`--java-truststore-pass` when it is not
+   `changeit`).
+3. Over-mount by hand when the line persists: find the SDK's bundled CA file in the
+   image or the mounted venv or `node_modules` (the failure line names the
+   candidates), copy it out, append the proxy's certificate, and mount the copy back
+   over the original with `-v "$PWD/.veris-trust/patched.crt:/exact/container/path:ro"`.
+   The certificate to append: each run's proxy mints its own and publishes it inside
+   the workload at `/veris-share/veris-ca.pem`, so bind the file writable and append
+   it as the run's first step (`-- sh -c 'cat /veris-share/veris-ca.pem >> /path; <tests>'`);
+   on the host tier it is `~/.veris/ca/veris-ca.pem`. Append, never replace: a file
+   holding only the proxy's certificate breaks the SDK's trust for every real host.
+4. No bundled CA file anywhere means the SDK pins: SPKI hashes or certificate
+   fingerprints (OkHttp `CertificatePinner`, curl `--pinnedpubkey`, aiohttp
+   `fingerprint=`, urllib3 `assert_fingerprint`), a second check after chain
+   validation that no added root can satisfy. The failure line says so when
+   `--patch-bundled-cas` covered every known bundle and no other bundle-shaped file
+   exists. Stop and report it; retrying will not change it.
+
+Never set the SDK's CA or verify options in test code, monkey-patch `ssl`, or disable
+verification: each modifies the code path under test.
 
 ## Vendor-shaped errors
 
-- A vendor-shaped `4xx`: read the response and `/veris/requests`. It is
-  usually the real error for the request you sent.
-- A refusal that **names itself unsupported** — typically a `501`, in the
-  vendor's own error shape — is conclusive. The twin does not model that
-  surface: another endpoint, another header, another API version returns the
-  same. Record it for the user, design around what the twin does model, and
-  stop probing. Do not build on ids or fragments of the missing surface that
-  appear stamped on other rows, and never change correct production client
-  behaviour to work around it.
-- **An ordinary `400` or `404` is inconclusive**, and a service may answer a
-  coverage gap with one. It is indistinguishable from the vendor's own
-  answer, so it is not evidence of a gap on its own. Before reading anything
-  into it, confirm the request's credentials, API version, payload shape,
-  and the rows it depends on being seeded. With those known good, one
-  further controlled probe is worth it. If the answer is still ambiguous,
-  report it as *"possible twin coverage gap; indistinguishable from vendor
-  behavior"* and stop. Never assert a coverage gap the available evidence
-  cannot separate from real vendor behavior — and do not read one off
-  `/veris/schema` either: the schema describes the state a sandbox holds,
-  not the operations the service answers.
+- A vendor-shaped 4xx: read the response and the trace. It is usually the real error
+  for the request you sent.
+- A refusal that names itself unsupported, typically a 501 in the vendor's own error
+  shape, is conclusive: the twin does not model that surface, and another endpoint,
+  header or API version returns the same. Record it for the engineer, design around
+  what the twin does model, and stop probing. Do not build on ids or fragments of the
+  missing surface that appear on other rows, and never change correct production
+  client behaviour to work around it.
+- An ordinary 400 or 404 is inconclusive; a twin may answer a coverage gap with one,
+  and it is indistinguishable from the vendor's own answer. Before reading anything
+  into it, confirm the request's credentials, API version, payload shape, and that
+  the rows it depends on are seeded. With those known good, one further controlled
+  probe is worth it. Still ambiguous: report it as "possible twin coverage gap;
+  indistinguishable from vendor behaviour" and stop. Never assert a gap the evidence
+  cannot separate from vendor behaviour, and do not read one off the schema: the
+  schema describes the state a sandbox holds, not the operations it answers.
+  Coverage is answerable, and not by reading a 404: the twin's operations list
+  ([twin.md](twin.md)) is a control-plane answer that settles it. Put what you
+  establish in `.veris/NOTES.md` so the next task does not pay for it again.
+- A bare 500: capture the request and the trace as a sandbox defect.
+- Widespread 502: `veris status`; the sandbox may have expired.
+- A timeout: check armed faults (`veris sandbox data get <twin> faults`), whether the
+  request reached the trace, and the client's own per-request timeout; an error path
+  can be much slower than a success path.
 
-  **But coverage is answerable, and not by reading a `404`.** Read the
-  catalogue: `GET {control_url}/veris/operations` lists the whole supported
-  surface, on every service, and a path or method absent from it is not
-  served — see [twin.md](twin.md) for its shape and the `?surface=` filter.
-  That is a control-plane answer and it settles the question; the
-  vendor-shaped `404` above never will. Put what you establish in
-  `.veris/NOTES.md` so the next task does not pay for it again.
-- A bare `500`: capture the request and the trace as a sandbox defect.
-- Widespread `502`: check sandbox status and expiry.
-- A timeout: check armed faults, whether the request reached the trace, and
-  the client's per-request timeout — an error path can be much slower than a
-  success path.
+## A container the run did not start
+
+The over-mount and the trust environment reach only the workload container `veris run`
+starts. A compose service that joins the proxy's network namespace
+(`network_mode: "container:veris-proxy-…"`), an API server, a worker, any sidecar
+that is the process actually calling the vendor, shares the redirect but not the
+trust: every vendor call dies (`SELF_SIGNED_CERT_IN_CHAIN` in Node) while the workload
+looks healthy and the receipt shows nothing for that twin. The run's TLS failure
+line ends with a note about exactly this ("A sibling container this run did not
+start ... never receives the trust handoff"). Hand the sidecar the trust environment:
+
+1. Find the share. The proxy container is named `veris-proxy-<pid>`:
+   `docker inspect -f '{{range .Mounts}}{{if eq .Destination "/veris-share"}}{{.Source}}{{end}}{{end}}' <veris-proxy-container>`
+2. Give the sidecar `env_file: <share>/veris.env` (or `--env-file`) and a volume
+   `<share>:/veris-share`; the env file points every runtime's CA variable
+   (`NODE_EXTRA_CA_CERTS`, `SSL_CERT_FILE`, and the rest) at `/veris-share/veris-ca.pem`.
+
+The share is minted per run, so wire these through variables rather than a hardcoded
+path; `--keep-proxy` keeps the share alive for inspection.

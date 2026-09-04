@@ -1,215 +1,273 @@
 ---
 name: setup
-description: Wire this repository to a Veris environment, once - the credential, the environment, the transport (veris-proxy + docker, or --direct for apps whose config carries the base URLs), one smoke run with proof of arrival, and, when the app works with files, the state they live in. Run before build or fix. Run when the engineer names this command.
-argument-hint: "[environment-id | service names...] [--direct]"
+description: Wire this repository to Veris once - sign in, name the vendors the code calls, create the environment, build a test image, bring up a sandbox, and prove with one run that the code's own vendor calls reach the fake vendors. Run before build or fix. Run when the engineer names this command.
+argument-hint: "[service names...]"
 disable-model-invocation: true
 ---
 
-Wire this repository to a Veris environment, once; re-running skips what
-still holds. Two transports, one contract each:
+Wire this repository to Veris, once. Re-running skips what is already done.
 
-- **Container (default).** The code is never modified and never told —
-  `veris-proxy` reroutes its outbound HTTP(S) into a sandbox from outside
-  the process. Leaves `.veris/run.sh` (the exact `veris-proxy run`
-  invocation), `.veris/setup.json`, and `Dockerfile.veris` only when
-  deriving an image took real work.
-- **Direct (`--direct`).** For an application whose own configuration reads
-  each service's base URL from the environment variable the platform names
-  (its `env_hint`) — then pointing those variables at a sandbox IS the
-  shipped code path, and no proxy or docker is involved.
-  [reference/direct.md](reference/direct.md) carries the contract; step 2
-  gates entry. Leaves `.veris/setup.json` with `"tier": "direct"`.
+Three rules, always:
 
-`scripts/preflight.sh` in this skill's directory checks the preconditions and
-reports **every** one that fails in a single run. Under the direct tier add
-`--direct`, which skips the binary/docker/image checks; without it all three are
-required. An environment id given with the command overrides
-`VERIS_ENVIRONMENT_ID`; service names given with the command seed the step-3
-create question.
+- Never modify the application code, and never point it at a sandbox. `veris run`
+  redirects its traffic from outside the process; the code keeps its production
+  hostnames and credentials.
+- Never print an API key. `veris` masks keys; keep it that way.
+- Ask before creating an environment, installing anything, or promoting a sandbox.
 
-**Where to run it from.** On a first run nothing is staged yet, so invoke it from
-this skill's own directory: derive that absolute path from the path of the file
-you are reading, confirm it with `test -f <that path>/scripts/preflight.sh`, and
-run it there. Step 5 then copies it into `.veris/bin/`, and every later run —
-here, and in `build` and `fix` — uses `sh .veris/bin/preflight.sh` instead.
+Every command below is `veris`; `veris <command> --help` lists its flags. You run
+without a terminal, so every answer is a flag: `--yes` for confirmations, and a
+command that would otherwise ask refuses and names the flag it needs. Every `get` and
+`list` takes `--json`. `env get` and `env use` accept the shortened id a table prints;
+`--from` needs the full id from `--json`.
 
-**Pass the version you are running.** Add `--plugin-version 0.6.6` to every
-invocation. A staged copy cannot know which version is loaded, so unless it is
-told it cannot notice that it is out of date; without the flag it says
-`VERSION_UNCHECKED` rather than guessing.
+## 1. Check the machine
 
-## 1. Credential
+Run `veris doctor`. It prints one line per check: login, control plane, Docker,
+tunnel binary (cloudflared), certificate file, project file, environment, sandbox.
+`✓` passed, `!` worth knowing, `✗` will fail a run. It changes nothing; a `→` line
+names the command that would. It exits 1 when any check failed. `--json` puts the
+same checks on stdout.
 
-`sh scripts/preflight.sh` (with `--direct` first when that tier was
-requested) reports the credential first. If `VERIS_API_KEY` is not
-set, say exactly this and end the turn:
+- `✗ Not logged in`: run `veris login`. It prints a pairing code and a console link
+  (`--no-browser` prints the link without opening a browser). Show both to the
+  engineer, tell them to approve in the browser, and wait; the command finishes by
+  itself once the pairing is approved and saves the key under the profile. For
+  another control plane: `veris login --profile dev --api-base <url>`. In CI, where
+  nobody can approve a pairing, `veris login --key-stdin` reads an existing key from
+  stdin. `veris whoami` shows which key, organisation and plane a command would use.
+- `!` about Docker: the container tier needs Docker running. Ask the engineer to
+  start it. Never fall back to running without `--image` for code under test.
+- `!` about a missing project file or sandbox on a fresh repository is the expected
+  state, not a problem.
+- Any other `✗`: say which line and how to fix it, then stop.
 
-> Run this in your terminal, then tell me when it's done:
-> `echo 'export VERIS_API_KEY=<your key>' >> ~/.zshrc && source ~/.zshrc`
+## 2. Find what the code calls
 
-(`~/.bashrc` when `$SHELL` is bash.) On their reply, run preflight again —
-it reads the variable in a fresh shell. Say "VERIS_API_KEY is set"; never
-print the value; write it nowhere. The `veris` MCP server read the
-environment at session start: say a restart is needed before its tools
-work; nothing here needs them.
+Read the code, not the README: SDK imports, hostnames, base-URL settings. List every
+vendor **hostname** on the tested path. `veris services` is the catalog, one line per
+twin: its name (what `--services` takes), what it stands in for, the variable its URL
+is handed to the app under, and the vendor hostnames the proxy intercepts for it. A
+twin with no hostnames is a data plane (a DSN handed to the app, not proxied). Match
+hostnames, not vendors: a vendor may use several hosts and a twin may cover only some
+(Stripe's twin answers `api.stripe.com`; the files and meter-events hosts are not
+covered). A hostname with no twin is a limitation you write down in step 7; do not
+mock it.
 
-## 2. Preflight
+Names given with this command are the starting list. Show the engineer the final list
+and ask before creating anything.
 
-It names every missing precondition in one pass, each with its fix on the same
-line — binary, docker, environment. Fix them together, then run it again; a
-check whose own precondition failed reports that rather than a second, derived
-failure. Installing
-the binary: ask first, never over a working one. What preflight cannot
-satisfy stops setup — no base-URL override, hand-written config, or run
-without `--image`; each proves a code path that is not the one that ships.
+## 3. The test image
 
-`--direct` is not that fallback, and step 2 refuses it unless it holds: every
-service base URL the code uses must come from its environment (the exact
-`env_hint` variables), with no vendor hostname hardcoded on the tested path.
-Check the code, not the claim — a hardcoded host means the proxy tier, full
-stop. What `--direct` skips is the binary, docker, and the image; credential
-and environment checks run unchanged.
+`veris run --image` runs the tests in a container with the proxy beside it. That is the
+tier for code under test: it covers every runtime, and it is the only one that can
+patch an SDK's bundled certificates.
 
-## 3. Environment
+Use any image that runs the tests: the repository's own test image or a Dockerfile
+stage, or a stock toolchain image with the repository mounted. Build it now; step 4
+records its tag. Nothing Veris-specific goes in the image: no key, no certificate, no
+proxy settings. If deriving the image took real work, keep it as `Dockerfile.veris` at
+the root with a comment naming the build tag. If the tests cannot run in a container
+at all, stop and tell the engineer. Done when `docker image inspect <tag>` succeeds.
 
-`VERIS_ENVIRONMENT_ID` set → `GET ${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID`
-(`X-API-Key`; or the `get_environment` MCP tool) must list the services this code
-calls. Not set → `GET ${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments` lists the engineer's;
-ask which. Create one only after asking, and in the question name the
-services you inferred from the code — the reply may add or drop names;
-check each against `GET /v1/services`, the catalogue. Then
-`POST /v1/environments` `{"name":…,"services":[…]}`.
+## 4. Create the environment
 
-## 4. Image (container tier)
-
-Skip this step under `--direct`. Every container run uses `--image`. Derive one from the repository's own test setup —
-anything that runs the tests, nothing Veris-specific; `Dockerfile.veris`
-only if that took real work. [reference/transport.md](reference/transport.md)
-only when the smoke run fails on what the proxy hands the workload.
-
-## 5. Record
-
-Under `--direct`: create a sandbox (`create_sandbox`, or
-`POST ${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes`), read
-each service's `env_hint` and `url` from `get_sandbox`, and set those
-variables where the application's environment actually comes from — a
-platform Secrets pane, an env file, an export. Some panes are human-only
-(Replit's is — measured): then name each variable and value and wait for the
-engineer to paste. Write `.veris/setup.json` with `tier`, `environment_id`,
-`sandbox_id`, and the variable names; [reference/direct.md](reference/direct.md)
-carries sandbox lifetime and rotation. Skip `.veris/run.sh`.
-
-Container tier: write `.veris/run.sh` and `.veris/setup.json`:
-
-```sh
-#!/usr/bin/env sh
-# Written by /veris-sim:setup. Flags before -- pass through; a command after -- replaces the default.
-# VERIS_SANDBOX_ID set: attach to that sandbox (build and fix make one per task). Unset: a fresh one per run.
-set -eu
-if [ -n "${VERIS_SANDBOX_ID:-}" ]; then target="--sandbox $VERIS_SANDBOX_ID"
-else target="--environment ${VERIS_ENVIRONMENT_ID:?}"; fi
-run() { exec veris-proxy run $target --image myrepo-veris-tests -v "$PWD:/work" -w /work "$@"; }
-for arg in "$@"; do [ "$arg" = "--" ] && run "$@"; done
-run "$@" -- make integration
+```
+veris env create <project-name> --services stripe,asana --ttl 60 --boot bundle \
+  --command '<the smallest test command that calls a vendor>' \
+  --image <tag> --require-service stripe --default
 ```
 
-Mounts stay under the repository tree or a known dependency cache. Tell the
-engineer both files exist and are worth committing.
+An unknown service name is refused and the catalog is printed; take the name from
+`veris services`. `veris env list` shows what already exists on the server. To reuse
+one, take its full id from `veris env list --json` and run
+`veris env create <name> --from <id>` with the same remaining flags. `--from` and
+`--services` cannot be combined: an adopted environment keeps the server's service
+list. So if an existing one lacks services the code calls, create a new one rather
+than reusing it. Names are not unique on the server, so say which id you used.
 
-**Either tier, `.veris/setup.json` also carries what later tasks would otherwise
-re-derive**, each measured here rather than guessed:
+The name and services go to the server. Everything else is written to
+`.veris/twin.yaml` (commit it) under the environment: TTL, boot source, data files,
+the test command as `run.command`, and a `proxy:` block from the proxy flags:
 
-- `plugin_version` — the version you passed to preflight;
-- `source_roots` — where this repository's production source lives;
-- `build_command` and `build_outputs` — the repository's own build, and the
-  directories it writes. Without them a later task cannot tell a fresh build
-  from a stale one, and says so instead of pretending otherwise;
-- `smoke_command` — filled in at step 6: the smallest command that produced a
-  non-empty receipt. Most repositories have vendor-facing tests that cannot
-  produce one at all; naming the one that can is worth more than a paragraph
-  about the ones that cannot.
+```yaml
+environments:
+  <project-name>:
+    proxy:
+      image: <tag>
+      require_service: [stripe]
+```
 
-**Stage the scripts.** Copy `scripts/preflight.sh` from this skill's directory
-and `scripts/ledger.sh` and `scripts/record.sh` from the reference directory
-beside it into `.veris/bin/`. From here on every command runs them from that one
-path, so nothing has to resolve an install location mid-task. Re-running setup
-re-stages them, which is how a version mismatch is repaired.
+`veris run` reads both from there, so the daily command carries neither flag.
+`--require-callback`, `--expose <port>` and `--strict` land in the same block. Mounts,
+`-e` variables, `--patch-bundled-cas` and `--cap-add` have no key in the file: they go
+in the `veris run` line you record in `.veris/NOTES.md` (step 7). Data files are none
+unless `--data` names them. The command also adds `.veris/twin.local.yaml` to
+`.gitignore` (per-machine; never committed). Done when `veris env get` shows each
+setting, where it came from, and the server's record.
 
-**Ignore what is generated, keep what is measured.** Append these to
-`.gitignore` if absent — targeted lines, never a blanket `.veris/`, which would
-take `setup.json` and `NOTES.md` with it:
+## 5. Bring up a sandbox
+
+Run `veris up`. It creates a sandbox of the environment, remembers its id for this
+folder at once, waits until the control plane reports it ready and every twin answers,
+adds the environment's data files, and prints each twin's URL and the variable it is
+handed under. Done when it exits 0 and lists the twins. `veris status` shows the
+sandbox any time: state, boot source, expiry, and every twin's status, env hint, URL
+and table counts. A sandbox lives for its TTL, then disappears.
+
+On failure: a sandbox that failed is exit 1 with the reason. Still provisioning after
+the budget (five minutes by default; `--timeout 10m` gives more) is exit 4; the
+sandbox is kept and may still come up, so check `veris status` later. A data file the
+twin refused is exit 1 with the sandbox kept; fix the file and add it with
+`veris sandbox data add <file>`.
+
+## 6. Prove it
+
+```
+veris run --patch-bundled-cas -- <the smallest test that calls the vendor>
+```
+
+Add what the command needs, the same way `docker run` would: `-v` to mount the
+repository (`-v "$PWD:/work" -w /work`) when the image does not already contain it, a
+credentials directory the app reads (`-v <dir>:/run/keys:ro -e KEYS_DIR=/run/keys`),
+`-e` for any variable the test expects. Mounts stay under the repository, a dependency
+cache, or a credentials directory. `--patch-bundled-cas` appends the proxy's
+certificate to every SDK-bundled CA file it knows (certifi, botocore, stripe,
+httplib2); it costs nothing when there is none, and Stripe, botocore and httplib2 need
+it. `--receipt <file>` writes the receipt as JSON, both ledgers and the verdict, to
+that file and never to stdout.
+
+The run prints two counts per twin:
+
+```
+veris: the sandbox received 6 request(s):          ← what the proxy saw leave the app
+  stripe   6
+veris: the sandbox recorded 6 request(s) since the watermark:   ← what the twin logged
+  stripe   6
+veris: ✓ required stripe ≥1: saw 6   ✓ ledgers agree (6 = 6)
+```
+
+**Done when both counts for the required twin are above zero and the run exits 0.**
+Then record the full command in `.veris/NOTES.md` (step 7); `twin.yaml` holds only the
+image, the required twin and the command after `--`. Your own `veris sandbox` reads
+never count: the sandbox's ledger lists them on a separate `control-plane (/veris/*)`
+line marked not counted.
+
+A check passes when either count meets it; a `✓` that one side alone decided says
+which, `(engine; …)` or `(sandbox ledger; …)`. Exit 4 means the outcome is
+indeterminate: neither count could settle a check. Run it again; if it repeats, check
+`veris status` and report it.
+
+If the exit code is 3, the code never reached the sandbox. Check, in order:
+
+1. The test never calls the vendor: an in-process mock still active, a filter that
+   skipped it. Pick a test that does.
+2. The vendor's hostname is not one the environment's twins answer for: compare the
+   code's hostnames with `veris services` and `veris env get`.
+3. The SDK refused the certificate: `CERTIFICATE_VERIFY_FAILED`, `SSLError`, or a
+   connection error against a vendor host. When a host rejected every handshake the
+   run prints a line naming the host and a `Next:` step; follow it.
+   `--patch-bundled-cas` fixes bundled CA files; a JVM client takes
+   `--java-truststore`. An SDK that pins certificates cannot be patched: stop and
+   report it. The full procedure is in
+   [../veris-reference/troubleshooting.md](../veris-reference/troubleshooting.md),
+   **An SDK refuses the proxy's certificate**.
+4. The twin is a data plane with no hostname (a database, a self-hosted service such
+   as Yente). Those are not proxied: the run hands the twin's URL to the app under the
+   variable `veris up` printed for it and says so
+   (`veris: yente: not proxied; handed YENTE_API_BASE=…`). The app must read that
+   variable; a `-e` of your own for it wins. Its traffic shows only in the sandbox's
+   count, never in the proxy's, and the verdict says `(sandbox ledger; not proxied)`;
+   that is expected.
+5. The app talks to the vendor from a process the run did not start (a compose
+   sidecar): [../veris-reference/troubleshooting.md](../veris-reference/troubleshooting.md).
+
+Never fix an exit 3 by changing the test's vendor call or its base URL.
+
+## 7. Write down what you measured
+
+Create `.veris/NOTES.md` (commit it). `build` and `fix` read it first, so anything a
+later task would otherwise re-derive goes here. Fill it from what you did: the manual
+(`veris sandbox services manual <twin> --raw`; without `--raw` it renders on stderr,
+with it the markdown goes to stdout), the auth mode (`veris sandbox data get <twin>
+auth`), and the proving run. Use these headings and write *measured* or *not
+measured* under each; an empty heading is itself a finding:
+
+- **How to run.** The full `veris run` line that produced the receipt, mounts and
+  variables included; how the app gets its credentials; the image and how it is built.
+- **What the twin cannot represent.** Hostnames without a twin, data-plane twins,
+  anything the smoke could not exercise.
+- **Identity and matching.** Which fields the vendor treats as the same record, and
+  any normalizing, truncating or joining it does on the way.
+- **Errors and the dedup key.** Which failures bind to an idempotency key and replay
+  on reuse, and which leave the key free. A fix that retries is built on this answer.
+- **Credentials and versions.** The key shape each twin accepts, the API version
+  pinned, and anything a made-up value gets away with.
+- **Where the repo's own tests do not reach the vendor.** Suites that mock
+  in-process; they produce a green with an empty receipt. Most repositories' vendor-
+  facing tests cannot produce a receipt at all; naming the one that can is worth more
+  than a paragraph about the ones that cannot.
+- **Anything the twin got wrong.**
+
+## 8. Files, only if the app works with them
+
+Skip this unless the app uploads or reads files (Drive, Dropbox, attachments). Rows-only
+state is cheap to seed per task and does not need this. Otherwise, seed the files once
+so every later sandbox starts with them: the steps are in
+[../veris-reference/state.md](../veris-reference/state.md), **Files**. Read them back
+and check each row's SHA-256 against the local file. Ask the engineer, then
+`veris baseline promote`. It captures this folder's sandbox, pins it as the
+environment's baseline, and deletes the source sandbox afterwards (`--keep-source`
+keeps it, frozen and scrubbed). Promote is the last thing done with that sandbox.
+Done when `veris baseline get` shows the pin. Every later `veris up` starts from that
+state. This is the only place setup promotes. Write what is in the sandbox, owners,
+paths, hashes, into `.veris/NOTES.md`.
+
+## 9. Stage the ledger scripts
+
+`fix` keeps a ledger of measurements and checks it against the diff with two scripts
+that ship in this plugin. Copy `record.sh` and `ledger.sh` from this plugin's
+`veris-reference/scripts/` directory (derive the absolute path from the path of the
+file you are reading) into `.veris/bin/`. Re-running setup re-copies them, which is
+how a stale copy is repaired.
+
+They read three facts from `.veris/setup.json`; write it now, measured, not guessed:
+
+```json
+{"source_roots": ["api/app"], "build_command": "make build", "build_outputs": ["dist"]}
+```
+
+`source_roots` is where production source lives; `build_command` and `build_outputs`
+are the repository's own build and the directories it writes. Without them a later
+task cannot tell a fresh build from a stale one, and says so instead of pretending.
+
+Append these to `.gitignore` if absent, as targeted lines, never a blanket `.veris/`,
+which would take `twin.yaml` and `NOTES.md` with it:
 
 ```gitignore
 .veris/bin/
 .veris/tasks/
 ```
 
-Then ask once, and record the answer as `artifact_policy`: a task's diagnosis,
-ledger and execution record are rendered into the change description
-(`pr-body`, the default), kept on disk only (`local`), or committed under
-`.veris/tasks/<task-id>/` (`commit` — say plainly that this merges into the
-default branch and accumulates one directory per task). Under `commit`, drop the
-`.veris/tasks/` line above.
+Then ask once where a task's diagnosis, ledger and record should go, and note the
+answer in `.veris/setup.json` as `artifact_policy`: rendered into the change
+description (`pr-body`, the default), kept on disk only (`local`), or committed under
+`.veris/tasks/<task-id>/` (`commit`; say plainly that this merges into the default
+branch and accumulates one directory per task, and drop the `.veris/tasks/` line above).
 
-## 6. Prove it
+## 10. Finish
 
-Container tier: `.veris/run.sh -- <the smallest test that calls the
-dependency>`. The proxy prints a receipt — requests per service; an empty one
-exits 3. **Not done until the receipt names the environment's service with a
-count above zero.** Write the command that did it into `.veris/setup.json` as
-`smoke_command`, exactly as run.
+`veris down --yes` deletes this folder's sandbox (after a promote in step 8 there is
+none left to delete). Tell the engineer what to commit: `.veris/twin.yaml`,
+`.veris/NOTES.md`, `.veris/setup.json`, and `Dockerfile.veris` if written. Report the
+receipt line from step 6. `build` or `fix` takes the task from here. Ask before
+sending repository code anywhere new.
 
-Direct tier has no receipt; the twin's trace is the trust anchor. Run the
-smallest piece of the application that calls the dependency, then
-`GET {control_url}/veris/requests` on that service. **Not done until the
-trace shows the application's own calls with a count above zero** — a green
-smoke with an empty trace means the app called the real vendor, not the
-sandbox. A certificate error against a mapped host is an SDK bundling its own
-CA — [../veris-reference/trust.md](../veris-reference/trust.md); other signals —
-[../veris-reference/troubleshooting.md](../veris-reference/troubleshooting.md).
+## If the app reads vendor URLs from the environment
 
-Either tier: alongside `.veris/setup.json`, write `.veris/NOTES.md` — what this
-session measured about the environment that a later task will need. `build` and
-`fix` read it first; a fact left only in this transcript dies with it.
-
-Use these headings, and write *measured* under each or *not measured* — never
-leave one out, because a heading with nothing under it is itself a finding, and
-the next task can decide whether to go and get it:
-
-- **What this twin cannot represent.** Whatever you established here is the
-  only record of it.
-- **Identity and matching.** Which fields the service treats as the same record,
-  and any normalizing, truncating or joining it does on the way.
-- **Errors and the dedup key.** Which failure classes bind to an
-  idempotency/dedup key and replay on reuse, and which leave the key free. A fix
-  that retries is built on this answer.
-- **Credentials and versions.** The shape a key must have, the API version
-  pinned, and anything a made-up value gets away with.
-- **Where the repo's own tests do not reach the vendor.** Suites that mock
-  in-process produce a green with an empty receipt.
-- **Anything the twin got wrong.**
-
-Report the receipt line; then step 7.
-
-## 7. Files, when the application works with them
-
-Skip this when the application does not work with files. When it does —
-uploads, attachments, documents — set them up once, so every later
-sandbox starts with the files instead of each task loading them again:
-
-1. Create a sandbox (`create_sandbox`), or use the direct-tier one.
-2. Seed the rows the files hang off — an owner, a folder, a repository — in
-   the shapes `/veris/schema` names, or pick an owner already in the sandbox.
-3. Post the files with that owner through `/veris/files` where the
-   manual shows it, or through the vendor's own upload API where files are
-   attachments — rows first, files second, as
-   [../veris-reference/state.md](../veris-reference/state.md) lays out.
-4. Read them back and check the SHA-256 in each row against the local file.
-5. Ask the engineer, then `promote_sandbox`. This is the one place a
-   command promotes, and only with a yes; `build` and `fix` never do.
-6. Write what is in the sandbox — owners, paths, hashes — into `.veris/NOTES.md`.
-
-Rows-only state is cheap to seed per task and do not need this. Report
-and stop: `build` or `fix` takes the task.
-
-Ask before installing the binary or sending repository code anywhere new.
+Some apps read every vendor base URL from an environment variable, the same one
+production sets, with the real hostname only as the default. For those, pointing the
+variables at a sandbox is the shipped code path, and no proxy is needed:
+[../veris-reference/direct.md](../veris-reference/direct.md). The gate is in the code,
+not the claim: if any vendor call on the tested path builds its URL in a way the
+variable cannot override, it is the container tier.

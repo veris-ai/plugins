@@ -6,21 +6,21 @@ A heading with nothing under it is information too.
 ## What I verified, and how
 
 <For each claim the change rests on: the run that showed it, the receipt line
-(the receipt's line for the service), and where the evidence is — a request in
-/veris/requests, a row in /veris/data.>
+(the receipt's line for the twin), and where the evidence is: a trace entry id
+from `veris sandbox trace`, a row from `veris sandbox data get <twin> <table>`.>
 
 - **The failure, reproduced:** <the fault armed, the flow driven, the wrong
-  outcome observed — before any code changed>
+  outcome observed, before any code changed>
 - **The fix, through the shipping path:** <the same flow, green, from the
   boundary the task names; receipt from that run>
-- **What the vendor recorded:** <the /veris/data or /veris/requests read-back
-  that shows the change did what it claims, not a layer below it; for a
-  file, the row's SHA-256 matching the local file>
+- **What the vendor recorded:** <the `veris sandbox data get` or
+  `veris sandbox trace` read-back that shows the change did what it claims, not
+  a layer below it; for a file, the row's SHA-256 matching the local file>
 
 ## What I am assuming rather than verifying
 
-<Every behaviour the design relies on that has no measurement behind it —
-including anything remembered from vendor documentation — and why it is
+<Every behaviour the design relies on that has no measurement behind it,
+including anything remembered from vendor documentation, and why it is
 acceptable to assume it. A measurement in the ledger that points the other
 way belongs here, stated, not omitted.>
 
