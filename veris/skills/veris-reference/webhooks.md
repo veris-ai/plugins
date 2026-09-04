@@ -48,6 +48,13 @@ Use the attempt's error to distinguish destination refusal, DNS, connection or T
 failure, and timeout. Check `veris doctor` for the tunnel probe while the receiver
 is running, the registered URL and path, and the receiver's listening port.
 
+`connect_error` with `detail: gaierror` means the sandbox failed DNS resolution
+before receiving an HTTP response. A newly allocated quick-tunnel hostname can
+resolve on the laptop before it resolves from the sandbox. Check the sandbox's
+probe again; a printed public URL alone is not readiness. Preserve both probe
+results when a later probe succeeds. Do not weaken callback requirements or
+change the application's vendor hostname to work around this startup failure.
+
 A response status proves an HTTP exchange, not signature verification or processing.
 Check the receiver's own assertion and logs. In particular, a callback can arrive
 before a waiting thread starts: a nonbuffering queue may discard it despite a 200.
