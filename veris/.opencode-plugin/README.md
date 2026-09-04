@@ -2,7 +2,7 @@
 
 [Veris](https://veris.ai) for [OpenCode](https://opencode.ai): three
 engineer-invoked commands plus the `veris` MCP server. Veris runs stateful
-twins of the external services an application calls; `veris-proxy` reroutes
+twins of the external services an application calls; `veris run` reroutes
 the application's outbound HTTP(S) into a sandbox from outside the process,
 so the code under test keeps its production hostnames, credentials and
 client stack, and ends each run with a receipt of what the sandbox received.
@@ -31,7 +31,7 @@ through it.
 | command | what it does |
 |---|---|
 | `/veris:setup` | wires the repository to a Veris environment, once — credential, environment, transport, one smoke run with proof of arrival |
-| `/veris:build <issue link \| prompt>` | measures every vendor claim the task rests on against the twin before designing, proves the change through veris-proxy with a receipt |
+| `/veris:build <issue link \| prompt>` | measures every vendor claim the task rests on against the twin before designing, proves the change through `veris run` with a receipt |
 | `/veris:fix <issue link \| prompt>` | reproduces the failure the issue describes before designing, proves the same failure closed with a receipt |
 
 The commands are plain OpenCode commands: only the engineer can start them,
