@@ -15,7 +15,7 @@ to that plugin's workflow.
 
 Node 20 or newer is required. Use an exact published `@veris-ai/daytona` version:
 reuse the version recorded in `.veris/NOTES.md`, or on first setup resolve the latest
-release with `npm view @veris-ai/daytona version` and record that concrete version.
+release with `npm view @veris-ai/daytona@latest version` and record that concrete version.
 Use it in place of `<version>` below; a moving tag such as `latest` does not belong
 in the saved run commands.
 
@@ -34,6 +34,12 @@ npx --yes --package=@veris-ai/daytona@<version> veris-daytona push --help
 npx --yes --package=@veris-ai/daytona@<version> veris-daytona exec --help
 npx --yes --package=@veris-ai/daytona@<version> veris-daytona teardown --help
 ```
+
+For a one-off check of the latest release, the complete invocation is
+`npx --yes --package=@veris-ai/daytona@latest veris-daytona provision --help`.
+Omitting the version specifier can reuse a dependency already installed in the local
+project. This recipe resolves latest once at setup, then uses the recorded version
+for every command so a new release cannot change the runner midway through a task.
 
 `npx` downloads into npm's cache as needed; it does not require a global installation.
 Use the same version for every verb and record it in *How to run*. An existing global
