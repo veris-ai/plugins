@@ -26,7 +26,7 @@ for (const provider of ['daytona', 'e2b']) {
         [name, { execute() { throw new Error('No host files exist in remote repository') } }])) }
       if (provider === 'daytona') remote.tool.verisTwin = { execute() {} }
       const composed = Object.assign({}, ...(order === 'skills-first' ? [hooks.tool, remote.tool] : [remote.tool, hooks.tool]))
-      const cfg = { plugin: [`@veris-ai/veris-sim-opencode@latest`, `@veris-ai/${provider}-opencode@latest`] }
+      const cfg = { plugin: [`@veris-ai/veris-opencode@latest`, `@veris-ai/${provider}-opencode@latest`] }
       await hooks.config(cfg)
       assert.deepEqual(Object.keys(cfg.command).sort(), ['veris:build', 'veris:fix', 'veris:setup'])
       assert.equal(cfg.mcp, undefined)
@@ -105,17 +105,17 @@ test('packed public entrypoint loads with canonical content, no source checkout 
     const tarball = process.env.VERIS_TEST_TARBALL || join(stage,
       JSON.parse(execFileSync('npm', ['pack', '--json', '--cache', join(dir, 'npm-cache')],
         { cwd: stage, encoding: 'utf8' }))[0].filename)
-    const install = join(dir, 'install/node_modules/@veris-ai/veris-sim-opencode')
+    const install = join(dir, 'install/node_modules/@veris-ai/veris-opencode')
     mkdirSync(install, { recursive: true })
     execFileSync('tar', ['-xzf', resolve(tarball), '--strip-components=1', '-C', install])
     symlinkSync(join(pkg, 'node_modules/zod'), join(dir, 'install/node_modules/zod'))
     const manifest = JSON.parse(readFileSync(join(install, 'package.json'), 'utf8'))
-    assert.equal(manifest.name, '@veris-ai/veris-sim-opencode')
+    assert.equal(manifest.name, '@veris-ai/veris-opencode')
     assert.equal(manifest.version, JSON.parse(readFileSync(join(pkg, 'package.json'), 'utf8')).version)
     assert.equal(manifest.exports['.'], './index.js')
     assert.equal(manifest.publishConfig.access, 'public')
     // Use Node's actual package export resolution from an isolated consumer.
-    writeFileSync(join(dir, 'install/load.mjs'), `export { default } from '@veris-ai/veris-sim-opencode'`)
+    writeFileSync(join(dir, 'install/load.mjs'), `export { default } from '@veris-ai/veris-opencode'`)
     const { default: packedPlugin } = await import(pathToFileURL(join(dir, 'install/load.mjs')))
     const hooks = await packedPlugin()
     for (const path of files(skills)) {
