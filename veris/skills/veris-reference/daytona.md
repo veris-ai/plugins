@@ -13,46 +13,36 @@ to that plugin's workflow.
 
 ### Runner
 
-Node 20 or newer is required. Check an existing runner before obtaining another:
-`provision --help`, `push --help`, `exec --help` and `teardown --help` must all answer.
-Ask before downloading or building a runner unless that is already authorized.
+Node 20 or newer is required. Use an exact published `@veris-ai/daytona` version:
+reuse the version recorded in `.veris/NOTES.md`, or on first setup resolve the latest
+release with `npm view @veris-ai/daytona version` and record that concrete version.
+Use it in place of `<version>` below; a moving tag such as `latest` does not belong
+in the saved run commands.
 
-As checked on 2026-09-04, npm's `@veris-ai/daytona@0.2.1` publishes the SDK but has
-no `bin` entry or CLI file. Neither `npm i -g` nor `npx` gives this version the four
-verbs. GitHub source already has them, although it still reports version 0.2.1;
-`--version` alone cannot establish that the executable is available.
+Check `npm view @veris-ai/daytona@<version> version bin --json` first. The release
+must export the `veris-daytona` executable. If it does not, stop before `veris up`
+and report that a release containing the CLI is required. As checked on 2026-09-04,
+the latest release, 0.2.1, has no `bin` entry or CLI file. This is a release
+prerequisite; cloning or building an unreleased commit is not part of this recipe.
 
-Until a release carries the CLI, build this pinned source in a separate tools
-directory, outside the application that will be uploaded:
-
-```sh
-git clone https://github.com/veris-ai/veris-daytona.git veris-daytona-runner
-cd veris-daytona-runner
-git checkout --detach 0d9eb49d536c58021bc3bd526c12725786c6685f
-npm ci
-npm run build --workspace @veris-ai/daytona
-node veris-daytona/dist/cli.js provision --help
-```
-
-Run it as `node /absolute/path/to/veris-daytona-runner/veris-daytona/dist/cli.js`.
-Record that path and the source commit, then return to the application's directory
-before uploading code. The source pin includes the credential-profile support below.
-
-For a newer published version, check `npm view @veris-ai/daytona@<version> bin
---json` and verify all four help commands. Prefer a pinned `npx` invocation:
+Once the release exports the executable, prefer version-pinned `npx`. Ask before
+downloading a runner unless that is already authorized, then verify all four verbs:
 
 ```sh
 npx --yes --package=@veris-ai/daytona@<version> veris-daytona provision --help
+npx --yes --package=@veris-ai/daytona@<version> veris-daytona push --help
+npx --yes --package=@veris-ai/daytona@<version> veris-daytona exec --help
+npx --yes --package=@veris-ai/daytona@<version> veris-daytona teardown --help
 ```
 
 `npx` downloads into npm's cache as needed; it does not require a global installation.
 Use the same version for every verb and record it in *How to run*. An existing global
 installation is also usable once its version and four verbs have been checked.
-If no usable runner is available, stop before `veris up` and report that prerequisite.
+If a required verb is absent, report the incompatible release before `veris up`.
 
-The steps below use `veris-daytona` as shorthand. Replace it with the full source
-build or pinned `npx` invocation you verified, including in the commands returned by
-`provision`. Record the expanded commands so later sessions need no shell alias.
+The steps below use `veris-daytona` as shorthand. Replace it with the pinned `npx`
+invocation you verified, including in the commands returned by `provision`. Record
+the expanded commands so later sessions need no shell alias.
 
 ### Credentials
 
@@ -154,8 +144,8 @@ procedure inside the box with `exec`.
   registries; if those alone exceed 20, provisioning fails. Read any dropped-registry
   message before installing dependencies. An image with dependencies already installed
   avoids those downloads.
-- `github.com` is intentionally absent from the default registry list. The source
-  pinned above documents a gateway bug that can route it to an undeployed GitHub twin,
+- `github.com` is intentionally absent from the default registry list. The earlier
+  cloud-run trial found a gateway bug that could route it to an undeployed GitHub twin,
   so adding `--allow-out github.com` alone does not establish that clones or runtime
   downloads work. Upload from the controlling machine or use an image carrying the
   dependencies until the target plane has been verified. `codeload.github.com` and

@@ -105,8 +105,8 @@ empty trace by changing the call or its base URL.
 `.veris/twin.yaml`: no `--image` on `veris env create`, so `proxy.image` stays unset;
 the other proxy flags have no run to act on here, so leave them out too.
 
-`.veris/NOTES.md`, under *How to run*: name the provider, pin the runner's package
-version or source commit and full invocation, and record the actual
+`.veris/NOTES.md`, under *How to run*: name the provider, pin the runner's published
+package version and full invocation, and record the actual
 provisioning command with its image and network options, code upload, dependency
 install, certificate preparation, test command and teardown. Include the watermark
 read and the trace entry that proved the first real call, with its id, which

@@ -93,10 +93,10 @@ when requested, or when the code needs redirection and Docker is unavailable.
 evidence, project notes and cleanup; `veris-reference/daytona.md` holds the commands
 and provider limits. The flow is `veris up`, then `provision`, `push`, `exec` and
 `teardown` through `veris-daytona`, with the twin's trace as the receipt. `build` and
-`fix` reuse the recorded commands. The recipe includes a pinned source build because
-the published Daytona SDK 0.2.1 has no CLI; pinned `npx` becomes an option with a
-release that carries the executable. Earlier Node/Stripe and Python/Stripe trials
-informed the guidance; these documentation changes were not run against a live box.
+`fix` reuse the recorded commands. The runner uses an exact published version through
+`npx`; setup checks that release contains all four CLI verbs before creating resources.
+Earlier Node/Stripe and Python/Stripe trials informed the guidance; these
+documentation changes were not run against a live box.
 
 0.7.1 — no MCP, and the first-run lessons of two measured sessions. The plugin
 registers commands only: `.mcp.json`, `.codex-mcp.json` and the OpenCode plugin's
