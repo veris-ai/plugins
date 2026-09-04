@@ -292,17 +292,10 @@ rejoin at step 7.
 - `-v` to mount the repository where the image expects the code, when the image does
   not already contain it. `docker image inspect <tag>` names the image's WORKDIR.
 - `-v <dir>:/run/keys:ro -e KEYS_DIR=/run/keys` for a credentials directory the app
-  reads. The credential in it comes from the twin, not from a real vendor and not made
-  up: the manual's Credentials section (`veris sandbox services manual <twin> --raw`)
-  names the table that holds the published keys, and `veris sandbox data get <twin>
-  <table> --json` prints them whole — for Stripe, table `config`, column `api_keys`. A
-  published key works in both auth modes. Make one up only when the manual says
-  well-formed keys are accepted and publishes none, and then match the real vendor's
-  prefix and length, since the twin refuses a malformed key the way the vendor does:
-  Stripe's takes `^(sk|rk)_(test|live)_[A-Za-z0-9]{8,}$`, so `sk_test_veris` is a 401
-  and `sk_test_` followed by 24 characters is not.
-- `-e` for any variable the test expects, a key included: the same rule as the
-  directory above.
+  reads. Read the twin's Credentials section before filling it. Use its published
+  synthetic credential or an issuer-provided token when required; permissive mode
+  does not make an invented token valid. The auth guidance below explains the handoff.
+- `-e` for any variable the test expects.
 
 Mount nothing but the repository, a dependency cache, or a credentials directory.
 
@@ -326,7 +319,8 @@ them, are the run's receipt.
 
 Sandbox totals can exceed proxy totals: a product twin may verify a token with its
 sibling issuer inside the sandbox. Concurrent traffic can also contribute. Compare
-per-twin traces before diagnosing a mismatch; agreement is not a success condition.
+per-twin traces before diagnosing a mismatch. Agreement alone does not prove the
+application succeeded, and a difference needs an explanation from the traces.
 
 **Done when the run exits 0, its requirements pass, and the receipt and read-back
 identify traffic from the intended application flow.** A data plane may appear only
