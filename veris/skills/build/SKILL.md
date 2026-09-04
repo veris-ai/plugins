@@ -127,9 +127,11 @@ veris run --patch-bundled-cas --require-service <twin> <the mounts and variables
 
 The image and defaults come from `.veris/twin.yaml`. The mounts and variables the app
 needs are in `.veris/NOTES.md` under *How to run*. Take them from there, never from a
-template. On the Daytona tier there is no `veris run` line there: provision a box on
-the sandbox from Gate 1, push, install, and drive the flow with `veris-daytona exec`,
-the lines *How to run* records ([../veris-reference/daytona.md](../veris-reference/daytona.md)). The mount has to land the working tree where the image expects the code,
+template. On the hosted tier, follow the provider's provisioning and preparation
+commands in *How to run*, attaching the box to the sandbox from Gate 1, then drive
+the flow with its recorded execution command
+([../veris-reference/hosted.md](../veris-reference/hosted.md)).
+The mount has to land the working tree where the image expects the code,
 because a test image usually bakes the repository at a fixed path. Mount it somewhere
 else and the run exercises the baked copy: your edit never executes, and the receipt
 comes back green with nothing in it saying so. When you find the mount that works,
@@ -159,8 +161,8 @@ On a repository wired without the proxy, the app reads vendor URLs from the envi
 reads the trace instead of a receipt. Note the newest trace id before the run, drive
 the flow against the wired sandbox, and then
 `veris sandbox trace --service <twin> --since <id>` is the run's receipt. The same
-holds on the Daytona tier, where the flow runs through `veris-daytona exec` in the
-provisioned box ([../veris-reference/daytona.md](../veris-reference/daytona.md)).
+holds on the hosted tier, where the flow runs in the provisioned box using the
+provider's commands ([../veris-reference/hosted.md](../veris-reference/hosted.md)).
 
 One green proves one path. Before the PR, list every entry point that reaches the
 lines you changed: grep the changed symbols for their callers, and the constants

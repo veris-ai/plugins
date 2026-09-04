@@ -1,29 +1,9 @@
-# Daytona tier: the code runs in a hosted box wired to the twin
+# Daytona: provider recipe for the hosted tier
 
-The container tier needs a Docker daemon, and a cloud dev box usually has none.
-`veris doctor` says so on its Docker line: `! docker not on PATH — host tier works;
---image (container tier) will not`, or a daemon that does not answer. The host tier is
-not a fallback for code under test, so without this tier such a machine has no path.
-
-Here the tests run in a [Daytona](https://daytona.io) sandbox instead of a container.
-The box's outbound proxy is the twin's gateway, so every call the code makes to a
-vendor hostname is answered by the twin, from outside the process. The code stays
-unmodified and keeps its production hostnames, credentials and client stack, exactly
-as under `veris run`. What changes is the runner: `veris-daytona`, a separate
-executable, provisions the box on the twin `veris up` made, puts the code in it, runs
-commands in it, and deletes it.
-
-## Choosing it
-
-Decide from `veris doctor`, never from the code. The direct-tier gate in
-[direct.md](direct.md) comes first, because it is about the code; when the code fails
-that gate and doctor's Docker line is `!` and nobody can start a daemon here, this is
-the tier. When Docker answers, the container tier is the tier, and this file does not
-apply.
-
-Two more doctor lines gate it. The gateway line must read `Gateway mode configured`:
-the box routes through the plane's gateway, and a plane that prints `Gateway mode not
-configured` cannot serve one. The login line stays as it is.
+Read [hosted.md](hosted.md) for tier selection, the receipt, project notes and cleanup
+responsibilities. This file supplies the [Daytona](https://daytona.io) commands and
+limits. `veris-daytona`, a separate executable, provisions the box on the twin
+`veris up` made, puts the code in it, runs commands in it, and deletes it.
 
 ## What it needs
 
@@ -74,52 +54,26 @@ Veris credentials are available through a source the installed version supports.
    veris-daytona exec <daytonaSandboxId> -- sh /tmp/veris-patch-bundled-cas.sh
    veris-daytona exec <daytonaSandboxId> -- <the test command>
    ```
+   Before the test command, capture the trace watermark as
+   [hosted.md](hosted.md#the-receipt) describes, after provisioning and installation.
    Every `exec` runs from `workDir` with the trust variables exported in front of the
    command, and streams its output. The patch line is this tier's
    `--patch-bundled-cas`: it appends the gateway's certificate to the CA bundles the
    installed SDKs ship, so it runs after the install and before the tests. `--env
    KEY=VALUE` adds a variable for one command, `--cwd <dir>` runs elsewhere,
    `--timeout <seconds>` bounds it. The exit code is the command's own.
-5. Read the receipt, below. Only then decide what the run proved.
+5. Read [the receipt](hosted.md#the-receipt). Only then decide what the run proved.
 6. `veris-daytona teardown <daytonaSandboxId>` when the task is done, then
    `veris down`. Teardown deletes the box and leaves the twin, which is yours. Nothing
    deletes a provisioned box for you otherwise: it stops after 30 idle minutes, is
    deleted 60 minutes after it stops, and is destroyed 4 hours after creation whatever
    state it is in.
 
-## The receipt
+## Certificate failures
 
-There is no `veris run` here, so there is no receipt line, no two ledgers and no
-`--require-service` verdict. The twin's trace is the receipt, the way it is in the
-direct tier. Before the run, note the newest entry for the required twin:
-
-```
-veris sandbox trace --service <twin> --limit 1 --json
-```
-
-After it, `veris sandbox trace --service <twin> --since <id>` is what this run sent,
-and `veris sandbox data get <twin> <table>` is what the twin stored. Trace ids are each
-twin's own sequence, so the watermark is per twin.
-
-Treat "the box received traffic" the way `veris run` treats its receipt. **Done when
-the trace shows at least one entry from this run for the required twin.** No entries
-means the run proved nothing, whatever the test command printed: the same finding as
-an exit 3, and the causes are the same, in the same order —
-[troubleshooting.md](troubleshooting.md), *An empty receipt, exit 3*. A certificate
-error against a twin's host after the patch line ran is a bundled CA the patch does
-not know; the fix is the same file's over-mount procedure, done inside the box with
-`exec`. Never fix an empty trace by changing the call or its base URL.
-
-## What goes in the files
-
-`.veris/twin.yaml`: no `--image` on `veris env create`, so `proxy.image` stays unset;
-the other proxy flags have no run to act on here, so leave them out too.
-
-`.veris/NOTES.md`, under *How to run*: the `provision` line with its real image and
-any `--allow-out`, the `push` line, the install command, the patch line and the test
-command as `exec` lines, and the watermark read. Then the trace entry that proved the
-first real call, with its id, which [direct.md](direct.md) calls *The trust anchor*.
-`build` and `fix` take their run lines from here.
+A certificate error against a twin's host after the patch line ran is a bundled CA
+the patch does not know; use [troubleshooting.md](troubleshooting.md)'s over-mount
+procedure inside the box with `exec`.
 
 ## Limitations
 
@@ -127,9 +81,8 @@ first real call, with its id, which [direct.md](direct.md) calls *The trust anch
   hostnames, the gateway and the data planes are kept; package registries are trimmed
   from the tail, and `provision` prints what it dropped. Name the ones the install
   needs with `--allow-out`.
-- No receipt line: the only ledger is the twin's trace, so a check `veris run` would
-  settle from the proxy's own count is settled from the trace alone. `--strict` has no
-  counterpart; a hostname no twin answers for is simply blocked by the allowlist.
+- `--strict` has no counterpart; the box uses Daytona's outbound domain allowlist.
+  Package registries and any `--allow-out` hosts can also be reached.
 - `teardown` needs the delete permission on the Daytona key. Without it, the refusal
   says when the box's own brakes take it; the box bills until then.
 - `veris run`'s flags do not apply: `--environment`, `--fresh`, `--keep`, `--receipt`,

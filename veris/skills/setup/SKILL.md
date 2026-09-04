@@ -12,13 +12,14 @@ Three rules, always:
 - Never modify the application code, and never point it at a sandbox. The one
   exception is the direct tier in step 3, where the app already reads each vendor's
   URL from an environment variable and production sets that same variable. Everywhere
-  else, `veris run` redirects the app's traffic from outside the process, and the code
-  keeps its production hostnames and credentials.
+  else, the container or hosted tier redirects the app's traffic from outside the
+  process, and the code keeps its production hostnames and credentials.
 - Never print an API key. `veris` masks keys; keep it that way.
 - Ask before creating an environment, installing anything, or promoting a sandbox.
 
-Every command below is `veris`, and `veris <command> --help` lists its flags. You run
-without a terminal, so every answer you mean to give has to be a flag. `--yes` confirms.
+The main CLI is `veris`; hosted runners have their own provider commands.
+`veris <command> --help` lists its flags. You run without a terminal, so every answer
+you mean to give has to be a flag. `--yes` confirms.
 A command that would otherwise stop and ask refuses instead, and names the flag it needs.
 Every `get` and `list` takes `--json`. `env get` and `env use` accept the shortened id a
 table prints; `--from` needs the full id, which `--json` prints.
@@ -66,9 +67,9 @@ the same checks on stdout.
 - `!` about Docker: the container tier in step 3 runs the tests inside Docker, so
   Docker must be running. Ask the engineer to start it. Never fall back to running
   without `--image` for code under test. On a machine that cannot run a daemon at
-  all — a cloud dev box is the usual case — the Daytona tier in step 3 is the path,
+  all — a cloud dev box is the usual case — the hosted tier in step 3 is the path,
   and the gateway line above this one is its gate:
-  [../veris-reference/daytona.md](../veris-reference/daytona.md).
+  [../veris-reference/hosted.md](../veris-reference/hosted.md).
 - `✗` with `no such host` for the control plane, or `!` with `permission denied` on
   `docker.sock`, on a machine where the engineer says both work: you are sandboxed.
   [../veris-reference/troubleshooting.md](../veris-reference/troubleshooting.md),
@@ -140,14 +141,15 @@ The container tier is `veris run --image`: the tests run in a container with the
 beside it. It is the tier for code under test when Docker is available. It covers
 every runtime and can patch an SDK's bundled certificates.
 
-The Daytona tier stands in for the container tier when `veris doctor`'s Docker line
-is `!` and nobody can start a daemon here: the tests run in a Daytona sandbox whose
-outbound proxy is the twin's gateway, driven by `veris-daytona`. It is decided from
-`veris doctor`, never from the code, and the direct-tier gate above still comes first.
-In it, go to [../veris-reference/daytona.md](../veris-reference/daytona.md), do its
-*What it needs*, then rejoin here at step 4 with no image: leave `--image` out, so
-`proxy.image` stays unset. Step 5 is unchanged, and step 6's proving run is the one
-that file describes. Skip the rest of this step.
+The hosted tier stands in for the container tier when `veris doctor`'s Docker line
+is `!` and nobody can start a daemon here: the tests run in a hosted box whose
+outbound proxy is the twin's gateway. It is decided from `veris doctor`, never from
+the code, and the direct-tier gate above still comes first.
+In it, go to [../veris-reference/hosted.md](../veris-reference/hosted.md), check its
+gates and follow the supported provider's recipe for *What it needs*. Then rejoin
+here at step 4 with no image: leave `--image` out, so `proxy.image` stays unset.
+Step 5 is unchanged, and step 6 uses the provider's run steps and the hosted receipt
+rule. Skip the rest of this step.
 
 Use any image that runs the tests: the repository's own test image or a Dockerfile
 stage, or a stock toolchain image with the repository mounted. Build it now; step 4
@@ -260,11 +262,11 @@ veris run --patch-bundled-cas -- <the smallest test that calls the vendor>
 
 Add what the command needs, the same way `docker run` would.
 
-On the Daytona tier there is no `veris run`. The proving run is the test command
-through `veris-daytona exec` in the provisioned box, and its receipt is the twin's
-trace read since a watermark: [../veris-reference/daytona.md](../veris-reference/daytona.md),
-*The run* and *The receipt*. Its done-when is there. The rest of this step is the
-container tier's; rejoin at step 7.
+On the hosted tier there is no `veris run`. Use the provider's recipe to run the test
+command in the provisioned box. Its receipt is the twin's trace read since a watermark:
+[../veris-reference/hosted.md](../veris-reference/hosted.md), *Provider recipe* and
+*The receipt*. Its done-when is there. The rest of this step is the container tier's;
+rejoin at step 7.
 
 - `-v` to mount the repository where the image expects the code, when the image does
   not already contain it. `docker image inspect <tag>` names the image's WORKDIR.
@@ -395,10 +397,10 @@ fills them in on first use, with the reads in
   is no `veris run` line. Record how the variables are set and from what, and record
   the trace entry that proved the first real call;
   [../veris-reference/direct.md](../veris-reference/direct.md) calls it *The trust
-  anchor*. On the Daytona tier there is no `veris run` line either: record the
-  `veris-daytona` lines that ran — `provision` with its image, `push`, the install
-  and patch commands and the test command as `exec` lines — and the same trace
-  entry, as [../veris-reference/daytona.md](../veris-reference/daytona.md) shows.
+  anchor*. On the hosted tier, record the provider's actual run and teardown commands,
+  the watermark read and the same trace entry, as
+  [../veris-reference/hosted.md](../veris-reference/hosted.md#what-goes-in-the-files)
+  shows.
 - **What the twin cannot represent.** Hostnames without a twin, data-plane twins,
   anything the smoke could not exercise.
 - **Identity and matching.** Which fields the vendor treats as the same record, and
@@ -480,9 +482,10 @@ branch and accumulates one directory per task. If they choose it anyway, drop th
 ## 10. Finish
 
 `veris down --yes` deletes this folder's sandbox. After a promote in step 8 there is
-none left to delete. On the Daytona tier, `veris-daytona teardown <daytonaSandboxId>`
-first. Tell the engineer what to commit: `.veris/twin.yaml`, `.veris/NOTES.md`,
+none left to delete. On the hosted tier, delete the hosted box first using the
+provider's teardown command ([../veris-reference/hosted.md](../veris-reference/hosted.md#cleanup)).
+Tell the engineer what to commit: `.veris/twin.yaml`, `.veris/NOTES.md`,
 `.veris/setup.json`, and `Dockerfile.veris` if you wrote one. Report the receipt line
-from step 6; in the direct and Daytona tiers, report the trace entry that stood in
+from step 6; in the direct and hosted tiers, report the trace entry that stood in
 for it. `build` or `fix` takes the task from here. Ask before sending repository code
 anywhere new.

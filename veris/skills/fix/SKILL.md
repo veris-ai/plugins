@@ -86,10 +86,10 @@ record, and its ledger of measurements, live under `.veris/tasks/<task-id>/`.
    ```
    The image and the `require_service` default come from `.veris/twin.yaml`. The
    mounts and variables the app needs are in `.veris/NOTES.md` under *How to run*. On
-   the Daytona tier there is no `veris run` line there: provision a box on this task's
-   twin, push, install, and drive the flow with `veris-daytona exec`, the lines *How to
-   run* records ([../veris-reference/daytona.md](../veris-reference/daytona.md)); the
-   record below wraps that `exec` line the same way. That
+   the hosted tier, follow the provider's provisioning and preparation commands in
+   *How to run*, attaching the box to this task's twin, then drive the flow with its
+   recorded execution command ([../veris-reference/hosted.md](../veris-reference/hosted.md));
+   the record below wraps that command the same way. That
    line is a claim like any other: a mount `setup` wrote down but never ran is not
    evidence. The mount goes wrong three ways. It can land the repository where the
    image's interpreter does not look, as `-v "$PWD:/work" -w /work` does over an image
@@ -195,8 +195,8 @@ On a repository wired without the proxy, the app reads vendor URLs from the envi
 reads a receipt reads the trace instead. Note the newest trace id before the run, drive
 the flow against the wired sandbox, and then
 `veris sandbox trace --service <twin> --since <id>` is that run's receipt. The same
-holds on the Daytona tier, where the flow runs through `veris-daytona exec` in the
-provisioned box ([../veris-reference/daytona.md](../veris-reference/daytona.md)).
+holds on the hosted tier, where the flow runs in the provisioned box using the
+provider's commands ([../veris-reference/hosted.md](../veris-reference/hosted.md)).
 
 ## Gate 4: the measurements against the diff
 

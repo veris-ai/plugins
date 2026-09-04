@@ -87,12 +87,15 @@ saved profile on every command.
 
 ### Versions
 
-0.7.2 — a Daytona tier. A machine with no Docker daemon — a cloud dev box, the
-common case — had no path: `setup` knew the container tier and the direct tier only,
-and said never to run without `--image`. `veris-reference/daytona.md` is the third
-tier: the tests run in a Daytona sandbox whose outbound proxy is the twin's gateway,
-driven by `veris-daytona` (`npm i -g @veris-ai/daytona`) — `provision` on the twin
-`veris up` made, `push`, `exec`, `teardown` — with the twin's trace as the receipt.
+0.7.2 — a hosted tier, with Daytona as its first provider. A machine with no Docker
+daemon — a cloud dev box, the common case — had no path: `setup` knew the container
+tier and the direct tier only,
+and said never to run without `--image`. `veris-reference/hosted.md` describes the
+third tier's selection, receipt, project notes and cleanup; `veris-reference/daytona.md`
+holds the provider recipe. The tests run in a Daytona sandbox whose outbound proxy is
+the twin's gateway, driven by `veris-daytona` (`npm i -g @veris-ai/daytona`) —
+`provision` on the twin `veris up` made, `push`, `exec`, `teardown` — with the twin's
+trace as the receipt.
 `setup` picks it from `veris doctor`'s Docker line, never from the code; `build` and
 `fix` drive their gates through `exec` in the box. Measured end to end on a Node/Stripe
 fixture before it was written down.
