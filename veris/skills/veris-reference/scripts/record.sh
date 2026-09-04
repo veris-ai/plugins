@@ -9,9 +9,13 @@
 # actually did — so a reader can check the order instead of trusting a sentence.
 #
 #   record.sh base  --task <id> [--paths <p>...]
-#   record.sh red   --task <id> --expect <mode> -- <command>
-#   record.sh green --task <id> --expect <mode> -- <command>
+#   record.sh red   --task <id> --expect <mode> -- <command...>
+#   record.sh green --task <id> --expect <mode> -- <command...>
 #   record.sh block --task <id>
+#
+# Everything after -- is run exactly as given, one argv element per word, so
+# quotes and parentheses reach the program. Nothing re-parses it: a pipe, a
+# redirect or a $VAR wants an explicit `-- sh -c '...'`.
 #
 # --expect, at red — the expectation is MET when:
 #   nonzero            the command exits non-zero
@@ -34,11 +38,12 @@ usage() {
 $ME: the source-state and execution record.
 
   $ME base  --task <id> [--paths <path>...]
-  $ME red   --task <id> --expect <mode> -- <command>
-  $ME green --task <id> --expect <mode> -- <command>
+  $ME red   --task <id> --expect <mode> -- <command...>
+  $ME green --task <id> --expect <mode> -- <command...>
   $ME block --task <id>
 
 --expect: nonzero | assertion=<text> | predicate=<cmd> | baseline
+The command after -- runs as given; shell features need -- sh -c '...'.
 --task may be omitted when VERIS_TASK_ID is set.
 EOF
   exit 1
@@ -86,6 +91,7 @@ $1"; shift
     *)  die "unexpected argument '$1'" ;;
   esac
 done
+# From here on "$@" is the command to run; $CMD is its display form only.
 
 [ -n "$TASK" ] || die "no task id. Pass --task <id>, or set VERIS_TASK_ID."
 case "$TASK" in */*|..*|'') die "task id '$TASK' must be a single path segment" ;; esac
@@ -205,7 +211,7 @@ if [ "$MODE" = block ]; then
 fi
 
 [ -f "$RECORD" ] || die "$RECORD does not exist; run '$ME base --task $TASK' first"
-[ -n "$CMD" ] || die "no command. Put it after --."
+[ $# -gt 0 ] || die "no command. Put it after --."
 [ -n "$EXPECT" ] || die "no --expect. One of: nonzero, assertion=<text>, predicate=<cmd>, baseline."
 
 case "$EXPECT" in
@@ -256,10 +262,20 @@ note "running: $CMD"
 OUT="$(mktemp)" || die "cannot create a temporary file"
 CODEF="$(mktemp)" || die "cannot create a temporary file"
 # POSIX sh has no PIPESTATUS: the command's own exit code goes through a file,
-# or `tee` would report success for every failing run.
-{ sh -c "$CMD" 2>&1; printf '%s\n' "$?" > "$CODEF"; } | tee "$OUT"
+# or `tee` would report success for every failing run. The command is "$@",
+# never a re-parsed string: what the caller typed is what runs.
+{ "$@" 2>&1; printf '%s\n' "$?" > "$CODEF"; } | tee "$OUT"
 CODE="$(cat "$CODEF" 2>/dev/null || echo 1)"
 rm -f "$CODEF"
+
+# 126 and 127 are the shell's own: the program was not found or not runnable,
+# so nothing was measured. That is a usage error, not a red or a green.
+case "$CODE" in
+  126|127)
+    first="$(head -n 1 "$OUT")"
+    rm -f "$OUT"
+    die "the command could not start (exit $CODE): $first" ;;
+esac
 
 met=false
 detail=''

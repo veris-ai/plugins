@@ -95,7 +95,10 @@ record, and its ledger of measurements, live under `.veris/tasks/<task-id>/`.
    To have the record write down what the run did, wrap it:
    `sh .veris/bin/record.sh red --task <id> --expect <mode> -- veris run ...`.
    `--expect` is `nonzero`, `assertion=<text>`, `predicate=<cmd>` or `baseline`. The
-   script refuses a run whose pinned source has moved.
+   script refuses a run whose pinned source has moved. Everything after `--` runs as
+   the argv you give it: a pipe, a redirect or a `$VAR` needs an explicit `sh -c '…'`,
+   and a program of more than one line goes in a file under `.veris/tasks/<id>/` and
+   is run from there.
 
    If that run exits 3 on wiring, read the command's own output. Then check the mount
    against the image itself before suspecting anything else:
@@ -150,7 +153,9 @@ there are a wiring finding, not a suite result, and that attempt does not count 
 run. If the suite is not green, a failure is only pre-existing when the pinned base
 fails it too. Measure that, or say in the PR that you argued it from the code and did
 not measure it. Never kill a running suite to relaunch it. Never report a result you
-did not read.
+did not read. If you add a test, strengthen the repository's own vendor-reaching test. A
+mock-based test is branch coverage, never evidence; the ledger refuses a `REPOSITORY` row
+that cites one.
 
 ## Gate 3: the same failure, closed, with a receipt
 
