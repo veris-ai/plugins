@@ -69,17 +69,9 @@ const VerisPlugin = async () => ({
               description: `veris ${name} (broken install: skill files missing)`,
             }
       }
-      cfg.mcp ??= {}
-      // Plugin-injected config gets no {env:...} substitution; real values only.
-      cfg.mcp.veris ??= {
-        type: "remote",
-        url: (process.env.VERIS_API_BASE || "https://svc.api.veris.ai") + "/mcp",
-        headers: { "X-API-Key": process.env.VERIS_API_KEY ?? "" },
-        oauth: false,
-      }
     } catch {
-      // Never take opencode down; a failed registration surfaces in mcp list
-      // and as a missing command, both recoverable by reinstalling.
+      // Never take opencode down; a failed registration surfaces as a missing
+      // command, recoverable by reinstalling.
     }
   },
 })
