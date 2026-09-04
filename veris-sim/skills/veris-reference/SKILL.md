@@ -20,9 +20,8 @@ Not a command. `setup`, `build` and `fix` link to the file a step needs:
 | `proof.md` | what closes a claim: the three layers, the ledger's four dispositions, the identity a fix rests on |
 
 Every mechanism is a `veris` command, and `veris <command> --help` documents its
-flags. A few things have no verb of their own: file upload, changing or deleting rows,
-a per-twin reset, the auth mode, the operations list. Each of those is a `curl` to the
-twin's control URL, which `veris sandbox services get <twin>` prints, and the file
-that covers it shows the call.
+flags. Three things have no verb of their own: file upload, a per-twin reset, the
+operations list. Each of those is a `curl` to the twin's control URL, which
+`veris sandbox services get <twin>` prints, and the file that covers it shows the call.
 `scripts/` holds `record.sh` and `ledger.sh`, the measurement ledger `fix` uses;
 `setup` step 9 copies them into the repository's `.veris/bin/`.

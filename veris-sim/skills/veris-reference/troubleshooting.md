@@ -128,19 +128,21 @@ verification: each modifies the code path under test.
 - An ordinary 400 or 404 is inconclusive; a twin may answer a coverage gap with one,
   and it is indistinguishable from the vendor's own answer. Before reading anything
   into it, confirm the request's credentials, API version, payload shape, and that
-  the rows it depends on are seeded. With those known good, one further controlled
-  probe is worth it. Still ambiguous: report it as "possible twin coverage gap;
-  indistinguishable from vendor behaviour" and stop. Never assert a gap the evidence
-  cannot separate from vendor behaviour, and do not read one off the schema: the
-  schema describes the state a sandbox holds, not the operations it answers.
-  Coverage is answerable, and not by reading a 404: the twin's operations list
+  the rows it depends on are seeded. A setting row the twin booted with counts as one
+  of those, and `veris sandbox data set` changes it. With those known good, one
+  further controlled probe is worth it. Still ambiguous: report it as "possible twin
+  coverage gap; indistinguishable from vendor behaviour" and stop. Never assert a gap
+  the evidence cannot separate from vendor behaviour, and do not read one off the
+  schema: the schema describes the state a sandbox holds, not the operations it
+  answers. Coverage is answerable, and not by reading a 404: the twin's operations list
   ([twin.md](twin.md)) is a control-plane answer that settles it. Put what you
   establish in `.veris/NOTES.md` so the next task does not pay for it again.
 - A bare 500: capture the request and the trace as a sandbox defect.
 - Widespread 502: `veris status`; the sandbox may have expired.
 - A timeout: check armed faults (`veris sandbox data get <twin> faults`), whether the
   request reached the trace, and the client's own per-request timeout; an error path
-  can be much slower than a success path.
+  can be much slower than a success path. Remove one left armed from an earlier probe
+  with `veris sandbox data delete <twin> faults id=<fault id> --yes`.
 
 ## A container the run did not start
 

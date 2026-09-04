@@ -34,13 +34,22 @@ interrupted session is still alive, and a later session could mistake it for its
   its key, with the path relative to the project directory. Rows added this way die
   with the sandbox; keep them with `veris snapshot create` or `veris baseline
   promote` (below).
-- Changing or removing rows is by primary key on the twin's control URL
-  (`veris sandbox services get <twin>` prints it):
+- Changing or removing a row that already exists is by its key, one row at a time:
   ```
-  curl --fail-with-body -sS -X PATCH  "<control url>/veris/data" -H 'Content-Type: application/json' -d '{"data":{"customers":[{"id":"cus_test_ada","name":"Ada"}]}}'
-  curl --fail-with-body -sS -X DELETE "<control url>/veris/data" -H 'Content-Type: application/json' -d '{"data":{"faults":[{"id":"<fault id>"}]}}'
+  veris sandbox data set stripe customers id=cus_test_ada name=Ada
+  veris sandbox data delete stripe faults id=flt_1 --yes
   ```
-- A clean slate for one twin between probes, leaving the others and the clock alone:
+  The key goes among the fields, and `set` leaves the columns you did not name alone.
+  Each value is read as JSON and kept as the literal string when it is not one: `id=1`
+  is a number, `enabled=true` a boolean, `mode=permissive` a string. `delete` asks
+  first, since a row does not come back; `--yes` answers, and off a terminal it refuses
+  without one. A row the twin booted with changes the same way, a setting row included.
+- A twin refuses to delete its singleton rows: the clock, the client registration, the
+  auth mode and the delivery log. It says what to do instead; change those rows with
+  `veris sandbox data set`.
+- A clean slate for one twin between probes, leaving the others and the clock alone.
+  There is no verb for this, so it is a curl at the twin's control URL, which
+  `veris sandbox services get <twin>` prints:
   ```
   curl --fail-with-body -sS -X POST "<control url>/veris/reset" -H 'Content-Type: application/json' -d '{"profile":"default"}'
   ```
@@ -110,7 +119,9 @@ twin fails, existing state stays. Do not send traffic during a reset. A reset em
 the request log (ids keep counting), so save `veris sandbox trace` first if you need
 it. A sandbox booted from a snapshot or a promoted baseline cannot be reset: reseeding
 would replace what the image pinned, and the CLI says the fresh copy is
-`veris down && veris up`. The per-twin reset above works either way.
+`veris down && veris up`. One row of such a sandbox still changes with
+`veris sandbox data set`; only the whole-sandbox reset is refused. The per-twin reset
+above works either way.
 
 ## Keeping the state a session built
 

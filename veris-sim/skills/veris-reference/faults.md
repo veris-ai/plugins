@@ -44,10 +44,10 @@ row above.
   arm a class the SDK does not retry, a 4xx such as 429, to isolate the behaviour you
   mean to exercise.
 - `remaining: 1` spends the fault once. Persistent faults stay until deleted;
-  `veris sandbox data get <twin> faults` shows what is armed, and cleanup removes a
-  row by id on the twin's control URL:
+  `veris sandbox data get <twin> faults` shows what is armed, and cleanup disarms one
+  by its id:
   ```
-  curl --fail-with-body -sS -X DELETE "<control url>/veris/data" -H 'Content-Type: application/json' -d '{"data":{"faults":[{"id":"<fault id>"}]}}'
+  veris sandbox data delete <twin> faults id=<fault id> --yes
   ```
 - A row can also carry `match` on body, query or path fields:
   `{"body.resource_id": "…"}`, `{"query.expand": "items"}`, `{"path.id": "pi_123"}`.
@@ -78,17 +78,17 @@ the client did next. That before-and-after is the evidence the PR quotes.
 
 In the default mode any well-formed API key, token or OAuth client pair works, whether
 published, seeded, or the app's own. So a wrong-key test passes for the wrong reason.
-To test rejection, arm value checking first on the twin's control URL:
+To test rejection, arm value checking first:
 
 ```
-curl --fail-with-body -sS -X PATCH "<control url>/veris/data" -H 'Content-Type: application/json' \
-  -d '{"data":{"auth":[{"id":1,"mode":"enforced"}]}}'
+veris sandbox data set <twin> auth id=1 mode=enforced
 ```
 
-and set it back to `"permissive"` when done. OAuth access and refresh tokens are the
-exception in both modes: only tokens the sandbox issued work. Run the app's own
-connect flow against the sandbox, or take the seeded one from
-`veris sandbox data get <twin> oauth_tokens`; never insert tokens by hand.
+and set it back with `mode=permissive` when done. `auth` is a singleton row, so `set` is
+the only way to change it. OAuth access and refresh tokens are the exception in both
+modes: only tokens the sandbox issued work. Run the app's own connect flow against the
+sandbox, or take the seeded one from `veris sandbox data get <twin> oauth_tokens`; never
+insert tokens by hand.
 
 Some twins do not judge credentials themselves; they verify what a companion identity
 twin in the same environment minted. There the values are always checked, and this row

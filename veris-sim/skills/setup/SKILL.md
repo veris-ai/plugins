@@ -18,10 +18,10 @@ Three rules, always:
 - Ask before creating an environment, installing anything, or promoting a sandbox.
 
 Every command below is `veris`, and `veris <command> --help` lists its flags. You run
-without a terminal, so every answer has to be a flag. `--yes` confirms. A command that
-would otherwise stop and ask refuses instead, and names the flag it needs. Every `get`
-and `list` takes `--json`. `env get` and `env use` accept the shortened id a table
-prints; `--from` needs the full id, which `--json` prints.
+without a terminal, so every answer you mean to give has to be a flag. `--yes` confirms.
+A command that would otherwise stop and ask refuses instead, and names the flag it needs.
+Every `get` and `list` takes `--json`. `env get` and `env use` accept the shortened id a
+table prints; `--from` needs the full id, which `--json` prints.
 
 ## 1. Check the machine
 
@@ -39,6 +39,23 @@ a warning just after the login line.
 `→` line names the command that would. It exits 1 when any check failed. `--json` puts
 the same checks on stdout.
 
+- `command not found`: `veris` is not installed, and nothing else here installs it. Ask
+  the engineer, then run the line for their machine. macOS and Linux:
+
+  ```sh
+  curl -LsSf https://raw.githubusercontent.com/veris-ai/veris-cli/main/scripts/install.sh | sh
+  ```
+
+  Windows:
+
+  ```powershell
+  powershell -c "irm https://raw.githubusercontent.com/veris-ai/veris-cli/main/scripts/install.ps1 | iex"
+  ```
+
+  No root and no package manager are needed. On macOS and Linux the binary lands in
+  `~/.local/bin`, so a second `command not found` means that directory is not on the
+  PATH: say so and stop.
+  Done when `veris doctor` prints its version line.
 - `✗ Not logged in`: run `veris login`. It prints a pairing code and a console link.
   Show both to the engineer and tell them to approve the pairing in the browser. Then
   wait: the command finishes by itself once the pairing is approved, and saves the key
@@ -127,6 +144,10 @@ veris env create <project-name> --services stripe,asana --ttl 60 --boot bundle \
 An unknown service name is refused and the catalog is printed. Take the name from
 `veris services`.
 
+The `--ttl 60` above is a choice, not a requirement. Leave `--ttl` out and none is
+recorded, and the control plane applies its own default. A number outside what the
+server allows is refused, and the refusal names the bounds.
+
 Before creating an environment, run `veris env list --json` and read the services of
 every environment already on the server. **If one of them already has every service
 on your list, adopt it rather than creating a second:**
@@ -136,8 +157,9 @@ be combined, so an adopted environment keeps the server's service list and you c
 extend it here. Names are not unique on the server, so say which id you used.
 
 The name and services go to the server. Everything else is written to
-`.veris/twin.yaml`, under the environment: TTL, boot source, data files, the test
-command as `run.command`, and a `proxy:` block built from the proxy flags:
+`.veris/twin.yaml`, under the environment: the TTL if you gave one, boot source, data
+files, the test command as `run.command`, and a `proxy:` block built from the proxy
+flags:
 
 ```yaml
 environments:
@@ -231,12 +253,12 @@ too.
 The command and the required twin that finally went green may not be the ones step 4
 recorded. If they are not, re-record them with
 `veris env create <name> --from <full id> --force`. Carry every flag the entry already
-has: the corrected `--command` and `--require-service`, plus the same `--ttl`,
-`--boot`, `--image`, `--data` and `--default`. The entry is replaced, not merged, so a
-flag you leave out is dropped. Drop `--require-service` and every later run stops
-asserting the twin, then passes green on an empty receipt. Without `--from` the command
-would also create a second environment on the server. Re-run `veris env get` afterwards
-and check step 4's done-when again.
+has: the corrected `--command` and `--require-service`, plus the same `--boot`,
+`--image`, `--data` and `--default`, and the same `--ttl` when the entry records one.
+The entry is replaced, not merged, so a flag you leave out is dropped. Drop
+`--require-service` and every later run stops asserting the twin, then passes green on
+an empty receipt. Without `--from` the command would also create a second environment on
+the server. Re-run `veris env get` afterwards and check step 4's done-when again.
 
 Your own `veris sandbox` reads do not count toward a run's totals. A run sets a
 watermark when it starts and counts only what the sandbox recorded after it. Any
