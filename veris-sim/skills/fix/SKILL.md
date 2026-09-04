@@ -1,211 +1,225 @@
 ---
 name: fix
-description: Fix a defect against the vendor's twin - reproduce the failure the issue describes through the repository's own code before designing, prove it closed through veris-proxy with a receipt, write the PR with what was verified and assumed. Takes an issue link or a prompt. Run when the engineer names this command.
+description: Fix a defect against the vendor's twin - reproduce the failure the issue describes through the repository's own code before designing, prove it closed with a receipt from veris run, write the PR with what was verified and assumed. Takes an issue link or a prompt. Run when the engineer names this command.
 argument-hint: "<issue link | prompt>"
 disable-model-invocation: true
 ---
 
-Fix the defect in the request that accompanied this invocation (a GitHub
-issue URL or number, or free text). Not done until every gate below is met
-and the PR says so.
+Fix the defect in the request that came with this command: a GitHub issue URL or
+number, or free text. Not done until every gate below is met and the PR says so.
 
-**The task.** A GitHub reference → `gh issue view <ref> --json title,body,comments`;
-quote it. Name the failure in one sentence: what the vendor did, what the
-code did next. Anything the issue states about the vendor — what it
-supports, why it fails, what a field means — is a **claim**, the diagnosis
-included. No `.veris/run.sh` and no direct-tier `.veris/setup.json` → stop; `setup` runs first. A `setup.json` with `"tier": "direct"` replaces `run.sh`: run the flow directly against the wired sandbox and read the trace where a gate reads the receipt ([direct.md](../setup/reference/direct.md)). Sandbox
-lifecycle and every `/veris/*` call: [reference/twin.md](../veris-reference/twin.md).
+Needs `.veris/twin.yaml` in the repository. If it is missing, stop: `setup` runs first.
 
-**The diagnosis.** Before any sandbox: read the code path the issue names
-and enumerate every distinct defect that could produce the symptom — the
-vendor's failures and the repository's own (state lost between requests, a
-queue, a cache, a race), which no twin can represent. The manual's fault
-catalog is one hypothesis source, never the selector: the twin confirms a
-diagnosis chosen from code evidence, it does not choose it.
+Three rules, always:
 
-**A run costs roughly turns × context, and every large output stays resident for
-every turn after it.** The expensive mistake is not an extra call; it is pulling a
-big response into the thread that then has to carry it. So where subagents exist,
-delegate by default anything that reads wide or returns long — this survey, a
-full test-suite run, any output past a screenful — and keep the answer, not the
-transcript. Ask this one for candidate defects, each with its file and line.
-Read small things inline: a data census, one projected table, a filtered trace.
+- Never modify the vendor call to make a test pass, and never point the code at a
+  sandbox. The one exception is a repository wired without the proxy, where the
+  variables that point the code there are the ones production sets
+  ([../veris-reference/direct.md](../veris-reference/direct.md)).
+- Anything the issue says about the vendor is a **claim** until the twin answers it.
+  The issue's own diagnosis is a claim.
+- Never promote a sandbox from this command.
 
-**The boundary.** Name where the vendor boundary sits in this task. A
-defect internal to the repository, with no vendor claim load-bearing: say
-so, verify by the repository's own test conventions, and spend the twin on
-one end-to-end confirmation of the changed flow instead of the full gate
-sequence. That one confirmation is a floor, not a discount: a reduced path
-that drove nothing through the twin has not spent less — it has left the
-change unproven, and the flow the issue names is the one it skipped. Spend
-the full gates where the task rests on what the vendor
-does — the trigger is the boundary, never self-assessed obviousness.
+## The task
 
-**The base.** Before the first edit, pin what the change will be measured
-against: `sh .veris/bin/record.sh base --task <id> --paths <the files the
-diagnosis implicates>`. It writes the starting commit into
-`.veris/tasks/<id>/record.json`, and Gate 4 reads it from there. Without
-`--paths` it falls back to the whole source tree, which pins far more than the
-task touches. Do this at the start, not at the gate — a base chosen once the
-diff exists is chosen by the thing being measured.
+A GitHub reference: read it with `gh issue view <ref> --json title,body,comments`.
+Quote it. Name the failure in one sentence: what the vendor did, what the code did
+next.
 
-## Gate 1 — the failure reproduced before the first source edit
+**The diagnosis, before any sandbox.** Read the code path the issue names. List every
+distinct defect that could produce the symptom: the vendor's failures, and the
+repository's own. The repository's own defects include state lost between requests, a
+queue, a cache, a race, and no twin can represent any of those. The twin confirms a
+diagnosis chosen
+from code evidence; it does not choose it. In a large repository, hand this survey to a
+subagent where one exists, and keep the list, each candidate with its file and line.
 
-0. `.veris/NOTES.md`, if present — what setup and earlier tasks already
-   measured about this environment; do not re-measure it. Append anything
-   measured in this task that outlives it.
-1. `create_sandbox` (MCP), or `POST ${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/sandboxes`
-   with `{"ttl_minutes":60}`; then `get_sandbox` until `status` is `ready` —
-   one sandbox for this whole task; keep its id and each service's `control_url`.
-   A sandbox or proxy session kept alive from an earlier run is a net
-   save — reuse it, reading from the ledger what per-run receipt lines
-   would have shown.
-2. `GET {control_url}/veris/manual` — the service's own notes, short, read
-   whole. It is authoritative for exactly these: the statuses and codes a
-   fault may inject, the `match` selector keys this service supports, its
-   API versions and selector, and its credential and setup notes. It is
-   **not** a catalogue of what the service implements, and nothing is —
-   read no coverage claim into what it leaves out. A surface the fix rests
-   on gets one probe, and what a refusal proves is in
-   [reference/troubleshooting.md](../veris-reference/troubleshooting.md):
-   some settle the question, most do not.
-3. The state. A sandbox boots the environment's default state, and the code
-   path needs rows in it — the customer an invoice references, the account a
-   charge posts to. Take the census first — `GET {control_url}/veris/data`
-   with no parameters is every table and its row count in one small
-   response — then read the shape of only the tables that matter:
-   ```sh
-   curl --fail-with-body -sS "$CONTROL_URL/veris/schema" |
-     jq -e --arg table "$TABLE" \
-       '.properties[$table] // error("unknown table: \($table)")'
+Then say where the vendor boundary sits. A defect with no vendor claim on its path is
+verified the repository's own way, and the twin is spent on one end-to-end run of the
+changed flow. A defect that rests on what the vendor does gets every gate below.
+
+Read `.veris/NOTES.md` first. Append what you measure here that outlives the task.
+
+Keep the conversation small. Send anything that reads wide or returns long to a
+subagent where one exists: the code survey above, a full test-suite run, any output
+past a screenful. Keep the answer it gives you, not the transcript. Where no subagent
+exists, bound the read yourself. Name the files, grep for the symbol, and read only the
+hunk. Send long output to a file and grep that file, rather than into the conversation.
+Read small things inline: a row count, one table's shape, a filtered trace.
+
+**Pin the base before the first edit:**
+`sh .veris/bin/record.sh base --task <id> --paths <the files the diagnosis implicates>`.
+Gate 4 measures against it. A base chosen once the diff exists is chosen by the
+thing being measured. Without `--paths` the script falls back to the source roots in
+`.veris/setup.json`, which pins far more than the task touches. `setup` staged the
+two scripts into `.veris/bin/`; if they are missing, run `setup` again. The task's
+record, and its ledger of measurements, live under `.veris/tasks/<task-id>/`.
+
+## Gate 1: the failure reproduced before the first source edit
+
+1. `veris up`. One sandbox for the whole task. Done when it exits 0 and lists the
+   twins. It prints an expiry, and nothing extends a running sandbox: `veris sandbox`
+   has no extend verb, and `--ttl` only sets the life of a new one. So set that life
+   when you create the sandbox: `veris up --ttl <minutes>` overrides the environment's
+   TTL for this one. Before starting anything long, weigh what `veris status` says is
+   left against the work still to do. Every id in Gates 1 to 3 dies with the sandbox.
+2. `veris sandbox services manual <twin> --raw`. Read it whole, once. `--raw` puts
+   the markdown on stdout; without it the manual renders on stderr. The manual is
+   authoritative for the credentials, the API versions, the injectable faults and the
+   `match` keys. It is not a catalogue of what the twin implements.
+3. The state. `veris sandbox data get <twin>` for the row counts,
+   `veris sandbox data schema <twin> --table <t>` for the shapes, then
+   `veris sandbox data add rows.json` for what the code path needs. A refused row
+   prints the twin's reasons and applies nothing for that twin; fix the file and add
+   it again. Ids come from the sandbox. Never guess one, and never copy one from
+   another sandbox. A call that fails because a row was missing is not the failure the
+   issue describes. File bytes are not rows: seed the owning rows first, then upload the
+   files, as [../veris-reference/state.md](../veris-reference/state.md) shows. The
+   state dies with its sandbox; resetting it or keeping it is in the same file.
+4. Make the failure happen. A vendor-side defect: arm a fault row as
+   [../veris-reference/faults.md](../veris-reference/faults.md) shows. A repository-side
+   defect: reproduce it through the application's own state. If the twin cannot
+   represent it, that report is the outcome of this gate, not a reason to change the
+   diagnosis. Either way, drive the **repository's own code path**, unchanged, through it:
    ```
-   A whole schema is far larger than any one task needs; project it.
-   `GET {control_url}/veris/data?entity_type=<table>` then shows what is
-   already there; seed what is missing, in the shapes the schema names:
-   ```http
-   POST {control_url}/veris/data
-   {"data":{"<entity>":[{"<primary-key>":"test-owned-id","<field>":"value"}]}}
+   veris run --patch-bundled-cas --require-service <twin> <the mounts from NOTES.md> -- <the flow>
    ```
-   File bytes are not rows: seed the rows first, then post the files
-   through `/veris/files` ([reference/state.md](../veris-reference/state.md)).
-   Ids come from the sandbox, never guessed and never carried from another
-   sandbox. A call that fails because a row was absent is not the
-   failure the issue describes. The state dies with its sandbox — resetting it, or
-   keeping it: [reference/state.md](../veris-reference/state.md).
-4. Make the failure happen. The vendor will not produce it on demand. A
-   vendor-side defect: arm a `faults` row in the shape
-   [reference/faults.md](../veris-reference/faults.md) gives for what the issue
-   reports. A repository-side defect no fault can produce: reproduce it
-   through the application's own state — and when the twin cannot
-   represent it at all, that report is the Gate-1 outcome, not a reason to
-   switch diagnoses. Either way, drive the **repository's own code path** — the endpoint,
-   worker or handler the issue names, unchanged — through it under
-   `.veris/run.sh` with `VERIS_SANDBOX_ID` set to this sandbox
-   ([reference/proxy.md](../veris-reference/proxy.md)).
-5. Read the ledger: `GET {control_url}/veris/data?entity_type=<table>` and
-   the trace. An injected fault's exchange is `tier=fault`, the traffic
-   around it `tier=handler`, and your own `/veris/*` calls `tier=control` —
-   ask for the tier the evidence is on rather than reading an unfiltered
-   page of your own seeding ([reference/troubleshooting.md](../veris-reference/troubleshooting.md)).
-   Not done with this gate until they show the outcome the issue describes —
-   the duplicate row, the lost write, the wrong state — with ids and counts
-   you can quote.
+   The image and the `require_service` default come from `.veris/twin.yaml`. The
+   mounts and variables the app needs are in `.veris/NOTES.md` under *How to run*. That
+   line is a claim like any other: a mount `setup` wrote down but never ran is not
+   evidence. The mount goes wrong three ways. It can land the repository where the
+   image's interpreter does not look, as `-v "$PWD:/work" -w /work` does over an image
+   built at `/app`. It can shadow the image's virtual environment. It can be missing.
+   Each of the three buys an exit 3 and nothing else.
 
-The order is the evidence. The red run is observed against the
-repository's unmodified code, before the first source edit; a red produced
-afterward by stashing the fix satisfies nothing — it can no longer
-challenge the diagnosis. The PR presents the red and green runs in the
-order they actually happened.
+   To have the record write down what the run did, wrap it:
+   `sh .veris/bin/record.sh red --task <id> --expect <mode> -- veris run ...`.
+   `--expect` is `nonzero`, `assertion=<text>`, `predicate=<cmd>` or `baseline`. The
+   script refuses a run whose pinned source has moved.
 
-If the failure will not reproduce, that is the finding: report what the
-twin did instead, with the trace, and stop before changing code.
-## Gate 2 — the identity the fix rests on
+   If that run exits 3 on wiring, read the command's own output. Then check the mount
+   against the image itself before suspecting anything else:
+   `docker run --rm --entrypoint sh <image> -c 'pwd; ls; command -v <the runner>'`.
+   When you find the mount that works, correct *How to run*. A fix buried in a task
+   note below it sends the next reader into the same exit 3.
+5. Read the sandbox's ledger, which is what the twin recorded.
+   `veris sandbox data get <twin> <table>` shows what it stored.
+   `veris sandbox trace --tier fault` shows the injected exchange, and `--tier handler`
+   the traffic around it. **Not done until those reads show the outcome the issue
+   describes** — the duplicate row, the lost write, the wrong state — with ids and
+   counts you can quote.
 
-Before the fix keys, looks up, or dedupes on any field, read that field's
-rule in `GET {control_url}/veris/schema` (the table's description). A field the vendor accepts
-twice for distinct records is not an identity; a fix anchored on it trades
-one failure for another. Name the field the fix rests on, and why it is
-one, in the PR.
+The order is the evidence: the red run happens against unmodified code, before the
+first edit. A red produced later by stashing the fix proves nothing.
 
-The gate binds on any identity, dedup key or external reference the fix
-sends across the vendor boundary, however the code got it — computed,
-copied from an input, reused from an id the caller already carries. Copying
-does not discharge it: what the value leaves out has no row in the schema
-to read, and the collision lives there. Prove it against the twin. Vary
-each component of the identity independently — including an input that
-omits one — drive them through the same path, and count the rows the vendor
-stored: distinct inputs must have left distinct records. Fewer is the fix's
-own defect, caught before it ships. The identity, what you varied and the
-counts go in the PR beside the field. Questions and their asks:
-[reference/twin.md](../veris-reference/twin.md).
+If the failure will not reproduce, that is the finding: report what the twin did
+instead, with the trace, and stop before changing code.
+
+## Gate 2: the identity the fix rests on
+
+Before the fix keys, looks up or dedupes on any field, read that field's rule in
+`veris sandbox data schema <twin> --table <t>`. A field the vendor accepts twice for
+distinct records is not an identity; a fix keyed on it trades one failure for another.
+
+Prove it against the twin. Run one case per component, with that component changed and
+every other one held fixed, and one case per component that leaves it out of the key
+altogether. A case that moves two at once proves nothing about either.
+
+Drive those cases through the **repository's own code path** under `veris run`, never
+with curl at the twin's URL. A probe you hand-address, with a credential you invented
+to send it, measures the twin and not the code the fix ships in, and it leaves no
+receipt behind. Count the rows stored. Distinct inputs must leave distinct records. A
+component the code path always sends cannot be left out without editing the code:
+record that as the answer rather than faking it with a hand-made call. The field, each
+case with the one component it moved, and the counts go in the PR.
 
 ## Implement
 
-As the repository does it: its test conventions, its coverage gate, nothing
-pointed at a sandbox, no vendor call changed to make a test pass. The
-repository's full test gate runs once: backgrounded, no self-imposed
-timeout, polled to completion, its result read before the PR is written.
-Never kill a running suite to relaunch it; never report a result that was
-not read.
+As the repository does it. Run its full test gate once, in the background, with no
+timeout of your own. Poll it to completion, and read the result before writing the PR.
+If the suite runs under `veris run`, it is a second run against the same sandbox, and
+its traffic lands in the same ledger. So finish the suite before Gate 3, or give it
+`--fresh` and a sandbox of its own. A `--fresh` run that exits 4 keeps its own sandbox
+and makes it this folder's, so check that `veris status` still names the task's sandbox
+before Gate 3.
 
-## Gate 3 — the same failure, closed, with a receipt
+The suite may need mounts the smoke run did not, such as a fixture tree outside the
+baked source. If the suite never got as far as running a test, the run's receipt — its
+record of what the sandbox received — comes back empty. An empty receipt and exit 3
+there are a wiring finding, not a suite result, and that attempt does not count as the
+run. If the suite is not green, a failure is only pre-existing when the pinned base
+fails it too. Measure that, or say in the PR that you argued it from the code and did
+not measure it. Never kill a running suite to relaunch it. Never report a result you
+did not read.
 
-Re-arm the same fault; drive the same code path through `.veris/run.sh`
-(same `VERIS_SANDBOX_ID`); read the ledger again. **Not done until the receipt shows at least one
-request to the service from that run and the ledger shows the outcome the
-fix promises** — one row where there were two, the write recovered, the
-state right. Red before, green after, same flow: that is the proof.
+## Gate 3: the same failure, closed, with a receipt
 
-One green proves one path. Before the PR, list every entry point that
-reaches the lines you changed — grep the changed symbols for their callers,
-and the constants those callers branch on, out to the endpoints, workers,
-handlers and jobs that own them — and say which of them this run actually
-drove. The ones it did not are not covered: they belong under *limitations
-and risks*, named, with what a caller reaching the fix that way would still
-get. A shared helper reached three ways and driven once is a fix for one
-third of the defect. Callers are not the whole list: a branch that
-duplicates the behavior rather than calling it — the same response handled,
-the same request built inline, selected by a mode or type switch — cannot
-appear in a grep for the symbol you changed. Search for those siblings,
-name each one you found, and either drive it in the green run or put it
-under *limitations and risks* with why it is out of scope. An unexercised
-sibling reported as covered fails this gate. In a repository large enough
-that this sweep spans many files, it is worth a subagent where one is
-available: ask for the entry points, each marked driven or not-driven.
+Re-arm the same fault. Drive the same code path through the same sandbox with
+`veris run`. `--receipt <file>` keeps the receipt as JSON for the PR. Wrap the run in
+`sh .veris/bin/record.sh green --task <id> --expect <mode> -- veris run ...` and the
+record writes down what it did. Every `--expect` now inverts: the test passes, the
+failure string is gone, the predicate no longer finds the defect.
 
-## Gate 4 — the measurements against the diff
+Read the sandbox's ledger again. **Done when the receipt shows at least one request to
+the twin from that run and the ledger shows what the fix promises**: one row where
+there were two, the write recovered, the state right.
 
-Every measurement this task took is one row in the ledger, written when you take
-it rather than reconstructed at the end — a ledger assembled after the code is
-a description of the code, not a check on it. Before the PR:
-`sh .veris/bin/ledger.sh --against-diff --task <id>` — no `--base`: it reads
-the commit pinned at the start of the task. If it reports the base is unpinned,
-that is the task's mistake, not the gate's; it does not get a base at gate time.
+A suite that cleans up after itself leaves no rows to read. Then the trace is the
+read-back: `veris sandbox trace --body <id>` gives the request the flow sent and the
+twin's answer to it. Save that trace into `.veris/tasks/<task-id>/snapshots/` before
+teardown, because trace ids die with the sandbox too.
 
-Each row ends as exactly one of: **encoded**, naming the changed file and the
-symbol or decision that honors it; **non-load-bearing**, carrying a
-counterfactual — the different value the measurement could have taken without
-changing what the fix promises; **contradicted**; or **unresolved**. The last
-two are gate failures.
+Red before, green after, same flow. Exit 3 means the flow never reached the sandbox:
+fix the wiring, never the call. Exit 4 means the sandbox's ledger could not be read:
+run it again, then `veris status`.
 
-**A contradiction is the code's problem, not the report's.** Change the code.
-The row format and the four dispositions are in
-[reference/proof.md](../veris-reference/proof.md); `ledger.sh init` prints the
-field contract.
+One green proves one path. List every entry point that reaches the changed lines:
+callers of the changed symbols, and the constants they branch on, out to the endpoints,
+workers and jobs. Say which of them this run drove, and name the rest under
+*limitations and risks*. Then search for branches that duplicate the behaviour instead
+of calling it, which a grep for your symbol cannot find, and drive or list each one. In
+a large repository this sweep is worth a subagent where one exists: ask for the entry
+points, each marked driven or not driven.
+
+On a repository wired without the proxy, the app reads vendor URLs from the environment
+([../veris-reference/direct.md](../veris-reference/direct.md)). There every gate that
+reads a receipt reads the trace instead. Note the newest trace id before the run, drive
+the flow against the wired sandbox, and then
+`veris sandbox trace --service <twin> --since <id>` is that run's receipt.
+
+## Gate 4: the measurements against the diff
+
+Every measurement is one row in the task's ledger, written when you take it and not
+reconstructed at the end. `sh .veris/bin/ledger.sh init --task <id>` prints the field
+contract; `sh .veris/bin/ledger.sh check --task <id>` validates the rows. Before the
+PR, run `sh .veris/bin/ledger.sh --against-diff --task <id>`. It reads the base pinned
+at the start, and exits 2 on a gate failure.
+
+Each row ends as exactly one of four dispositions. **Encoded**: name the changed file
+and symbol that honours the measurement. **Non-load-bearing**: give the different value
+it could have taken without changing the fix. **Contradicted**. **Unresolved**. The
+last two fail the gate, and a contradiction means change the code, not the report. The
+row format is in [../veris-reference/proof.md](../veris-reference/proof.md).
 
 ## The PR
 
-Open a draft as the repository does. Its body has three sections, in the
-shape of [reference/evidence.md](../veris-reference/evidence.md): *what I verified,
-and how* — the fault armed, the before ledger, the after ledger, the receipt
-line; *what I am assuming rather than verifying*, and why that is
-acceptable; *limitations and risks* — including what a caller could still do
-wrong. Every task premise measured false is its own line in the body — the
-premise, the probe, the answer — and is never restated as fact after that
-measurement, in prose, code, or a name. Paste the sandbox id. Then `delete_sandbox` (or `DELETE …/sandboxes/<id>`).
+Open a draft the way the repository does. Its body has three sections, in the shape
+of [../veris-reference/evidence.md](../veris-reference/evidence.md):
 
-When a step needs it: [state.md](../veris-reference/state.md), [webhooks.md](../veris-reference/webhooks.md),
-[trust.md](../veris-reference/trust.md) (an SDK refusing the proxy's certificate),
-[troubleshooting.md](../veris-reference/troubleshooting.md). Note anything the
-sandbox got wrong or lacked and give it to the engineer at the end. Ask
-before sending repository code anywhere new. Never promote a sandbox.
+- *What I verified, and how*: the fault armed, the before ledger, the after ledger, the
+  receipt line.
+- *What I am assuming rather than verifying*.
+- *Limitations and risks*, including what a caller could still do wrong.
+
+Every premise that measured false is its own line, and is never restated as fact.
+
+Paste the sandbox id. Where the diagnosis, ledger and record go is `artifact_policy` in
+`.veris/setup.json`, which `setup` set at step 9: rendered into the PR body
+(`pr-body`), kept on disk only (`local`), or committed under
+`.veris/tasks/<task-id>/` (`commit`). Then run `veris down`.
+
+When a step needs it: [../veris-reference/faults.md](../veris-reference/faults.md),
+[../veris-reference/webhooks.md](../veris-reference/webhooks.md),
+[../veris-reference/troubleshooting.md](../veris-reference/troubleshooting.md). Note
+anything the twin got wrong or lacked and tell the engineer at the end. Ask before
+sending repository code anywhere new.

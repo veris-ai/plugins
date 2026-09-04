@@ -38,6 +38,8 @@ $ME: the measurement ledger.
 
 --task may be omitted when VERIS_TASK_ID is set.
 --base defaults to the base_commit recorded by record.sh.
+The changed set is the diff against the base, plus every declared file whose
+digest has moved since record.sh pinned it.
 EOF
   exit 1
 }
@@ -172,6 +174,26 @@ if [ "$MODE" = against-diff ]; then
     [ -n "$PINNED" ] || die "base '$BASE' is a moving reference and no $RECORD exists. Run 'record.sh base' when the task starts, then call this without --base; or pass the full 40-character sha the task began at."
   fi
   CHANGED="$(git diff --name-only "$BASE" -- 2>/dev/null; git diff --name-only --cached "$BASE" -- 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null)"
+
+  # git alone is not the change. When the defect lived only in the worktree, the
+  # fix restores the committed bytes and the diff against the base is empty for
+  # the very file the task edited — so every ENCODED row naming it would fail
+  # for a reason that has nothing to do with the measurements. record.sh pinned
+  # each declared file's digest at `base`; a file whose digest has moved since
+  # was changed by this task, whatever git says. This is the set record.sh
+  # refuses a drifted red run on.
+  if [ -f "$RECORD" ]; then
+    DRIFTED="$(jq -r '.source_digests | to_entries[] | "\(.value) \(.key)"' "$RECORD" 2>/dev/null |
+      while IFS=' ' read -r was f; do
+        [ -n "$f" ] || continue
+        if [ -f "$f" ]; then now="$(sha256 "$f")"; else now=''; fi
+        [ "$now" = "$was" ] || printf '%s\n' "$f"
+      done)"
+    if [ -n "$DRIFTED" ]; then
+      CHANGED="$CHANGED
+$DRIFTED"
+    fi
+  fi
 fi
 
 ROW=0
@@ -264,7 +286,12 @@ while IFS= read -r line || [ -n "$line" ]; do
           # Context, not -U0. A function whose body changed but whose signature
           # line did not carries its own name only on a context line, so -U0
           # reports it missing and the honest repair looks like editing the row.
-          if [ -n "$sym" ] && ! git diff -U10 "$BASE" -- "$f" 2>/dev/null | grep -qF "$sym"; then
+          # Empty hunks with the file in the changed set means the edit is
+          # worktree-only against the base: git has nothing to search, so this
+          # check has nothing to say.
+          hunks=''
+          [ -n "$sym" ] && hunks="$(git diff -U10 "$BASE" -- "$f" 2>/dev/null)"
+          if [ -n "$hunks" ] && ! printf '%s\n' "$hunks" | grep -qF "$sym"; then
             warn "$id: '$sym' does not appear in the changed hunks of $f (renamed? moved?)"
           fi
         else

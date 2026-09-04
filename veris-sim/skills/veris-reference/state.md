@@ -1,124 +1,156 @@
-# Sandbox state: seeding rows, loading files, isolation, reset, promote, snapshots
+# Sandbox state: seeding rows, loading files, isolation, reset, keeping a world
 
-## The sandbox is the proxy's
+## One sandbox per task
 
-A sandbox per run is hermetic; two runs never share state, faults, the clock,
-or a callback registration. Ending the run is the teardown. An interrupted
-session left in the background is a sandbox still alive that a later session
-could mistake for its own.
+`veris up` makes it; `veris down` deletes it; its TTL is the backstop. A sandbox is
+hermetic: two sandboxes never share rows, faults, the clock or a callback
+registration. Ending the task is the teardown. A sandbox left behind by an
+interrupted session is still alive, and a later session could mistake it for its own.
+`veris sandbox list` shows the in-use environment's sandboxes, and
+`veris sandbox list --all` shows every environment's.
+`veris sandbox delete --id <id> --yes` removes one that is not this folder's, and
+`veris down --all --yes` deletes every sandbox of the in-use environment.
 
 ## Seeding rows
 
-- `GET {control_url}/veris/data` with no parameters lists every table and its
-  row count — the cheapest way to see what a service holds before reading
-  any shape.
-- Ids come from `GET {control_url}/veris/data?entity_type=<table>` — never guessed, never copied from another
-  sandbox. Use a vendor test value or named profile only when the manual
-  names it.
-- Seed exact rows in the shapes `/veris/schema` names:
-  ```http
-  POST {control_url}/veris/data
-  {"data":{"<entity>":[{"<primary-key>":"test-owned-id","<field>":"value"}]}}
+- `veris sandbox data get <twin>` lists every table with its row count. The cheapest
+  way to see what a twin holds before reading any shape.
+- Ids come from `veris sandbox data get <twin> <table>`, never guessed and never
+  copied from another sandbox. Use a vendor test value or a named profile only when
+  the manual names it.
+- Add exact rows in the shapes `veris sandbox data schema <twin> --table <t>` names,
+  from a JSON file keyed by twin name; one file can cover several twins:
   ```
-  `PATCH` changes rows by primary key; `DELETE` removes them.
-- A clean slate between probes: `POST {control_url}/veris/reset` with
-  `{"profile":"default"}`.
-- File bytes are not rows — see **Files** below.
+  veris sandbox data add rows.json
+  ```
+  ```json
+  {"stripe": {"customers": [{"id": "cus_test_ada", "email": "ada@example.com", "created": 1756900000}]},
+   "postgres": {"sql": "data/schema.sql"}}
+  ```
+  Adding is additive. The command prints the twin's own added counts and the
+  state-version change. When a row is refused it prints the twin's reasons line by
+  line and stops, with nothing applied for that twin; a missing required column is
+  the usual reason. Fix the file and add it again. A postgres twin takes SQL under
+  its key, with the path relative to the project directory. Rows added this way die
+  with the sandbox; keep them with `veris snapshot create` or `veris baseline
+  promote` (below).
+- Changing or removing a row that already exists is by its key, one row at a time:
+  ```
+  veris sandbox data set stripe customers id=cus_test_ada name=Ada
+  veris sandbox data delete stripe faults id=flt_1 --yes
+  ```
+  The key goes among the fields, and `set` leaves the columns you did not name alone.
+  Each value is read as JSON and kept as the literal string when it is not one: `id=1`
+  is a number, `enabled=true` a boolean, `mode=permissive` a string. `delete` asks
+  first, since a row does not come back; `--yes` answers, and off a terminal it refuses
+  without one. A row the twin booted with changes the same way, a setting row included.
+- A twin refuses to delete its singleton rows: the clock, the client registration, the
+  auth mode and the delivery log. It says what to do instead; change those rows with
+  `veris sandbox data set`.
+- A clean slate for one twin between probes, leaving the others and the clock alone.
+  There is no verb for this, so it is a curl at the twin's control URL, which
+  `veris sandbox services get <twin>` prints:
+  ```
+  curl --fail-with-body -sS -X POST "<control url>/veris/reset" -H 'Content-Type: application/json' -d '{"profile":"default"}'
+  ```
+  `{"profile": …}` loads the packaged starting data, and `{"data": {…}}` loads exact
+  rows. Neither may leave an empty dataset. Any other key is refused with 422, and the
+  data is left as it was. This works on an image-booted sandbox too.
+- File bytes are not rows. See **Files**.
 
 ## Files
 
-A file hangs off a row: a Drive file belongs to a user, a Dropbox file to an
-account, a Hub file to a repository, an attachment to an issue. So the order
-is fixed — rows first, files second. Services whose files sit in a tree have
-`/veris/files`, and the manual shows it; a service whose files are
-attachments takes bytes only through its own upload API, the way the
-application sends them, and the manual says so. Posting to `/veris/files` on
-one of those answers `404 "this service does not support folder imports"` —
-a control-plane refusal in plain words, and one of the few `404`s here that
-is evidence rather than noise.
+A file hangs off a row: a Drive file belongs to a user, a Dropbox file to an account,
+an attachment to an issue. So the order is fixed: rows first, files second.
 
-1. Read the owner table's shape in `/veris/schema`; the manual names which
-   table owns files.
-2. Seed the rows the files need — the owner, a folder, a repository —
-   through `POST {control_url}/veris/data`, or pick an owner that is already
-   in the sandbox from `/veris/data`.
-3. Post the bytes with that owner's id. One file:
-   ```sh
+Twins take files in two ways, and the manual says which way a twin takes them. A twin
+whose files sit in a tree takes them through its own upload route. A twin whose files
+are attachments takes bytes only through the vendor's own upload API, the way the app
+sends them. Uploading to a twin of the second kind answers 404, "this service does not
+support folder imports". That is a plain refusal, and it is evidence, not noise.
+
+1. `veris sandbox services manual <twin>` names the table that owns files;
+   `veris sandbox data schema <twin> --table <t>` shows its shape.
+2. Seed the rows the files need, an owner, a folder, a repository, with
+   `veris sandbox data add`, or pick an owner already in the sandbox from
+   `veris sandbox data get <twin> <table>`.
+3. Post the bytes to the twin's control URL with that owner's id. One file:
+   ```
    curl --fail-with-body -sS -X POST --data-binary @report.pdf \
-     "$CONTROL_URL/veris/files?path=Inbox/report.pdf&owner=<owner id>"
+     "<control url>/veris/files?path=Inbox/report.pdf&owner=<owner id>"
    ```
    A whole tree, as a zip:
-   ```sh
-   curl --fail-with-body -sS -X POST --data-binary @fixtures.zip \
-     "$CONTROL_URL/veris/files?prefix=Client%20Uploads&owner=<owner id>"
    ```
-   `mode=merge` (default) replaces matching paths and keeps the rest;
-   `mode=replace` needs a `prefix` and makes that subtree exactly the
-   upload. Leave `owner` out and the manual's default identity owns the
-   files. The reply lists what was created.
-4. Read back: `GET {control_url}/veris/data?entity_type=<files table>`.
+   curl --fail-with-body -sS -X POST --data-binary @fixtures.zip \
+     "<control url>/veris/files?prefix=Client%20Uploads&owner=<owner id>"
+   ```
+   `mode=merge` (default) replaces matching paths and keeps the rest; `mode=replace`
+   needs a `prefix` and makes that subtree exactly the upload. Leave `owner` out and
+   the manual's default identity owns the files. The reply lists what was created.
+4. Read back with `veris sandbox data get <twin> <files table>`. A file's content
+   column shows the SHA-256 of its bytes; compare with `shasum -a 256` of the local
+   file. The vendor's own download endpoint returns the exact bytes.
 
-Bytes never go through `/veris/data`, on any service. A file's content column shows the
-SHA-256 of its bytes, and the vendor's own download endpoint returns the
-exact bytes. Limits: 1 GB per file, 20 GB and 25,000 files per environment;
-an import over a limit is refused with the number, nothing is truncated.
+Limits: 1 GB per file, 20 GB and 25,000 files per environment. An upload over a limit
+is refused with the number; nothing is truncated.
 
-Files follow rows: a reset restores the seeded set; `promote_sandbox` and a
-snapshot keep them; files the application uploaded during a run go away
-with the sandbox unless the state is kept. A sandbox whose baseline holds
-many files stays `creating` for a few minutes while they are copied in;
-keep polling — only `failed` is a failure.
+Files follow rows. A reset restores the seeded set. A promote or a snapshot keeps the
+files. Files the app uploaded during a run go away with the sandbox, unless the state
+is kept.
+
+A sandbox whose baseline holds many files stays provisioning for a few minutes while
+they are copied in. `veris up` waits five minutes by default; give it more with
+`--timeout 10m`. Only `failed` is a failure, and `veris up` exits 1 on it with the
+reason. A timeout exits 4 and keeps the sandbox for `veris status` to pick up. A data
+file the twin refuses during `veris up` exits 1 with the sandbox kept.
+
+Rows-only state is cheap to seed per task and does not need to be kept.
 
 ## Isolation inside one sandbox
 
-Give each test its own root resource and clean up shared controls: the
-clock, unscoped faults, reused OAuth connections, and the callback base URL
-are shared by every test in a sandbox.
+Give each test its own root resource and clean up shared controls: the clock,
+unscoped faults, reused OAuth connections and the callback URL are shared by every
+test in a sandbox.
 
 ## Reset
 
-`reset_sandbox` at suite boundaries restores every service and the shared
-clock atomically; if one service fails, existing state stays. Do not send
-traffic during a reset, and save `/veris/requests` first — every reset clears
-request history. A sandbox booted from an image — a promoted environment's
-baseline or a snapshot — answers `409`: reseeding would replace what the
-image pinned.
-
-`POST {control_url}/veris/reset` resets one service and leaves the shared
-clock alone, and it still works on an image-booted sandbox. Send
-`{"profile":"default"}` for the packaged starting data or `{"data":{...}}`
-for exact rows; neither may leave an empty dataset, and any other key is
-refused with `422`, leaving existing data. Or delete the sandbox and create
-another.
+`veris sandbox reset` restores every twin and the shared clock atomically; if one
+twin fails, existing state stays. Do not send traffic during a reset. A reset empties
+the request log (ids keep counting), so save `veris sandbox trace` first if you need
+it. A sandbox booted from a snapshot or a promoted baseline cannot be reset: reseeding
+would replace what the image pinned, and the CLI says the fresh copy is
+`veris down && veris up`. One row of such a sandbox still changes with
+`veris sandbox data set`; only the whole-sandbox reset is refused. The per-twin reset
+above works either way.
 
 ## Keeping the state a session built
 
-What the tests need is discovered by writing them, so the state worth keeping
-usually exists only at the end of a live session. Two ways to keep it, chosen
-by who should start from it:
+The rows worth keeping usually exist only at the end of a live session. Two ways to
+keep them, chosen by who should start from them:
 
-- **Every future run** → `promote_sandbox` with the run's sandbox id, before
-  the run ends. Promotion copies the sandbox's state, files included, into
-  the environment's default; every later `create_sandbox`, including the
-  proxy's per-run ones, starts from it. The capture is a boundary — the sandbox is left frozen and
-  scrubbed — so it is the last thing done with it.
-- **Only some runs** — an empty account and a populated one, a trial and an
-  expired trial — → a named **snapshot**. Promoting one of them would
-  silently change what every other suite starts from.
+- **Every future sandbox of this environment:** `veris baseline promote`. It copies
+  the sandbox's state, files included, into the environment's default; every later
+  `veris up`, including the fresh sandbox a `veris run --fresh` makes, starts from it.
+  The capture is a boundary: the source sandbox is left frozen and scrubbed, then
+  deleted. `--keep-source` keeps it instead. Either way, promote is the last thing done
+  with that sandbox. Done when `veris baseline get` shows the pin. Only `setup`
+  promotes, and only with the engineer's yes.
+- **Only some runs**, an empty account and a populated one, a trial and an expired
+  trial: `veris snapshot create --name <name>`. Many per environment; the default
+  boot is unchanged. Names are not unique; the newest wins a name lookup, so
+  `veris snapshot list` and quote the id. The source sandbox is left frozen and
+  scrubbed for you to delete (`--delete-source` does it at once).
+  `veris up --boot snapshot --snapshot <name>` boots one (`--snapshot` alone is
+  refused), and an explicit snapshot beats the environment's baseline.
+  `veris baseline set <snapshot>` makes one the default later; `veris baseline clear`
+  returns to the packaged data. A snapshot cannot be deleted while a sandbox booted
+  from it is alive; the delete answers 409 until that sandbox is gone.
 
-  ```sh
-  curl --fail-with-body -sS -X POST "${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/snapshots" \
-    -H "X-API-Key: $VERIS_API_KEY" -H 'Content-Type: application/json' \
-    -d '{"sandbox_id":"'"$SANDBOX_ID"'","name":"expired-trial"}'
-  curl --fail-with-body -sS "${VERIS_API_BASE:-https://svc.api.veris.ai}/v1/environments/$VERIS_ENVIRONMENT_ID/snapshots" -H "X-API-Key: $VERIS_API_KEY"
-  ```
+Both captures block on the control plane. After about 150 s the answer may be dropped
+while the capture itself continues. The CLI then polls for the new row or the changed
+pin, rather than sending the capture again, which would mint a second image. Do not
+re-run it yourself. `--clock-restore today|frozen|rebase` on either says what a
+sandbox booted from the capture does with its clock (default `today`).
 
-  Many snapshots per environment; the default boot is unchanged.
-  `create_sandbox` takes an optional `snapshot_id`, and an explicit snapshot
-  beats the environment's baseline pin. Snapshot management is HTTP-only;
-  only the boot side is on MCP. A snapshot cannot be deleted while a sandbox
-  booted from it is alive; that delete answers `409` until the sandbox is
-  gone.
-
-Verify the state reads back the way the tests expect before keeping it; every
-later boot inherits it.
+Check the state reads back the way the tests expect before keeping it; every later
+boot inherits it.
