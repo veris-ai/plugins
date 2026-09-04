@@ -66,6 +66,10 @@ the same checks on stdout.
 - `!` about Docker: the container tier in step 3 runs the tests inside Docker, so
   Docker must be running. Ask the engineer to start it. Never fall back to running
   without `--image` for code under test.
+- `✗` with `no such host` for the control plane, or `!` with `permission denied` on
+  `docker.sock`, on a machine where the engineer says both work: you are sandboxed.
+  [../veris-reference/troubleshooting.md](../veris-reference/troubleshooting.md),
+  **The agent is sandboxed**. Stop there.
 - `!` about a missing project file or sandbox on a fresh repository is the expected
   state, not a problem.
 - Any other `✗`: say which line and how to fix it, then stop.
