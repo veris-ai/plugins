@@ -13,6 +13,8 @@ Not a command. `setup`, `build` and `fix` link to the file a step needs:
 | `state.md` | seeding rows and files, isolation inside a sandbox, reset, snapshots and the baseline |
 | `run.md` | exercising the change with `veris run`: the two tiers, the image, what the run hands the workload, the flags that change the verdict, exit codes, what a green proves |
 | `direct.md` | the app reads every vendor base URL from the environment and needs no proxy |
+| `session.md` | current tools/context indicate an existing plugin-managed sandbox: verify identity, reuse interception, attribute receipts and sync changes |
+| `opencode.md` | the existing session is OpenCode: provider tools, credentials, trust, control access and lifecycle differences |
 | `hosted.md` | the engineer requests remote tests, or code needs redirection and Docker is unavailable: provider recipes, remote workload preparation, trace evidence, project notes and cleanup |
 | `daytona.md` | the hosted tier selects Daytona: installation, credentials, exact run commands, certificate setup and provider limits |
 | `faults.md` | the task is about a failure, or a case needs a condition the vendor will not produce on demand: fault rows, credentials, the clock |
@@ -21,7 +23,8 @@ Not a command. `setup`, `build` and `fix` link to the file a step needs:
 | `evidence.md` | writing the PR's verification section |
 | `proof.md` | what closes a claim: the three layers, the ledger's four dispositions, the identity a fix rests on |
 
-Twin operations use `veris`; `veris <command> --help` documents its flags. Hosted
+In a verified plugin session, [session.md](session.md) replaces CLI operations
+and lifecycle with the discovered session interfaces. Otherwise twin operations use `veris`; `veris <command> --help` documents its flags. Hosted
 runner commands are documented in their provider recipe. Three twin operations have
 no verb of their own: file upload, a per-twin reset, the operations list. Each of those
 is a `curl` to the twin's control URL, which

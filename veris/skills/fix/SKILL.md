@@ -8,7 +8,17 @@ disable-model-invocation: true
 Fix the defect in the request that came with this command: a GitHub issue URL or
 number, or free text. Not done until every gate below is met and the PR says so.
 
-Needs `.veris/twin.yaml` in the repository. If it is missing, stop: `setup` runs first.
+Check the current runtime tools/context before using saved setup. In a plugin-managed
+session, read [../veris-reference/session.md](../veris-reference/session.md) and
+revalidate the provider, attached twin and remote repository now. That path replaces
+CLI lifecycle and execution instructions throughout these gates: use the existing
+twin, direct application commands, attributed provider receipts and the discovered
+control interface; finish with change sync, leaving plugin-owned resources alive.
+The evidence gates below are unchanged. Saved session metadata is not identity.
+
+A CLI-owned workflow needs `.veris/twin.yaml` in the repository. If it is missing,
+stop: `setup` runs first. In a verified plugin session, setup's notes, metadata and staged
+helpers replace that CLI file; if missing, run `setup`.
 
 Three rules, always:
 
@@ -227,7 +237,9 @@ Every premise that measured false is its own line, and is never restated as fact
 Paste the sandbox id. Where the diagnosis, ledger and record go is `artifact_policy` in
 `.veris/setup.json`, which `setup` set at step 9: rendered into the PR body
 (`pr-body`), kept on disk only (`local`), or committed under
-`.veris/tasks/<task-id>/` (`commit`). Then run `veris down`.
+`.veris/tasks/<task-id>/` (`commit`). Then run `veris down` only in a CLI-owned workflow;
+a plugin session uses
+[session handoff](../veris-reference/session.md#hand-back-code-and-evidence).
 
 When a step needs it: [../veris-reference/faults.md](../veris-reference/faults.md),
 [../veris-reference/webhooks.md](../veris-reference/webhooks.md),

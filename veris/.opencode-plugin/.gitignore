@@ -1,2 +1,4 @@
 skills/
 *.tgz
+
+node_modules/

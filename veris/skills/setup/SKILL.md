@@ -24,6 +24,16 @@ A command that would otherwise stop and ask refuses instead, and names the flag 
 Every `get` and `list` takes `--json`. `env get` and `env use` accept the shortened id a
 table prints; `--from` needs the full id, which `--json` prints.
 
+## 0. Check the current session
+
+Before any local CLI, login or Docker checks, inspect the available plugin tools
+and runtime context. If they indicate that this session already executes inside a
+plugin-managed sandbox, read [../veris-reference/session.md](../veris-reference/session.md),
+verify it live and follow its setup path. It replaces the provisioning/run/cleanup
+steps below, then rejoins the shared notes and helper staging. A plugin with no
+attached twin has an unmet provider prerequisite; do not provision a replacement.
+Missing Docker or an API key alone does not select this path.
+
 ## 1. Check the machine
 
 Run `veris doctor`. It prints one line per check, in this order: the binary's version,
@@ -440,7 +450,9 @@ sandbox into `.veris/NOTES.md`: owners, paths, hashes.
 `fix` keeps a ledger of what it measured, and checks that ledger against the diff. Two
 scripts that ship in this plugin do the work. Copy `record.sh` and `ledger.sh` from
 this plugin's `veris-reference/scripts/` directory into `.veris/bin/`; derive the
-absolute path of that directory from the path of the file you are reading. Re-running
+absolute path of that directory from the path of the file you are reading. In
+OpenCode, use `verisSkill` to read the installed scripts, write their exact content
+with the repository's write tool, and verify the returned SHA-256. Re-running
 setup copies them again, which is how a stale copy is repaired.
 
 `record.sh` reads three facts from `.veris/setup.json`, and `ledger.sh` reads none.

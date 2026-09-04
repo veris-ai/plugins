@@ -62,15 +62,32 @@ default sandbox has neither network nor the Docker socket, so start it with
 `codex -s danger-full-access -a never` (or pre-approve `veris` and `docker` prefix
 rules). Otherwise every command waits on an approval.
 
-OpenCode installs the plugin from npm:
+OpenCode uses the published skills package plus one selected sandbox plugin:
 
-```
-opencode plugin opencode-veris -g
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+    "@veris-ai/veris-sim-opencode@latest",
+    "@veris-ai/daytona-opencode@latest"
+  ]
+}
 ```
 
-(equivalently, add `"opencode-veris"` to the `plugin` array in
-`~/.config/opencode/opencode.json`). The plugin registers the same three commands.
-The commands are plain OpenCode commands, which only the engineer can start.
+For E2B replace the second entry with `@veris-ai/e2b-opencode@latest`. These are
+OpenCode plugins configured in `opencode.json`, not `npx` commands. Set the
+provider's host credentials and environment, restart OpenCode, then run
+`/veris:setup`, `/veris:build` or `/veris:fix`. Setup verifies the attached session
+before local CLI/Docker checks; the provider owns its twin and cleanup. Changes
+return through `gitSync` to a local `opencode/N` branch; ignored evidence needs an
+explicit handoff. Record the resolved published versions for reproducibility.
+
+See [OpenCode installation and release prerequisites](veris/.opencode-plugin/README.md)
+and the [provider differences](veris/skills/veris-reference/opencode.md). The
+published skills 0.7.0 release predates this session path; it requires the next
+skills release. The package name remains `@veris-ai/veris-sim-opencode`, with
+`veris/skills` as its canonical content. It can also be installed alone for a
+CLI-owned workflow.
 
 Any other agent, through the `skills` CLI:
 
@@ -80,12 +97,20 @@ npx skills add veris-ai/plugins --all
 
 ### The credential
 
+In a plugin-managed OpenCode session, use the provider host variables described
+[here](veris/skills/veris-reference/opencode.md#discovery-and-control-access).
+The following login applies to CLI-owned workflows.
+
 `veris login` pairs the machine once: it prints a code and a link, you approve in
 the studio, and the key is saved under `~/.veris` with owner-only permissions. The
 skills never see or print it. In CI, set `VERIS_API_KEY` instead; it beats the
 saved profile on every command.
 
 ### Versions
+
+0.7.3 — OpenCode commands load skills from the installed package in Daytona and
+E2B sessions, reuse the attached twin, and require evidence attributable to each
+application run. The plugin owns lifecycle; generated changes use its git sync.
 
 0.7.2 — a hosted tier, with a Daytona provider recipe. `setup` can run tests remotely
 when requested, or when the code needs redirection and Docker is unavailable.
