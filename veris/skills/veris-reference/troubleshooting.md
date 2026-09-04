@@ -144,6 +144,24 @@ verification: each modifies the code path under test.
   can be much slower than a success path. Remove one left armed from an earlier probe
   with `veris sandbox data delete <twin> faults id=<fault id> --yes`.
 
+## The agent is sandboxed
+
+Symptoms, on a machine where the engineer says the network and Docker both work:
+`veris doctor` prints `✗ … dial tcp: lookup svc.api.veris.ai: no such host` for the
+control plane and `! docker on PATH but docker info failed: permission denied … docker.sock`;
+or, past setup, `veris up` fails with the same `no such host`; or every `veris` and
+`docker` command waits on an approval before it runs.
+
+The cause is not the machine. The agent's own sandbox has no network and no Docker
+socket, so nothing here can reach the control plane or the daemon, and a policy that
+escalates per command turns each one into a wait. Nothing in these skills can lift
+that; only the engineer can, by restarting the agent with network and Docker access
+— the install notes for their client say how — and running the command again.
+
+Say so and stop. Do not retry, do not work around it with the direct tier, and do not
+read the two lines as a broken install: `veris doctor` on the engineer's own shell
+will show everything green.
+
 ## A container the run did not start
 
 The over-mount and the trust environment reach only the workload container that

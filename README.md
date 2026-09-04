@@ -57,6 +57,11 @@ codex plugin add veris@veris
 Codex names plugin commands after the plugin: `$veris:setup`,
 `$veris:build <issue link or prompt>`, `$veris:fix <issue link or prompt>`.
 
+The commands run `veris`, `docker` and the control plane from the shell, and Codex's
+default sandbox has neither network nor the Docker socket, so start it with
+`codex -s danger-full-access -a never` (or pre-approve `veris` and `docker` prefix
+rules). Otherwise every command waits on an approval.
+
 OpenCode installs the plugin from npm:
 
 ```

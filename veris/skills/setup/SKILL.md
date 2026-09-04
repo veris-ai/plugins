@@ -66,6 +66,10 @@ the same checks on stdout.
 - `!` about Docker: the container tier in step 3 runs the tests inside Docker, so
   Docker must be running. Ask the engineer to start it. Never fall back to running
   without `--image` for code under test.
+- `✗` with `no such host` for the control plane, or `!` with `permission denied` on
+  `docker.sock`, on a machine where the engineer says both work: you are sandboxed.
+  [../veris-reference/troubleshooting.md](../veris-reference/troubleshooting.md),
+  **The agent is sandboxed**. Stop there.
 - `!` about a missing project file or sandbox on a fresh repository is the expected
   state, not a problem.
 - Any other `✗`: say which line and how to fix it, then stop.
@@ -139,6 +143,25 @@ proxy settings. If deriving the image took real work, keep it as `Dockerfile.ver
 the root with a comment naming the build tag. If the tests cannot run in a container
 at all, stop and tell the engineer. Done when `docker image inspect <tag>` succeeds.
 
+When the proving run in step 6 fails before the app reaches the vendor — a module the
+interpreter cannot find, an import that does not resolve, a binary not on PATH — fix the
+image and rebuild it. Do not repair the run line with `-e PYTHONPATH=…` or a mount over
+the image's own copy: `.veris/NOTES.md` records commands that work against the image as
+built, and every later run inherits the workaround. The usual cause is installing the
+project before its source is in the image. With uv:
+
+```dockerfile
+FROM ghcr.io/astral-sh/uv:0.9-python3.12-bookworm-slim
+WORKDIR /app
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-install-project
+COPY src ./src
+COPY tests ./tests
+RUN uv sync --frozen
+```
+
+Dependencies first, so they cache; the project last, once its source exists.
+
 ## 4. Create the environment
 
 ```
@@ -161,13 +184,18 @@ bundle, seeds nothing, and `veris run` takes its command after `--`. Only the na
 what it records, not to answer a question. The one pairing is `--boot snapshot`, which
 is refused without `--snapshot ID|NAME`.
 
-Before creating an environment, run `veris env list --json` and read the services of
-every environment already on the server. **If one of them already has every service
-on your list, adopt it rather than creating a second:**
-`veris env create <name> --from <full id>`, with the same remaining flags. Create a
-new environment only when none of them has them all. `--from` and `--services` cannot
-be combined, so an adopted environment keeps the server's service list and you cannot
-extend it here. Names are not unique on the server, so say which id you used.
+Before creating an environment, run `veris env list --json` and read the name and
+services of every environment already on the server. **Adopt one only when it is this
+project's: its services are exactly your list, or its server name is the project's.**
+Then `veris env create <project-name> --from <full id>`, with the same remaining
+flags. Otherwise create one named for the project, even when an existing environment
+contains every service you need. A superset boots and bills twins the code never
+calls, and another project's environment is shared with it: `env delete --server` and
+`baseline promote` by either side land on both. When you adopt, the question you ask
+before creating anything names the environment as the server does, with its id, and
+says it is shared. `--from` and `--services` cannot be combined, so an adopted
+environment keeps the server's service list and you cannot extend it here. Names are
+not unique on the server, so say which id you used.
 
 The name and services go to the server. Everything else is written to
 `.veris/twin.yaml`, under the environment: the TTL if you gave one, boot source, data
@@ -222,10 +250,17 @@ Add what the command needs, the same way `docker run` would.
 - `-v` to mount the repository where the image expects the code, when the image does
   not already contain it. `docker image inspect <tag>` names the image's WORKDIR.
 - `-v <dir>:/run/keys:ro -e KEYS_DIR=/run/keys` for a credentials directory the app
-  reads. Fill it with a made-up credential of the shape the twin accepts, rather than a
-  real vendor key. That works unless the twin enforces its own published credentials;
-  the paragraph on auth modes below says what to do then.
-- `-e` for any variable the test expects.
+  reads. The credential in it comes from the twin, not from a real vendor and not made
+  up: the manual's Credentials section (`veris sandbox services manual <twin> --raw`)
+  names the table that holds the published keys, and `veris sandbox data get <twin>
+  <table> --json` prints them whole — for Stripe, table `config`, column `api_keys`. A
+  published key works in both auth modes. Make one up only when the manual says
+  well-formed keys are accepted and publishes none, and then match the real vendor's
+  prefix and length, since the twin refuses a malformed key the way the vendor does:
+  Stripe's takes `^(sk|rk)_(test|live)_[A-Za-z0-9]{8,}$`, so `sk_test_veris` is a 401
+  and `sk_test_` followed by 24 characters is not.
+- `-e` for any variable the test expects, a key included: the same rule as the
+  directory above.
 
 Mount nothing but the repository, a dependency cache, or a credentials directory.
 
@@ -252,12 +287,13 @@ them, are the run's receipt.
 Counts above zero are not enough on their own. If both counts are above zero but the
 run failed, the call reached the twin and the twin refused it. Read the twin's auth
 mode with `veris sandbox data get <twin> auth`. A `permissive` twin accepts any
-credential well-formed for that vendor; an `enforced` twin accepts only one it
-published. Read the twin's own Credentials section with
-`veris sandbox services manual <twin> --raw`; it says where those published credentials
-live. Then give the app a credential the twin takes, or prove the wiring with a twin
-whose credential you have. Either way, it goes in step 7 under **Credentials and
-versions**.
+credential well-formed for that vendor, so a 401 from one means the key's shape is
+wrong, not that a published key is required; an `enforced` twin accepts only one it
+published. In both modes the published keys are the answer: the manual's Credentials
+section (`veris sandbox services manual <twin> --raw`) says which table holds them, and
+`veris sandbox data get <twin> <table> --json` prints them — the table view cuts long
+cells short. Then give the app one, or prove the wiring with a twin whose credential
+you have. Either way, it goes in step 7 under **Credentials and versions**.
 
 Then record the full command in `.veris/NOTES.md` at step 7. `twin.yaml` holds only the
 image, the required twin and the command after `--`. Only a mount that produced a

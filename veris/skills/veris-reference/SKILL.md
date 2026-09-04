@@ -15,7 +15,7 @@ Not a command. `setup`, `build` and `fix` link to the file a step needs:
 | `direct.md` | the app reads every vendor base URL from the environment and needs no proxy |
 | `faults.md` | the task is about a failure, or a case needs a condition the vendor will not produce on demand: fault rows, credentials, the clock |
 | `webhooks.md` | the application receives callbacks |
-| `troubleshooting.md` | what the receipt, an exit code, a trace tier, a certificate error or a vendor-shaped error means |
+| `troubleshooting.md` | what the receipt, an exit code, a trace tier, a certificate error, a vendor-shaped error or a sandboxed agent's `doctor` lines mean |
 | `evidence.md` | writing the PR's verification section |
 | `proof.md` | what closes a claim: the three layers, the ledger's four dispositions, the identity a fix rests on |
 
