@@ -237,8 +237,10 @@ install and blames something else.
 `--allow-out <host>` fits until the required hosts alone reach 20, and each one costs a
 registry slot. Past 20 the runner refuses at create and lists what it wanted.
 
-An image carrying its own dependencies needs no registry, which returns those 9 slots.
-The option is `veris.allowRegistries: false` in the SDK; the CLI has no flag for it.
+An image carrying its own dependencies needs no registry at all, so the trim line stops
+mattering. Turning them off does not make room for more twins: a twin's hostnames are
+never what gets trimmed. The option is `veris.allowRegistries: false` in the SDK; the
+CLI has no flag for it.
 
 ## Daytona
 
