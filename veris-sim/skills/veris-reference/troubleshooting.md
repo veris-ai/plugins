@@ -51,9 +51,10 @@ a gate proving recovery usually needs both.
 ## An SDK refuses the proxy's certificate
 
 The proxy redirects traffic below every library, but trust is decided inside the
-process. An SDK that ships its own CA bundle and hands it straight to the TLS layer,
-Stripe's Python and Ruby clients, older botocore, httplib2, reads none of the trust
-environment and refuses the proxy's certificate even though routing worked.
+process. Some SDKs ship their own CA bundle and hand it straight to the TLS layer:
+Stripe's Python and Ruby clients, older botocore, httplib2. Such an SDK reads none of
+the trust environment, and it refuses the proxy's certificate even though routing
+worked.
 
 Symptoms: `CERTIFICATE_VERIFY_FAILED`, `SSLError`, "unable to get local issuer
 certificate", or a generic connection error against a twin's host while other twins
@@ -68,20 +69,21 @@ a `Next:` step. Follow the `Next:` step; it is computed from what the run alread
 tried. A softer `<host>: N TLS handshake(s) ended after the certificate was minted;
 0 requests completed -- CA rejection or certificate pinning is likely ... not
 certain` appears when the connection closed without a TLS alert (Node does this). It
-does not fail the run unless the whole receipt is empty; then it does. A host that
-completed some requests and also rejected handshakes gets a non-fatal line
-(`rejected ... even though N request(s) completed -- another client in this run
-refused the interception CA`): two clients disagreed about the CA, and the one that
-completed may be a health check or a second client rather than the code under test.
-So when the SDK reports a connection error but the receipt shows traffic for that
-host, read the trace's paths to see whose traffic it was.
+does not fail the run unless the whole receipt is empty; then it does.
+
+A host that completed some requests and also rejected handshakes gets a non-fatal line:
+`rejected ... even though N request(s) completed -- another client in this run refused
+the interception CA`. Two clients disagreed about the CA. The one that completed may be
+a health check or a second client rather than the code under test. So when the SDK
+reports a connection error but the receipt shows traffic for that host, read the
+trace's paths to see whose traffic it was.
 
 The fix, in order:
 
 1. `veris run --patch-bundled-cas`. It scans the image and the `-v` mounts for the
-   bundles it knows (pip's vendored certifi, certifi, botocore, stripe for Python and
-   Ruby, httplib2), appends the proxy's certificate to a copy of each, and mounts the
-   copy read-only over the original. The SDK keeps loading its own file; it just
+   bundles it knows: pip's vendored certifi, certifi, botocore, stripe for Python and
+   Ruby, httplib2. It appends the proxy's certificate to a copy of each, and mounts
+   that copy read-only over the original. The SDK keeps loading its own file; it just
    carries one more root. It prints one line per file over-mounted, one per file that
    already carried the certificate, and a count; nothing for files it does not know.
    A CA-bundle-shaped file outside that table (named `cacert.pem`,
@@ -93,21 +95,22 @@ The fix, in order:
 2. A JVM client reads a JKS truststore: build one containing the proxy's certificate
    and pass `--java-truststore <path>` (`--java-truststore-pass` when it is not
    `changeit`).
-3. Over-mount by hand when the line persists: find the SDK's bundled CA file in the
-   image or the mounted venv or `node_modules` (the failure line names the
-   candidates), copy it out, append the proxy's certificate, and mount the copy back
+3. Over-mount by hand when the line persists. Find the SDK's bundled CA file in the
+   image, in the mounted venv or in `node_modules`; the failure line names the
+   candidates. Copy it out, append the proxy's certificate, and mount the copy back
    over the original with `-v "$PWD/.veris-trust/patched.crt:/exact/container/path:ro"`.
-   The certificate to append: each run's proxy mints its own and publishes it inside
-   the workload at `/veris-share/veris-ca.pem`, so bind the file writable and append
-   it as the run's first step (`-- sh -c 'cat /veris-share/veris-ca.pem >> /path; <tests>'`);
-   on the host tier it is `~/.veris/ca/veris-ca.pem`. Append, never replace: a file
-   holding only the proxy's certificate breaks the SDK's trust for every real host.
-4. No bundled CA file anywhere means the SDK pins: SPKI hashes or certificate
-   fingerprints (OkHttp `CertificatePinner`, curl `--pinnedpubkey`, aiohttp
-   `fingerprint=`, urllib3 `assert_fingerprint`), a second check after chain
-   validation that no added root can satisfy. The failure line says so when
-   `--patch-bundled-cas` covered every known bundle and no other bundle-shaped file
-   exists. Stop and report it; retrying will not change it.
+   Each run's proxy mints its own certificate and publishes it inside the workload at
+   `/veris-share/veris-ca.pem`; on the host tier it is `~/.veris/ca/veris-ca.pem`. So
+   bind that file writable and append it as the run's first step:
+   `-- sh -c 'cat /veris-share/veris-ca.pem >> /path; <tests>'`. Append, never replace:
+   a file holding only the proxy's certificate breaks the SDK's trust for every real
+   host.
+4. No bundled CA file anywhere means the SDK pins: it checks SPKI hashes or certificate
+   fingerprints. OkHttp's `CertificatePinner`, curl's `--pinnedpubkey`, aiohttp's
+   `fingerprint=` and urllib3's `assert_fingerprint` all do this. Pinning is a second
+   check after chain validation, and no added root can satisfy it. The failure line
+   says so when `--patch-bundled-cas` covered every known bundle and no other
+   bundle-shaped file exists. Stop and report it; retrying will not change it.
 
 Never set the SDK's CA or verify options in test code, monkey-patch `ssl`, or disable
 verification: each modifies the code path under test.
@@ -141,12 +144,13 @@ verification: each modifies the code path under test.
 
 ## A container the run did not start
 
-The over-mount and the trust environment reach only the workload container `veris run`
-starts. A compose service that joins the proxy's network namespace
-(`network_mode: "container:veris-proxy-…"`), an API server, a worker, any sidecar
-that is the process actually calling the vendor, shares the redirect but not the
-trust: every vendor call dies (`SELF_SIGNED_CERT_IN_CHAIN` in Node) while the workload
-looks healthy and the receipt shows nothing for that twin. The run's TLS failure
+The over-mount and the trust environment reach only the workload container that
+`veris run` starts. Another container can share the redirect without sharing the
+trust: an API server, a worker, or any compose service that joins the proxy's network
+namespace with `network_mode: "container:veris-proxy-…"`. When such a sidecar is the
+process actually calling the vendor, every vendor call from it dies —
+`SELF_SIGNED_CERT_IN_CHAIN` in Node — while the workload looks healthy and the receipt
+shows nothing for that twin. The run's TLS failure
 line ends with a note about exactly this ("A sibling container this run did not
 start ... never receives the trust handoff"). Hand the sidecar the trust environment:
 

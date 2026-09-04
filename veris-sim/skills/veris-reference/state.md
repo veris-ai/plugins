@@ -5,11 +5,11 @@
 `veris up` makes it; `veris down` deletes it; its TTL is the backstop. A sandbox is
 hermetic: two sandboxes never share rows, faults, the clock or a callback
 registration. Ending the task is the teardown. A sandbox left behind by an
-interrupted session is still alive, and a later session could mistake it for its
-own: `veris sandbox list` shows the in-use environment's sandboxes, and
-`veris sandbox list --all` every environment's. `veris sandbox delete --id <id> --yes`
-removes one that is not this folder's; `veris down --all --yes` deletes every sandbox
-of the in-use environment.
+interrupted session is still alive, and a later session could mistake it for its own.
+`veris sandbox list` shows the in-use environment's sandboxes, and
+`veris sandbox list --all` shows every environment's.
+`veris sandbox delete --id <id> --yes` removes one that is not this folder's, and
+`veris down --all --yes` deletes every sandbox of the in-use environment.
 
 ## Seeding rows
 
@@ -44,20 +44,21 @@ of the in-use environment.
   ```
   curl --fail-with-body -sS -X POST "<control url>/veris/reset" -H 'Content-Type: application/json' -d '{"profile":"default"}'
   ```
-  `{"profile": …}` loads the packaged starting data, `{"data": {…}}` exact rows;
-  neither may leave an empty dataset, and any other key is refused with 422, leaving
-  the data as it was. This works on an image-booted sandbox too.
+  `{"profile": …}` loads the packaged starting data, and `{"data": {…}}` loads exact
+  rows. Neither may leave an empty dataset. Any other key is refused with 422, and the
+  data is left as it was. This works on an image-booted sandbox too.
 - File bytes are not rows. See **Files**.
 
 ## Files
 
 A file hangs off a row: a Drive file belongs to a user, a Dropbox file to an account,
-an attachment to an issue. So the order is fixed: rows first, files second. Twins
-whose files sit in a tree take them through their upload route, and the manual shows
-it; a twin whose files are attachments takes bytes only through the vendor's own
-upload API, the way the app sends them, and the manual says so. Uploading to a twin of
-the second kind answers 404 "this service does not support folder imports", a plain
-refusal that is evidence, not noise.
+an attachment to an issue. So the order is fixed: rows first, files second.
+
+Twins take files in two ways, and the manual says which way a twin takes them. A twin
+whose files sit in a tree takes them through its own upload route. A twin whose files
+are attachments takes bytes only through the vendor's own upload API, the way the app
+sends them. Uploading to a twin of the second kind answers 404, "this service does not
+support folder imports". That is a plain refusal, and it is evidence, not noise.
 
 1. `veris sandbox services manual <twin>` names the table that owns files;
    `veris sandbox data schema <twin> --table <t>` shows its shape.
@@ -84,13 +85,15 @@ refusal that is evidence, not noise.
 Limits: 1 GB per file, 20 GB and 25,000 files per environment. An upload over a limit
 is refused with the number; nothing is truncated.
 
-Files follow rows: a reset restores the seeded set; a promote or a snapshot keeps
-them; files the app uploaded during a run go away with the sandbox unless the state
-is kept. A sandbox whose baseline holds many files stays provisioning for a few
-minutes while they are copied in. `veris up` waits five minutes by default; give it
-more with `--timeout 10m`. Only `failed` is a failure, and `veris up` exits 1 on it
-with the reason; a timeout exits 4 and keeps the sandbox for `veris status` to pick
-up. A data file the twin refuses during `veris up` exits 1 with the sandbox kept.
+Files follow rows. A reset restores the seeded set. A promote or a snapshot keeps the
+files. Files the app uploaded during a run go away with the sandbox, unless the state
+is kept.
+
+A sandbox whose baseline holds many files stays provisioning for a few minutes while
+they are copied in. `veris up` waits five minutes by default; give it more with
+`--timeout 10m`. Only `failed` is a failure, and `veris up` exits 1 on it with the
+reason. A timeout exits 4 and keeps the sandbox for `veris status` to pick up. A data
+file the twin refuses during `veris up` exits 1 with the sandbox kept.
 
 Rows-only state is cheap to seed per task and does not need to be kept.
 
@@ -117,10 +120,10 @@ keep them, chosen by who should start from them:
 - **Every future sandbox of this environment:** `veris baseline promote`. It copies
   the sandbox's state, files included, into the environment's default; every later
   `veris up`, including the fresh sandbox a `veris run --fresh` makes, starts from it.
-  The capture is a boundary: the source sandbox is left frozen and scrubbed and is
-  deleted afterwards (`--keep-source` keeps it), so promote is the last thing done
-  with it. Done when `veris baseline get` shows the pin. Only `setup` promotes, and
-  only with the engineer's yes.
+  The capture is a boundary: the source sandbox is left frozen and scrubbed, then
+  deleted. `--keep-source` keeps it instead. Either way, promote is the last thing done
+  with that sandbox. Done when `veris baseline get` shows the pin. Only `setup`
+  promotes, and only with the engineer's yes.
 - **Only some runs**, an empty account and a populated one, a trial and an expired
   trial: `veris snapshot create --name <name>`. Many per environment; the default
   boot is unchanged. Names are not unique; the newest wins a name lookup, so
@@ -132,9 +135,9 @@ keep them, chosen by who should start from them:
   returns to the packaged data. A snapshot cannot be deleted while a sandbox booted
   from it is alive; the delete answers 409 until that sandbox is gone.
 
-Both captures block on the control plane, and the answer may be dropped after about
-150 s while the capture continues; the CLI then polls for the new row or the changed
-pin rather than sending the capture again, which would mint a second image. Do not
+Both captures block on the control plane. After about 150 s the answer may be dropped
+while the capture itself continues. The CLI then polls for the new row or the changed
+pin, rather than sending the capture again, which would mint a second image. Do not
 re-run it yourself. `--clock-restore today|frozen|rebase` on either says what a
 sandbox booted from the capture does with its clock (default `today`).
 

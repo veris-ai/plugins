@@ -4,16 +4,17 @@ The proxy routes your code out; a webhook comes back in, and a sandbox in the cl
 cannot reach an application on a laptop or a private network. Localhost and private
 addresses are not delivery targets.
 
-**Under `veris run`:** `--expose <port>` (the port your app listens on) opens a public
-tunnel and registers it with the sandbox; `proxy.expose` in `.veris/twin.yaml` sets
-it for every run. The tunnel is cloudflared, and `veris doctor` says whether it is on
-PATH. The app shares the proxy's port space, and 8081 and 8443 are the proxy's own
-listeners, so have the app listen elsewhere, 3000 say. Your app is handed
-`VERIS_PUBLIC_URL` and registers it with the vendor through the vendor's own API,
-because that registration call is also code under test.
-`--require-callback <path>[:n]` (or `'*'` for any path; `proxy.require_callback` in
-`.veris/twin.yaml` sets the default) asserts delivery the way `--require-service`
-asserts egress: a webhook suite that received nothing must not pass. The run prints
+**Under `veris run`:** `--expose <port>` opens a public tunnel and registers it with
+the sandbox, where the port is the one your app listens on. `proxy.expose` in
+`.veris/twin.yaml` sets it for every run. The tunnel is cloudflared, and `veris doctor`
+says whether it is on PATH. The app shares the proxy's port space, and 8081 and 8443
+are the proxy's own listeners, so have the app listen elsewhere, on 3000 say. Your app
+is handed `VERIS_PUBLIC_URL` and registers it with the vendor through the vendor's own
+API, because that registration call is also code under test.
+
+`--require-callback <path>[:n]` asserts delivery the way `--require-service` asserts
+egress: a webhook suite that received nothing must not pass. Pass `'*'` for any path,
+and `proxy.require_callback` in `.veris/twin.yaml` sets the default. The run prints
 what arrived as `the sandbox delivered N callback(s):` lines, one per path with its
 status. A sandbox per run (`--fresh`) keeps concurrent runs from overwriting each
 other's callback URL.
@@ -29,11 +30,12 @@ never verified by Veris: verifying them is the app's job, and the secrets live i
 twin's rows. `veris doctor` reports the sandbox's callback registration and probe
 state: `Callbacks registered at <url> (probe answered)` is good; `the tunnel behind
 it is gone` means an earlier run left the registration. Confirm the last probe result
-came from the application, not a tunnel error page. Without inbound HTTP, read
-`deliveries` and `delivery_attempts` through
-`veris sandbox data get <twin> deliveries`, and `veris sandbox trace --tier delivery`
-for the delivery exchanges; add `delivery_rules` rows with `veris sandbox data add`
-before the triggering action to suppress or delay delivery. A delivery the sandbox
-refused to send, because the destination was private or plain HTTP, shows in
-`delivery_attempts` with the reason. A frozen sandbox clock pauses delivery;
-`veris sandbox clock set --live` resumes it.
+came from the application, not a tunnel error page.
+
+Without inbound HTTP, read `deliveries` and `delivery_attempts` through
+`veris sandbox data get <twin> deliveries`, and read the delivery exchanges with
+`veris sandbox trace --tier delivery`. To suppress or delay a delivery, add
+`delivery_rules` rows with `veris sandbox data add` before the triggering action. A
+delivery the sandbox refused to send, because the destination was private or plain
+HTTP, shows in `delivery_attempts` with the reason. A frozen sandbox clock pauses
+delivery; `veris sandbox clock set --live` resumes it.

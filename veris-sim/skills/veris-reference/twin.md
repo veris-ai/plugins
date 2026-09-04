@@ -18,14 +18,18 @@ the same address the app's traffic reaches.
 | What did the client send, and what did the vendor store? | `veris sandbox trace` (method, path, status, newest first, merged across every twin; `--service <twin>` for one twin, `--tier handler` for the app's traffic, `--tier fault` for an injected exchange, `--body <id>` for one entry's request and response headers and bodies, `--since <id>` for everything after a watermark, `--limit <n>` to bound the page, `--follow` to poll every 2 s until Ctrl-C) and `veris sandbox data get <twin> <table>` (one page of that table's rows: 20 by default, `--limit <n>` widens it). Its header claims *newest first*; it is not — the order is the twin's own, and a row written a minute ago can be off the first page. The header also prints *N of M rows*: pass `--limit <M> --json`, send that page to a file and find your row there by the id the call returned, never by where it sits. `veris sandbox trace --body <id>` still shows the exchange after the suite has deleted the row |
 | What happens after time passes: expiry, retention? | The sandbox clock: [faults.md](faults.md). Forward, never backwards during a suite |
 
-Four things about the trace. It records your own `/veris/*` seeding and read-back
-too, as tier `control`, so an unfiltered page after a heavy seed can be mostly your
-own writes; filter to the tier you mean before counting anything. Ids are each twin's
-own sequence, so a watermark is per twin: pair `--since` with `--service`, or a quiet
-twin's rows all fall below a busy twin's id and read as nothing received.
-Credentials, cookies, OAuth codes and private keys show as `[REDACTED]`; the query
-string is not recorded. And times are the sandbox's own clock, in UTC; a row whose
-status is a bare dash is a hang fault, where the twin sent nothing.
+Four things about the trace:
+
+- It records your own `/veris/*` seeding and read-back too, as tier `control`. An
+  unfiltered page after a heavy seed can be mostly your own writes, so filter to the
+  tier you mean before counting anything.
+- Ids are each twin's own sequence, so a watermark is per twin. Pair `--since` with
+  `--service`; otherwise a quiet twin's rows all fall below a busy twin's id and read
+  as nothing received.
+- Credentials, cookies, OAuth codes and private keys show as `[REDACTED]`, and the
+  query string is not recorded.
+- Times are the sandbox's own clock, in UTC. A row whose status is a bare dash is a
+  hang fault, where the twin sent nothing.
 
 Read small things inline: a manual is short, and one error exchange may genuinely need
 its body and headers. Never pull a whole schema or a whole table into the
@@ -35,6 +39,6 @@ fields are evidence.
 ## Keeping what you measured
 
 A probe's answer is a fact the PR can cite and a reviewer can check; an assumption is
-neither. Record what was measured, the command, the ids, the counts, where the design
-decision and the PR can point at it, and say under *assuming rather than verifying*
-what was not.
+neither. Record what was measured: the command, the ids, the counts. Put that record
+where the design decision and the PR can point at it. What was not measured goes under
+*assuming rather than verifying*.

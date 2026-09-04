@@ -1,10 +1,11 @@
 # The run: the application's own code against the twin
 
-Read this to exercise a change, and to know what a green proves. `veris run` puts
-the application's unmodified code, production hostnames, credentials and client
-stack in front of the sandbox by rerouting its outbound HTTP(S) from outside the
-process, and ends with a **receipt** of what the sandbox received. Vendor MCP servers
-are covered too for the twins that offer one: keep the production MCP URL in the app.
+Read this to exercise a change, and to know what a green proves. `veris run` puts the
+application's unmodified code, production hostnames, credentials and client stack in
+front of the sandbox: it reroutes the application's outbound HTTP(S) from outside the
+process. The run ends with a **receipt** of what the sandbox received. Vendor MCP
+servers are covered too, for the twins that offer one: keep the production MCP URL in
+the app.
 
 ## Two tiers
 
@@ -58,19 +59,19 @@ fallback.
 - `-v`, `-e`, `-w` pass through to the workload container. Credentials the code
   expects still come from its environment, as in production. The sandbox publishes
   known-good ones; the twin's manual names where.
-- A twin with no hostname to intercept is **handed over, not proxied**: a database
-  twin's connection string, or a data-plane twin's URL (Yente), arrives in the
-  workload's environment under the variable the platform names for it
-  (`DATABASE_URL` for Postgres, `YENTE_API_BASE` for Yente), automatically. Do not
-  wire it yourself. The line `veris: postgres: not proxied; handed DATABASE_URL=…` is
-  not a gap: it names the variable the value went to. A twin the control plane served
-  no hostname for is handed over the same way and prints the same line — that one is
-  not by design; run `veris doctor` and read its vendor-hostnames line, which names
-  every twin the plane serves none for. An explicit `-e` of your own for that variable
-  still wins. A `--require-service` on such a twin is judged on the
-  sandbox's ledger alone, the only one its traffic reaches. Seed a database's
-  structure with `veris sandbox data add` and a `{"postgres": {"sql": "schema.sql"}}`
-  entry; reconnect after a reset.
+- A twin with no hostname to intercept is **handed over, not proxied**. A database
+  twin's connection string, or a data-plane twin's URL such as Yente's, arrives in the
+  workload's environment automatically. It arrives under the variable the platform
+  names for it: `DATABASE_URL` for Postgres, `YENTE_API_BASE` for Yente. Do not wire it
+  yourself. The line
+  `veris: postgres: not proxied; handed DATABASE_URL=…` is not a gap: it names the
+  variable the value went to. A twin the control plane served no hostname for is handed
+  over the same way and prints the same line. That one is not by design: run
+  `veris doctor` and read its vendor-hostnames line, which names every twin the plane
+  serves no hostname for. An explicit `-e` of your own for that variable still wins. A
+  `--require-service` on such a twin is judged on the sandbox's ledger alone, the only
+  one its traffic reaches. Seed a database's structure with `veris sandbox data add`
+  and a `{"postgres": {"sql": "schema.sql"}}` entry; reconnect after a reset.
 - With no command after `--`, the image's own ENTRYPOINT and CMD run untouched.
 - Mounts stay under the repository tree or a known dependency cache.
 
@@ -95,14 +96,20 @@ and leaves it running. Use that for a task: the faults armed and the state read 
 are the ones the code met. `--sandbox <id>` attaches to another sandbox; `--env NAME`
 picks a different environment's config from `.veris/twin.yaml`.
 
-Exit codes: the command's own; **1** a usage or configuration error; **3** the run
-never proved its traffic (empty receipt on a fresh run, an unmet `--require-*`, or
-every TLS handshake to a twin rejected, with a line naming the next step); **4**
-indeterminate (neither ledger could settle an assertion: the sandbox's was read only
-to its cap, or could not be read and the proxy's count was not there to answer). A
-`--require-service` passes when either ledger shows the count; the verdict line says
-which side decided when they disagree. Exit 3 outranks the command's own failure: a
-suite that crashed before reaching the sandbox proved nothing about the integration.
+The run exits with the command's own code, except for three codes of its own:
+
+- **1**: a usage or configuration error.
+- **3**: the run never proved its traffic. That is an empty receipt on a fresh run, an
+  unmet `--require-*`, or every TLS handshake to a twin rejected, with a line naming
+  the next step.
+- **4**: indeterminate, because neither ledger could settle an assertion. The sandbox's
+  ledger was read only to its cap, or it could not be read and the proxy's count was
+  not there to answer.
+
+A `--require-service` passes when either ledger shows the count, and the verdict line
+says which side decided when the two disagree. Exit 3 outranks the command's own
+failure: a suite that crashed before reaching the sandbox proved nothing about the
+integration.
 
 ## Working inside a run
 

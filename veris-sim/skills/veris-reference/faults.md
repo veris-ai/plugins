@@ -40,8 +40,8 @@ row above.
   5xx and connection errors internally, reusing the caller's idempotency key. A Stripe
   Node client was measured absorbing an armed 500 inside a single call, so it never
   reached the code under test, which reads as the bug not reproducing. If an armed
-  failure vanishes, check the client's retry setting before doubting the fault, and
-  arm a class the SDK does not retry (a 4xx, 429 say) to isolate the behaviour you
+  failure vanishes, check the client's retry setting before doubting the fault. Then
+  arm a class the SDK does not retry, a 4xx such as 429, to isolate the behaviour you
   mean to exercise.
 - `remaining: 1` spends the fault once. Persistent faults stay until deleted;
   `veris sandbox data get <twin> faults` shows what is armed, and cleanup removes a
@@ -49,13 +49,13 @@ row above.
   ```
   curl --fail-with-body -sS -X DELETE "<control url>/veris/data" -H 'Content-Type: application/json' -d '{"data":{"faults":[{"id":"<fault id>"}]}}'
   ```
-- A row can also carry `match` on body, query or path fields
-  (`{"body.resource_id": "…"}`, `{"query.expand": "items"}`, `{"path.id": "pi_123"}`;
-  the manual lists the keys a twin supports), `error.code`, `error.headers`,
-  `{"status": 502, "raw": true}` for a non-JSON gateway response, and
-  `idempotency: "bind"|"unbound"` for whether an error replays on key reuse. `bind`
-  is accepted only on a `phase: before`, `outcome: error` row without `raw`, since
-  nothing else produces a response the key can store.
+- A row can also carry `match` on body, query or path fields:
+  `{"body.resource_id": "…"}`, `{"query.expand": "items"}`, `{"path.id": "pi_123"}`.
+  The manual lists the keys a twin supports. A row can carry `error.code` and
+  `error.headers` as well, `{"status": 502, "raw": true}` for a non-JSON gateway
+  response, and `idempotency: "bind"|"unbound"` for whether an error replays on key
+  reuse. `bind` is accepted only on a `phase: before`, `outcome: error` row without
+  `raw`, since nothing else produces a response the key can store.
 
 ## A GraphQL twin
 
@@ -76,8 +76,8 @@ the client did next. That before-and-after is the evidence the PR quotes.
 
 ## Credentials
 
-In the default mode any well-formed API key, token or OAuth client pair works,
-published, seeded, or the app's own, so a wrong-key test passes for the wrong reason.
+In the default mode any well-formed API key, token or OAuth client pair works, whether
+published, seeded, or the app's own. So a wrong-key test passes for the wrong reason.
 To test rejection, arm value checking first on the twin's control URL:
 
 ```
@@ -91,9 +91,9 @@ connect flow against the sandbox, or take the seeded one from
 `veris sandbox data get <twin> oauth_tokens`; never insert tokens by hand.
 
 Some twins do not judge credentials themselves; they verify what a companion identity
-twin in the same environment minted. There the values are always checked and this
-row does not change acceptance, so arming it and seeing no difference is the design,
-not a broken sandbox. The `auth` table's description in
+twin in the same environment minted. There the values are always checked, and this row
+does not change acceptance. Arming it and seeing no difference is the design, not a
+broken sandbox. The `auth` table's description in
 `veris sandbox data schema <twin> --table auth` says which kind a twin is; read it
 before concluding anything from an unchanged result.
 
@@ -114,14 +114,14 @@ veris sandbox clock set --live                       # back to wall-aligned time
 vendor time: expiry, retention, replay windows. Freezing it stops vendor time at that
 instant, which is what makes a retention or expiry boundary reproducible instead of
 racing wall time. The command prints the complete resulting clock. Moving time
-backwards is allowed and prints the server's warning as a `!` line, since data is
-then dated in the future; never move it backwards during a suite. Advance the
+backwards is allowed, and it prints the server's warning as a `!` line, because data
+is then dated in the future. Never move it backwards during a suite. Advance the
 application's own test clock separately. `veris sandbox reset` sets the clock live
 again along with the data.
 
 The sandbox's clock is the only one that moves. A test that signs tokens or verifies
-signatures has to keep the application's clock, or the moment it mints the token, in
-step with it, or the skew becomes the result. And moving the clock can expire the
-credential you are holding: re-authenticate and measure again rather than reading
-that 401 as the vendor's answer. A frozen clock pauses outbound webhook delivery
-until it is set live again.
+signatures has to keep the application's clock in step with it, or keep the moment it
+mints the token in step with it. Otherwise the skew becomes the result. Moving the
+clock can also expire the credential you are holding: re-authenticate and measure
+again, rather than reading that 401 as the vendor's answer. A frozen clock pauses
+outbound webhook delivery until it is set live again.

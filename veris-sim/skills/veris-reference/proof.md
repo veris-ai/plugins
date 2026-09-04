@@ -35,7 +35,7 @@ that is the finding.
 ## The ledger, and the four dispositions
 
 This section is `fix`'s: the ledger is what its Gate 4 checks. A `build` has no
-ledger, no task id and no Gate 4 — its measurements go in the PR body, and the
+ledger, no task id and no Gate 4. Its measurements go in the PR body, and the
 dispositions below are how it names each one there.
 
 The scripts live in `.veris/bin/` once `setup` step 9 has run.
@@ -53,9 +53,9 @@ lives under `.veris/tasks/<task-id>/`. Every measurement ends as one of:
   **A gate failure. Change the code, never the report.**
 - **`UNRESOLVED`**: never settled. A gate failure.
 
-Ids stop resolving when the sandbox is deleted, so a `TWIN` row saves the
-redacted excerpt under `.veris/tasks/<task-id>/snapshots/`; a `build`, having no task
-id, saves the same excerpts to `.veris/evidence/<flow>.json`. Identifiers, paths,
+Ids stop resolving when the sandbox is deleted, so a `TWIN` row saves the redacted
+excerpt under `.veris/tasks/<task-id>/snapshots/`. A `build` has no task id, so it
+saves the same excerpts to `.veris/evidence/<flow>.json`. Save identifiers, paths,
 commands and excerpts only, never credentials; the check scans for secret shapes.
 
 The check confirms the ledger is complete, typed and locatable. It **cannot**
@@ -64,10 +64,10 @@ second layer. A person reads those.
 
 ## The identity, when Gate 2 binds
 
-An identity is a function of what the caller knows. **Name its inputs.** Any two
-inputs the caller must keep apart that your function maps to the same value is a
-collision, including **an input you dropped**. Joining, normalizing, truncating
-and hashing collide; so does projection, and copying discharges nothing.
+An identity is a function of what the caller knows. **Name its inputs.** If two
+inputs the caller must keep apart map to the same value, that is a collision, and
+**dropping an input** is one way to cause one. Joining, normalizing, truncating and
+hashing collide; so does projection, and copying discharges nothing.
 
 For retry, idempotency, deduplication or replay, three properties, each proven at
 its own layer:
@@ -92,6 +92,6 @@ the changed lines, walk to the files that dispatch to them:
 | | | | | |
 
 Every predicate selecting behaviour for the same request gets a row, with the
-value your green run carried. A predicate you cannot say which side you drove is
-not covered. **An undriven branch that can reach the same defect is a gate
-failure; one that cannot is a limitation, named.**
+value your green run carried. If you cannot say which side of a predicate your run
+drove, that predicate is not covered. **An undriven branch that can reach the same
+defect is a gate failure; one that cannot is a limitation, named.**
