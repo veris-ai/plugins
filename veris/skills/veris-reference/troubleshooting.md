@@ -9,12 +9,18 @@ and the evidence to tell them apart is already recorded.
 | `veris sandbox trace` | the wire trace of every request and response. The failing exchange can be replayed with curl before the sandbox, the proxy or the code is blamed. Ask for the tier the evidence is on |
 | `veris sandbox data get <twin> <table>` | what the vendor stored: the row a create produced, the replay it recorded, the state a callback left |
 
-## An empty receipt, exit 3
+Sandbox totals can include sibling token verification or concurrent traffic that the
+app's proxy never saw. A mismatch alone does not fail a requirement; compare the
+per-twin traces and the application's own outcome.
+
+## An unmet requirement, exit 3
 
 `veris run --fresh` exits 3 on its own when the run sent the sandbox nothing:
 deploying a sandbox for a suite that never called it is a failure, not a pass. A run
 against this folder's sandbox exits 3 when a `--require-*` is unmet. Causes, in
-order:
+order. If the failed requirement names a callback, use
+[webhooks.md](webhooks.md), **A callback requirement failed after successful outbound calls**,
+even when the outbound receipt is nonempty.
 
 1. The suite genuinely never calls its dependency: an in-process mock still active,
    the tests filtered out. Pick a test that does.

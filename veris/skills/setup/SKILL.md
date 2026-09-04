@@ -26,6 +26,11 @@ table prints; `--from` needs the full id, which `--json` prints.
 
 ## 1. Check the machine
 
+Check `git rev-parse --verify HEAD` and `git remote -v` as well. Without a Git
+commit, setup and `build` can still run, but `fix` cannot pin its comparison base.
+Without a PR remote, keep a local change description; do not initialize Git or add a
+remote unless the engineer asks. Instructions to commit below apply when Git exists.
+
 Run `veris doctor`. It prints one line per check, in this order: the binary's version,
 login, control plane, gateway mode, the vendor hostnames the plane serves, Docker,
 tunnel binary (cloudflared), certificate file, project file, environment, sandbox.
@@ -191,7 +196,9 @@ An unknown service name is refused and the catalog is printed. Take the name fro
 
 The `--ttl 60` above is a choice, not a requirement. Leave `--ttl` out and none is
 recorded, and the control plane applies its own default. A number outside what the
-server allows is refused, and the refusal names the bounds.
+server allows is refused, and the refusal names the bounds. Budget for image pulls,
+builds and read-back; pull the workload image before `veris up`. A running sandbox
+cannot be extended. Save evidence before expiry and before teardown.
 
 `--boot`, `--snapshot`, `--data` and `--command` behave the same way: each is recorded
 only when given, and nothing is written for the ones left out, so a sandbox boots the
@@ -213,6 +220,9 @@ says it is shared. `--from` and `--services` cannot be combined, so an adopted
 environment keeps the server's service list and you cannot extend it here. Names are
 not unique on the server, so say which id you used.
 
+Confirm the complete service union for all entry points before creating the environment.
+An omitted service requires a new environment; changing local defaults does not add it.
+
 The name and services go to the server. Everything else is written to
 `.veris/twin.yaml`, under the environment: the TTL if you gave one, boot source, data
 files, the test command as `run.command`, and a `proxy:` block built from the proxy
@@ -229,6 +239,12 @@ environments:
 Commit `.veris/twin.yaml`. `veris run` reads both settings from there, so the daily
 command carries neither flag. `--require-callback`, `--expose <port>` and `--strict`
 land in the same block.
+
+For multiple entry points, keep one default and record a full command per flow in
+NOTES, including each flow's `--require-service` and any callback flags.
+`require_service` is a list, and explicit `--require-service` flags replace the list
+for that run. A different command after `--` does not replace the requirements.
+Do not claim another entry point is verified because the default went green.
 
 Mounts, `-e` variables, `--patch-bundled-cas` and `--cap-add` have no key in the file.
 They go in the `veris run` line you record in `.veris/NOTES.md` at step 7. Data files
@@ -304,18 +320,32 @@ veris: ✓ required stripe ≥1: saw 6   ✓ ledgers agree (6 = 6)
 Those two counts are the run's two ledgers. The counts, and the verdict line under
 them, are the run's receipt.
 
-**Done when both counts for the required twin are above zero and the run exits 0.**
+Sandbox totals can exceed proxy totals: a product twin may verify a token with its
+sibling issuer inside the sandbox. Concurrent traffic can also contribute. Compare
+per-twin traces before diagnosing a mismatch; agreement is not a success condition.
+
+**Done when the run exits 0, its requirements pass, and the receipt and read-back
+identify traffic from the intended application flow.** A data plane may appear only
+in the sandbox ledger. Internal issuer traffic alone does not prove the app ran.
 
 Counts above zero are not enough on their own. If both counts are above zero but the
-run failed, the call reached the twin and the twin refused it. Read the twin's auth
-mode with `veris sandbox data get <twin> auth`. A `permissive` twin accepts any
-credential well-formed for that vendor, so a 401 from one means the key's shape is
-wrong, not that a published key is required; an `enforced` twin accepts only one it
-published. In both modes the published keys are the answer: the manual's Credentials
-section (`veris sandbox services manual <twin> --raw`) says which table holds them, and
-`veris sandbox data get <twin> <table> --json` prints them — the table view cuts long
-cells short. Then give the app one, or prove the wiring with a twin whose credential
-you have. Either way, it goes in step 7 under **Credentials and versions**.
+run failed, read the application error and the failed requirement. A vendor refusal,
+a missing callback, or a later application assertion can each fail after traffic
+arrived. Read the twin's auth mode with `veris sandbox data get <twin> auth`.
+Permissive credential checking does not remove a family issuer's token-provenance
+requirement: product twins such as Google Calendar still need a token from their issuer.
+An `enforced` twin checks credentials against its known state. Read the twin's own
+Credentials section with
+`veris sandbox services manual <twin> --raw`; it says where those published credentials
+live. Use `veris sandbox data get <twin> <table> --json` because the table
+view truncates long cells. Redirect that JSON into a new file in an owner-only temporary directory
+outside the repository (`mktemp -d`, with `umask 077`), then extract only the fields the app needs
+into its environment or a read-only credential file. Do not echo values or save them
+in evidence, and remove temporary credential files after the run. If a tool refuses
+credential access, resolve that permission; do not reroute it to bypass the refusal.
+Then give the app a credential the twin takes, or prove the wiring with a twin
+whose credential you have. Either way, it goes in step 7 under **Credentials and
+versions**.
 
 Then record the full command in `.veris/NOTES.md` at step 7. `twin.yaml` holds only the
 image, the required twin and the command after `--`. Only a mount that produced a
@@ -343,7 +373,13 @@ says which: `(engine; …)` or `(sandbox ledger; …)`. Exit 4 means neither cou
 settle a check, so the outcome is unknown. Run it again. If it repeats, check
 `veris status` and report it.
 
-If the exit code is 3, the code never reached the sandbox. Check, in order:
+For an inbound flow, use `--expose <port>` and `--require-callback <path>` as well as
+`--require-service`. Follow [../veris-reference/webhooks.md](../veris-reference/webhooks.md)
+for registration, signing and delivery read-back. Prove the receiver's own assertion;
+a successful payment does not prove receipt of its webhook.
+
+Exit 3 means a requirement was unmet. If it names a callback, follow the webhook
+reference before changing outbound wiring. For an unmet service requirement, check:
 
 1. The test never calls the vendor: an in-process mock still active, a filter that
    skipped it. Pick a test that does.
@@ -460,12 +496,13 @@ that builds that image and `build_outputs` is `[]`; put the image tag in
 `[]` is the honest answer there. Do not name a build that has nothing to do with the
 code under test.
 
-Append these two lines to `.gitignore` if they are not there already. Never ignore
+Append these lines to `.gitignore` if they are not there already. Never ignore
 `.veris/` as a whole: that would take `twin.yaml` and `NOTES.md` with it.
 
 ```gitignore
 .veris/bin/
 .veris/tasks/
+.veris/evidence/
 ```
 
 Then ask the engineer once where a task's diagnosis, ledger, record and saved evidence
@@ -474,14 +511,17 @@ three answers:
 
 - `pr-body`, the default: rendered into the change description.
 - `local`: kept on disk only.
-- `commit`: committed under `.veris/tasks/<task-id>/`.
+- `commit`: commit task artifacts under `.veris/tasks/<task-id>/` and build evidence
+  under `.veris/evidence/<flow>.json`. For `pr-body` and `local`, both directories
+  stay ignored; `pr-body` includes selected redacted evidence in the description.
 
 Before the engineer chooses `commit`, say plainly that it merges into the default
 branch and accumulates one directory per task. If they choose it anyway, drop the
-`.veris/tasks/` line you just added to `.gitignore`.
+`.veris/tasks/` and `.veris/evidence/` lines you just added to `.gitignore`.
 
 ## 10. Finish
 
+Save redacted evidence before cleanup, including after a failed proving run.
 `veris down --yes` deletes this folder's sandbox. After a promote in step 8 there is
 none left to delete. On the hosted tier, delete the hosted box first using the
 provider's teardown command ([../veris-reference/hosted.md](../veris-reference/hosted.md#cleanup)).

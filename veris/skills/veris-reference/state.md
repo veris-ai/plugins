@@ -15,6 +15,22 @@ A sandbox can hold a twin the environment never named: a service that signs in t
 a family issuer is deployed with that issuer, and `veris status` marks it `+`. That is
 the platform's doing, not a stray twin to remove.
 
+## Reading complete tables
+
+`data get <twin> <table>` is a page, including with `--json`; older CLI versions
+print the array without a truncation notice. Compare its length with the table count
+before drawing conclusions. Check `veris sandbox data get --help`: when `--all` is
+available, use `--all --json` to collect every page, then filter the saved array by
+the ids or owner from the run. `--offset` advances a single page. Stop writers during
+pagination; it is not an atomic snapshot.
+
+On older CLIs, `--limit` is bounded at 1000. For larger tables, page
+`<control_url>/veris/data?entity_type=<table>&limit=1000&offset=<offset>` and read
+`rows` and `total` from each response, advancing by the number returned. Stop and
+report a changed total, failed request or empty page before the total. Do not treat
+a partial read as a count of the whole table. Keep credential-bearing rows out of
+evidence; save only the identifiers, counts and nonsecret fields needed for the claim.
+
 ## Seeding rows
 
 - `veris sandbox data get <twin>` lists every table with its row count. The cheapest

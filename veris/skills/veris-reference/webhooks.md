@@ -39,3 +39,17 @@ Without inbound HTTP, read `deliveries` and `delivery_attempts` through
 delivery the sandbox refused to send, because the destination was private or plain
 HTTP, shows in `delivery_attempts` with the reason. A frozen sandbox clock pauses
 delivery; `veris sandbox clock set --live` resumes it.
+
+## A callback requirement failed after successful outbound calls
+
+Read `deliveries`, `delivery_attempts`, and `veris sandbox trace --tier delivery`
+for this run. An attempt with no response status does not prove the app received it.
+Use the attempt's error to distinguish destination refusal, DNS, connection or TLS
+failure, and timeout. Check `veris doctor` for the tunnel probe while the receiver
+is running, the registered URL and path, and the receiver's listening port.
+
+A response status proves an HTTP exchange, not signature verification or processing.
+Check the receiver's own assertion and logs. In particular, a callback can arrive
+before a waiting thread starts: a nonbuffering queue may discard it despite a 200.
+Preserve the attempt error and receiver outcome before teardown. Report the failed
+hop as unresolved when that evidence cannot distinguish the causes.

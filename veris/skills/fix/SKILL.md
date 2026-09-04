@@ -47,6 +47,10 @@ exists, bound the read yourself. Name the files, grep for the symbol, and read o
 hunk. Send long output to a file and grep that file, rather than into the conversation.
 Read small things inline: a row count, one table's shape, a filtered trace.
 
+**Git prerequisite:** `record.sh` requires an existing Git commit. If there is
+none, retain the diagnosis and reproduction locally and report that the base/diff
+gates are unavailable. Do not claim a completed `fix` or initialize Git implicitly.
+
 **Pin the base before the first edit:**
 `sh .veris/bin/record.sh base --task <id> --paths <the files the diagnosis implicates>`.
 Gate 4 measures against it. A base chosen once the diff exists is chosen by the
@@ -178,8 +182,11 @@ read-back: `veris sandbox trace --body <id>` gives the request the flow sent and
 twin's answer to it. Save that trace into `.veris/tasks/<task-id>/snapshots/` before
 teardown, because trace ids die with the sandbox too.
 
-Red before, green after, same flow. Exit 3 means the flow never reached the sandbox:
-fix the wiring, never the call. Exit 4 means the sandbox's ledger could not be read:
+Red before, green after, same flow. Exit 3 means a requirement was unmet: read
+which one. A missing callback
+can fail after successful outbound traffic; follow the webhook reference. Fix the
+wiring or receiver issue the evidence identifies, never the vendor call.
+Exit 4 means the sandbox's ledger could not be read:
 run it again, then `veris status`.
 
 One green proves one path. List every entry point that reaches the changed lines:
@@ -214,8 +221,10 @@ row format is in [../veris-reference/proof.md](../veris-reference/proof.md).
 
 ## The PR
 
-Open a draft the way the repository does. Its body has three sections, in the shape
-of [../veris-reference/evidence.md](../veris-reference/evidence.md):
+Open a draft the way the repository does. If there is no PR-capable remote, save
+the same description locally as `.veris/evidence/PR-<flow>.md` and report that no PR
+was opened; do not create a repository or remote implicitly.
+The description has three sections, in the shape of [../veris-reference/evidence.md](../veris-reference/evidence.md):
 
 - *What I verified, and how*: the fault armed, the before ledger, the after ledger, the
   receipt line.

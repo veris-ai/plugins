@@ -76,9 +76,10 @@ the client did next. That before-and-after is the evidence the PR quotes.
 
 ## Credentials
 
-In the default mode any well-formed API key, token or OAuth client pair works, whether
-published, seeded, or the app's own. So a wrong-key test passes for the wrong reason.
-To test rejection, arm value checking first:
+For a twin that checks API keys or OAuth client credentials itself, permissive
+mode accepts well-formed values without requiring a match in its state. OAuth tokens
+and companion-issuer verification still follow the provenance rules below.
+To test an unknown API key or client credential being rejected, arm value checking first:
 
 ```
 veris sandbox data set <twin> auth id=1 mode=enforced
