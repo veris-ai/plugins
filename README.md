@@ -85,6 +85,19 @@ the studio, and the key is saved under `~/.veris` with owner-only permissions. T
 skills never see or print it. In CI, set `VERIS_API_KEY` instead; it beats the
 saved profile on every command.
 
+### Hosted execution
+
+The hosted tier has provider recipes for
+[Daytona](veris/skills/veris-reference/daytona.md) and
+[E2B](veris/skills/veris-reference/e2b.md), with selection and evidence rules in
+[hosted.md](veris/skills/veris-reference/hosted.md). E2B uses the published
+`@veris-ai/e2b` SDK: attach a separate application-test box to the task's existing
+twin, upload the code, install dependencies and run commands. Resolve the latest
+release once, record its exact version and retain the dependency lockfile. The
+checked 0.1.1 release has no CLI; Daytona's verbs do not apply. E2B supports strict
+egress and public callbacks, with provider-specific setup and limits in its recipe.
+OpenCode provider configuration and session-owned sandboxes are a separate workflow.
+
 ### Versions
 
 0.7.2 — a hosted tier, with a Daytona provider recipe. `setup` can run tests remotely
