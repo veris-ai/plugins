@@ -35,12 +35,18 @@ configured` cannot serve one. The login line stays as it is.
   boxes it can never delete: teardown is refused and the box lives until Daytona's own
   brakes take it. Ask the engineer for the key; never print it.
 - `VERIS_API_KEY`, the same key `veris` uses. `veris-daytona` reads it from the
-  environment; a newer `@veris-ai/daytona` reads the `veris login` profile when the
-  variable is unset, and `veris-daytona provision --help` says which it needs. When the
-  variable is exported for this tool, `veris doctor`'s warning that the shell key
+  environment. Versions whose `veris-daytona provision --help` names the CLI profile
+  can instead read the `veris login` profile in `~/.veris/twin.yaml` when the variable
+  is unset. Those versions select `VERIS_PROFILE`, then the global active profile.
+  They do not read a project's `profile:` setting in `.veris/twin.yaml`: export
+  `VERIS_PROFILE=<that profile>` for both CLIs when the project selects one. Profile
+  support merged on main may not yet be on npm, so check the installed help. Older
+  versions still need `VERIS_API_KEY` and, for another plane, `VERIS_API_BASE` matching
+  `veris whoami`. When the key is exported, doctor's warning that the shell key
   overrides the profile is expected.
 
-Done when `veris-daytona --version` prints a version and both variables are set.
+Done when `veris-daytona --version` prints a version, `DAYTONA_API_KEY` is set, and
+Veris credentials are available through a source the installed version supports.
 
 ## The run
 

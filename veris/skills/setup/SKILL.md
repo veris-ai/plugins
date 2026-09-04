@@ -137,8 +137,8 @@ names the hint variable for every twin, and it needs no sandbox, so check for a
 missing hint here, before anything is running.
 
 The container tier is `veris run --image`: the tests run in a container with the proxy
-beside it. It is the tier for code under test. It covers every runtime, and it is the
-only tier that can patch an SDK's bundled certificates.
+beside it. It is the tier for code under test when Docker is available. It covers
+every runtime and can patch an SDK's bundled certificates.
 
 The Daytona tier stands in for the container tier when `veris doctor`'s Docker line
 is `!` and nobody can start a daemon here: the tests run in a Daytona sandbox whose
