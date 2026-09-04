@@ -36,8 +36,9 @@ For credential-bearing tables, establish the destination **before the first read
 `"$CREDS_DIR"`. Inspect field names with `jq 'map(keys)'`, not raw rows. Extract values
 directly into the app's credential file or environment without displaying them.
 Keep variable names and extraction commands in the handoff, never the extracted
-values. Moving a value into a protected file after printing it does not undo the
-disclosure.
+values. JSON-selector errors can quote the rejected value, so redirect parser
+stderr into that protected directory too. Moving a value into a protected file
+after printing it does not undo the disclosure.
 
 ## 1. Check the machine
 
@@ -442,7 +443,9 @@ fills them in on first use, with the reads in
 
 - **How to run.** The full `veris run` line that produced the receipt, mounts and
   variables included. Real paths, not placeholders. For a mount from outside the
-  repository, say what is in it and how to make one. Say how the app gets its
+  repository, say what is in it and how to make one. Prove dependency-cache
+  preparation from an empty directory, using the same cache mount as the run;
+  an offline build cannot populate an empty cache. Say how the app gets its
   credentials, and which image was used and how it is built. In the direct tier there
   is no `veris run` line. Record how the variables are set and from what, and record
   the trace entry that proved the first real call;
@@ -503,9 +506,12 @@ memory:
 `source_roots` is where production source lives. `build_command` and `build_outputs`
 are the repository's own build command and the directories that build writes. Without
 them a later task cannot tell a fresh build from a stale one, and it says so rather
-than pretend. If the tests run in a container image, `build_command` is the command
-that builds that image and `build_outputs` is `[]`; put the image tag in
-`.veris/NOTES.md`. An interpreted language often writes no build directory at all, and
+than pretend. If the application is baked into a test image, `build_command` builds
+that image and `build_outputs` is `[]`; put the image tag in `.veris/NOTES.md`.
+If a stock toolchain image compiles mounted source, record that compilation command
+with its source and cache mounts, and the output directories it writes back to the
+repository (for example, Maven's `target`). Use the exact command you proved.
+An interpreted language often writes no build directory at all, and
 `[]` is the honest answer there. Do not name a build that has nothing to do with the
 code under test.
 
