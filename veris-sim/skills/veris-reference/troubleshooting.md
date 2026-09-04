@@ -5,7 +5,7 @@ and the evidence to tell them apart is already recorded.
 
 | signal | what it says |
 |---|---|
-| the receipt from `veris run` | completed requests per twin, two counts: what the proxy saw leave the app (`the sandbox received N request(s)`) and what the sandbox recorded (`the sandbox recorded N request(s) since the watermark`), then the verdict line (`✓ required <twin> ≥1: saw N   ✓ ledgers agree (N = N)`; `! ledgers differ` when they do not). A requirement passes when either count meets it; a `✓` one side alone decided says which, `(engine; …)` or `(sandbox ledger; not proxied)`. A green suite with an empty receipt is not a pass; a red suite whose receipt shows the traffic arrived is a real integration finding. Your own `veris sandbox` reads never count: the proxy does not see them, and the sandbox's ledger lists them on a separate `control-plane (/veris/*)` line marked not counted. The suite's own setup traffic at a vendor hostname does count. `--receipt <file>` keeps it as JSON |
+| the receipt from `veris run` | completed requests per twin, two counts: what the proxy saw leave the app (`the sandbox received N request(s)`) and what the sandbox recorded (`the sandbox recorded N request(s) since the watermark`), then the verdict line (`✓ required <twin> ≥1: saw N   ✓ ledgers agree (N = N)`; `! ledgers differ` when they do not). A requirement passes when either count meets it; a `✓` one side alone decided says which, `(engine; …)` or `(sandbox ledger; not proxied)`. A green suite with an empty receipt is not a pass; a red suite whose receipt shows the traffic arrived is a real integration finding. Your own `veris sandbox` reads never count: the counts are taken since a watermark the run sets, and any `/veris/*` reads that fall inside the run appear on a separate `control-plane (/veris/*)` line marked not counted. The suite's own setup traffic at a vendor hostname does count. `--receipt <file>` keeps it as JSON |
 | `veris sandbox trace` | the wire trace of every request and response. The failing exchange can be replayed with curl before the sandbox, the proxy or the code is blamed. Ask for the tier the evidence is on |
 | `veris sandbox data get <twin> <table>` | what the vendor stored: the row a create produced, the replay it recorded, the state a callback left |
 
@@ -22,7 +22,12 @@ order:
    environment's twins. `veris services` lists the catalog, `veris env get` the
    environment. `--strict` turns that leak into a refusal.
 3. TLS trust failed inside the workload, so no request ever completed. Next section.
-4. The vendor call comes from a process the run did not start. Last section.
+4. The control plane serves no vendor hostname for the twin, so nothing was
+   intercepted and its URL was handed to the app instead (`veris: stripe: not proxied;
+   handed STRIPE_API_BASE=…`). `veris doctor`'s vendor-hostnames line names every twin
+   in that state; a data plane (postgres, yente) there is by design, an ordinary
+   vendor twin is not. `--route <twin>=<host>` supplies the hostname for a run.
+5. The vendor call comes from a process the run did not start. Last section.
 
 Never fix an exit 3 by changing the call or its base URL.
 

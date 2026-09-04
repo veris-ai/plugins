@@ -34,6 +34,10 @@ that is the finding.
 
 ## The ledger, and the four dispositions
 
+This section is `fix`'s: the ledger is what its Gate 4 checks. A `build` has no
+ledger, no task id and no Gate 4 — its measurements go in the PR body, and the
+dispositions below are how it names each one there.
+
 The scripts live in `.veris/bin/` once `setup` step 9 has run.
 `sh .veris/bin/ledger.sh init --task <id>` prints the field contract;
 `sh .veris/bin/ledger.sh check --task <id>` validates it;
@@ -50,7 +54,8 @@ lives under `.veris/tasks/<task-id>/`. Every measurement ends as one of:
 - **`UNRESOLVED`**: never settled. A gate failure.
 
 Ids stop resolving when the sandbox is deleted, so a `TWIN` row saves the
-redacted excerpt under `.veris/tasks/<task-id>/snapshots/`. Identifiers, paths,
+redacted excerpt under `.veris/tasks/<task-id>/snapshots/`; a `build`, having no task
+id, saves the same excerpts to `.veris/evidence/<flow>.json`. Identifiers, paths,
 commands and excerpts only, never credentials; the check scans for secret shapes.
 
 The check confirms the ledger is complete, typed and locatable. It **cannot**

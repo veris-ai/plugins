@@ -27,11 +27,13 @@ handles that in the container tier; see
 [troubleshooting.md](troubleshooting.md).
 
 There is no proxy configuration to maintain. Which production hostnames map to which
-twins comes from the control plane when it serves routes, else from a table measured
-against the real vendors and embedded at the binary's release. Never write hosts
-files by hand. `--route <twin>=<host>[/prefix]` routes a hostname the table does not
-know, such as a regional endpoint. It **replaces** that twin's derived routes for the
-run, so repeat it for every hostname the twin should still answer for:
+twins comes from the control plane. It is the only source: the hostnames are measured
+against the real vendors and served with every sandbox. Never write hosts files by
+hand. A twin the control plane serves no hostname for is not intercepted at all; its
+URL is handed to your command under its env hint instead, and the run says so.
+`--route <twin>=<host>[/prefix]` routes a hostname the control plane did not serve,
+such as a regional endpoint. It **replaces** that twin's served routes for the run, so
+repeat it for every hostname the twin should still answer for:
 `--route stripe=api.stripe.com --route stripe=api.stripe.eu`.
 
 ## The image
@@ -61,8 +63,11 @@ fallback.
   workload's environment under the variable the platform names for it
   (`DATABASE_URL` for Postgres, `YENTE_API_BASE` for Yente), automatically. Do not
   wire it yourself. The line `veris: postgres: not proxied; handed DATABASE_URL=…` is
-  not a gap: it names the variable the value went to. An explicit `-e` of your own
-  for that variable still wins. A `--require-service` on such a twin is judged on the
+  not a gap: it names the variable the value went to. A twin the control plane served
+  no hostname for is handed over the same way and prints the same line — that one is
+  not by design; run `veris doctor` and read its vendor-hostnames line, which names
+  every twin the plane serves none for. An explicit `-e` of your own for that variable
+  still wins. A `--require-service` on such a twin is judged on the
   sandbox's ledger alone, the only one its traffic reaches. Seed a database's
   structure with `veris sandbox data add` and a `{"postgres": {"sql": "schema.sql"}}`
   entry; reconnect after a reset.
