@@ -7,6 +7,11 @@ disable-model-invocation: true
 
 Wire this repository to Veris, once. Re-running skips what is already done.
 
+Setup delivers both a proven application run and the handoff that `build` and `fix`
+consume: `.veris/twin.yaml`, `.veris/NOTES.md`, `.veris/setup.json`, and the two staged
+ledger helpers. Track those deliverables before starting. A green run alone does
+not finish setup. Without Git, create the same files and skip only the commits.
+
 Three rules, always:
 
 - Never modify the application code, and never point it at a sandbox. The one
@@ -25,6 +30,14 @@ you mean to give has to be a flag. `--yes` confirms.
 A command that would otherwise stop and ask refuses instead, and names the flag it needs.
 Every `get` and `list` takes `--json`. `env get` and `env use` accept the shortened id a
 table prints; `--from` needs the full id, which `--json` prints.
+
+For credential-bearing tables, establish the destination **before the first read**:
+`umask 077; CREDS_DIR=$(mktemp -d)`, then redirect the data command to a file under
+`"$CREDS_DIR"`. Inspect field names with `jq 'map(keys)'`, not raw rows. Extract values
+directly into the app's credential file or environment without displaying them.
+Keep variable names and extraction commands in the handoff, never the extracted
+values. Moving a value into a protected file after printing it does not undo the
+disclosure.
 
 ## 1. Check the machine
 
@@ -520,6 +533,17 @@ branch and accumulates one directory per task. If they choose it anyway, drop th
 `.veris/tasks/` and `.veris/evidence/` lines you just added to `.gitignore`.
 
 ## 10. Finish
+
+Run the installed plugin's `veris-reference/scripts/check-setup.py` with Python 3,
+using its absolute path and `--project` pointing to this repository. It checks the
+handoff files, build metadata and staged helper versions without executing anything
+from the project. Repair any reported omissions. If Python 3 is unavailable, check
+the same files and metadata from steps 7 and 9 manually; do not install a runtime
+just for this check. This is a structural check, not a substitute for step 6's
+application proof. Review **How to run** as a fresh session: include commands to
+recreate temporary credential files and external caches, with no credential values
+or undefined shell variables. `RUN.md` and `COVERAGE.md`, when requested, accompany
+the handoff; they do not replace `.veris/NOTES.md` or `.veris/setup.json`.
 
 Save redacted evidence before cleanup, including after a failed proving run.
 `veris down --yes` deletes this folder's sandbox. After a promote in step 8 there is
