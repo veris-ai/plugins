@@ -56,11 +56,10 @@ signal, not a reason to fork the app's HTTP layer.
 
 1. A folder with no `.veris/twin.yaml` has nothing for `veris up` to bring up, which
    is exactly the state of the fresh dev box this tier is for. Make one first:
-   `veris env create <name> --from <environment id> --ttl <minutes> --boot bundle
-   --command '' --default`. With no environment on the server to adopt, name the twins
-   instead: `--services <names>` in place of `--from`, as `setup` step 4 does. No proxy
-   flags belong here, and `--command ''` says the run command this tier never uses is
-   deliberately empty.
+   `veris env create <name> --from <environment id> --ttl <minutes> --default`. With no
+   environment on the server to adopt, name the twins instead: `--services <names>` in
+   place of `--from`, as `setup` step 4 does. No proxy flags belong here, and no
+   `--command`: a flag left out is left out of the file, and this tier never runs one.
 2. `veris up`.
 3. `veris sandbox exports` prints one `export NAME=url` line per twin to stdout and
    nothing else there; a twin with no env hint is skipped with a `!` line on stderr,

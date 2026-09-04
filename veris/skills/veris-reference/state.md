@@ -11,6 +11,10 @@ interrupted session is still alive, and a later session could mistake it for its
 `veris sandbox delete --id <id> --yes` removes one that is not this folder's, and
 `veris down --all --yes` deletes every sandbox of the in-use environment.
 
+A sandbox can hold a twin the environment never named: a service that signs in through
+a family issuer is deployed with that issuer, and `veris status` marks it `+`. That is
+the platform's doing, not a stray twin to remove.
+
 ## Seeding rows
 
 - `veris sandbox data get <twin>` lists every table with its row count. The cheapest

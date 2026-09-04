@@ -79,6 +79,12 @@ vendor **hostname** on the tested path.
 stands in for, the variable its URL is handed to the app under, and the vendor
 hostnames the proxy intercepts for it. The name is what `--services` takes.
 
+A twin printed as `name (+issuer)` signs in through a family issuer, and the control
+plane deploys that issuer with every sandbox holding the twin: google-calendar arrives
+with google-identity. `--services` takes the bare name, and naming the issuer as well
+changes nothing. So a sandbox holds twins the environment never named, and
+`veris status` marks each one `+`. Neither the twin nor the mark is an error to fix.
+
 A twin with no hostnames is not intercepted, for one of two reasons. It may be a data
 plane: the app connects to it directly, using a URL the run hands to the app, instead
 of having a hostname redirected. A database is the usual case. Or this control plane
@@ -136,7 +142,7 @@ at all, stop and tell the engineer. Done when `docker image inspect <tag>` succe
 ## 4. Create the environment
 
 ```
-veris env create <project-name> --services stripe,asana --ttl 60 --boot bundle \
+veris env create <project-name> --services stripe,asana --ttl 60 \
   --command '<the smallest test command that calls a vendor>' \
   --image <tag> --require-service stripe --default
 ```
@@ -147,6 +153,13 @@ An unknown service name is refused and the catalog is printed. Take the name fro
 The `--ttl 60` above is a choice, not a requirement. Leave `--ttl` out and none is
 recorded, and the control plane applies its own default. A number outside what the
 server allows is refused, and the refusal names the bounds.
+
+`--boot`, `--snapshot`, `--data` and `--command` behave the same way: each is recorded
+only when given, and nothing is written for the ones left out, so a sandbox boots the
+bundle, seeds nothing, and `veris run` takes its command after `--`. Only the name and
+`--services` (or `--from`) are required off a terminal, so pass a flag because you want
+what it records, not to answer a question. The one pairing is `--boot snapshot`, which
+is refused without `--snapshot ID|NAME`.
 
 Before creating an environment, run `veris env list --json` and read the services of
 every environment already on the server. **If one of them already has every service
@@ -184,7 +197,9 @@ shows each setting, where it came from, and the server's record.
 Run `veris up`. It creates a sandbox of the environment and remembers its id for this
 folder at once. Then it waits until the control plane reports the sandbox ready and
 every twin answers. It adds the environment's data files, and prints each twin's URL
-and the variable that URL is handed to the app under.
+and the variable that URL is handed to the app under. A twin the environment never
+named is a sign-in issuer the platform added (step 2), and the line beside its hint
+says so.
 
 Done when it exits 0 and lists the twins. `veris status` shows the sandbox at any time:
 its state, boot source and expiry, and every twin's status, env hint, URL and table
@@ -253,8 +268,8 @@ too.
 The command and the required twin that finally went green may not be the ones step 4
 recorded. If they are not, re-record them with
 `veris env create <name> --from <full id> --force`. Carry every flag the entry already
-has: the corrected `--command` and `--require-service`, plus the same `--boot`,
-`--image`, `--data` and `--default`, and the same `--ttl` when the entry records one.
+has: the corrected `--command` and `--require-service`, plus the same `--image` and
+`--default`, and the same `--ttl`, `--boot` and `--data` when the entry records them.
 The entry is replaced, not merged, so a flag you leave out is dropped. Drop
 `--require-service` and every later run stops asserting the twin, then passes green on
 an empty receipt. Without `--from` the command would also create a second environment on
