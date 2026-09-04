@@ -80,10 +80,18 @@ the studio, and the key is saved under `~/.veris` with owner-only permissions. T
 skills never see or print it. In CI, set `VERIS_API_KEY` instead; it beats the
 saved profile on every command.
 
-The plugin still registers the `veris` MCP server for clients that use it. The
-commands do not need it.
-
 ### Versions
+
+0.7.1 — no MCP, and the first-run lessons of two measured sessions. The plugin
+registers commands only: `.mcp.json`, `.codex-mcp.json` and the OpenCode plugin's
+injected server are gone, since every mechanism is a `veris` command and a machine
+signed in with `veris login` has no `VERIS_API_KEY` for them to send. `record.sh` runs
+the command after `--` as argv, never through `sh -c`, and treats a command that cannot
+start as an error rather than a verdict; `ledger.sh` requires state read back on a
+`REPOSITORY` row and refuses one that cites a stub. `setup` adopts only an environment
+that is the project's, reads the twin's published key instead of inventing one, fixes
+the image rather than the run line, and recognises the two `doctor` lines that mean
+the agent is in a sandbox of its own.
 
 0.7.0 — CLI-first. Every mechanism the commands used to spell out as HTTP calls,
 MCP tools and shell scripts is a `veris` command: `login`, `doctor`, `services`,

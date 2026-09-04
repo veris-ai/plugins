@@ -1,7 +1,7 @@
 # opencode-veris
 
 [Veris](https://veris.ai) for [OpenCode](https://opencode.ai): three
-engineer-invoked commands plus the `veris` MCP server. Veris runs stateful
+engineer-invoked commands. Veris runs stateful
 twins of the external services an application calls; `veris run` reroutes
 the application's outbound HTTP(S) into a sandbox from outside the process,
 so the code under test keeps its production hostnames, credentials and
@@ -14,17 +14,10 @@ opencode plugin opencode-veris -g
 ```
 
 (or add `"opencode-veris"` to the `plugin` array in
-`~/.config/opencode/opencode.json`). Then export your credential and restart
-opencode:
-
-```
-export VERIS_API_KEY=<key>
-```
-
-`VERIS_API_BASE` overrides the control plane (defaults to
-`https://svc.api.veris.ai`). Until the key is set, `opencode mcp list` shows
-the `veris` server as failed; the commands still run and `setup` walks you
-through it.
+`~/.config/opencode/opencode.json`), then restart opencode. The commands run
+the `veris` CLI: install it once with the line in the repository README and
+sign in with `veris login`. `/veris:setup` checks both and says what is
+missing. The plugin reads no credential and registers no server of its own.
 
 ## Commands
 
