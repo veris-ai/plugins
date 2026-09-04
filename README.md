@@ -87,6 +87,16 @@ saved profile on every command.
 
 ### Versions
 
+0.8.0 — a Daytona tier. A machine with no Docker daemon — a cloud dev box, the
+common case — had no path: `setup` knew the container tier and the direct tier only,
+and said never to run without `--image`. `veris-reference/daytona.md` is the third
+tier: the tests run in a Daytona sandbox whose outbound proxy is the twin's gateway,
+driven by `veris-daytona` (`npm i -g @veris-ai/daytona`) — `provision` on the twin
+`veris up` made, `push`, `exec`, `teardown` — with the twin's trace as the receipt.
+`setup` picks it from `veris doctor`'s Docker line, never from the code; `build` and
+`fix` drive their gates through `exec` in the box. Measured end to end on a Node/Stripe
+fixture before it was written down.
+
 0.7.1 — no MCP, and the first-run lessons of two measured sessions. The plugin
 registers commands only: `.mcp.json`, `.codex-mcp.json` and the OpenCode plugin's
 injected server are gone, since every mechanism is a `veris` command and a machine
