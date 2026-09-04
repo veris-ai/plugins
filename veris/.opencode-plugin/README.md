@@ -1,4 +1,4 @@
-# opencode-veris-sim
+# opencode-veris
 
 [Veris](https://veris.ai) for [OpenCode](https://opencode.ai): three
 engineer-invoked commands plus the `veris` MCP server. Veris runs stateful
@@ -10,10 +10,10 @@ client stack, and ends each run with a receipt of what the sandbox received.
 ## Install
 
 ```
-opencode plugin opencode-veris-sim -g
+opencode plugin opencode-veris -g
 ```
 
-(or add `"opencode-veris-sim"` to the `plugin` array in
+(or add `"opencode-veris"` to the `plugin` array in
 `~/.config/opencode/opencode.json`). Then export your credential and restart
 opencode:
 
@@ -30,9 +30,9 @@ through it.
 
 | command | what it does |
 |---|---|
-| `/veris-sim:setup` | wires the repository to a Veris environment, once — credential, environment, transport, one smoke run with proof of arrival |
-| `/veris-sim:build <issue link \| prompt>` | measures every vendor claim the task rests on against the twin before designing, proves the change through veris-proxy with a receipt |
-| `/veris-sim:fix <issue link \| prompt>` | reproduces the failure the issue describes before designing, proves the same failure closed with a receipt |
+| `/veris:setup` | wires the repository to a Veris environment, once — credential, environment, transport, one smoke run with proof of arrival |
+| `/veris:build <issue link \| prompt>` | measures every vendor claim the task rests on against the twin before designing, proves the change through veris-proxy with a receipt |
+| `/veris:fix <issue link \| prompt>` | reproduces the failure the issue describes before designing, proves the same failure closed with a receipt |
 
 The commands are plain OpenCode commands: only the engineer can start them,
 the model cannot invoke them on its own.

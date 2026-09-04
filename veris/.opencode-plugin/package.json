@@ -1,5 +1,5 @@
 {
-  "name": "opencode-veris-sim",
+  "name": "opencode-veris",
   "version": "0.7.0",
   "description": "Test an application against Veris - stateful twins of the external services it calls, driven by the veris CLI. Three commands: setup (wire a repo once), build <issue|prompt> (measure the vendor before designing, prove the change with a receipt), fix <issue|prompt> (reproduce the failure first, prove it closed).",
   "type": "module",
@@ -21,7 +21,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/veris-ai/plugins.git",
-    "directory": "veris-sim/.opencode-plugin"
+    "directory": "veris/.opencode-plugin"
   },
   "author": "Veris (https://veris.ai)",
   "license": "Apache-2.0",

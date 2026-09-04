@@ -1,5 +1,0 @@
-interface:
-  display_name: "Veris reference"
-  short_description: "Knowledge the veris-sim commands read on demand. Not a command."
-policy:
-  allow_implicit_invocation: false
