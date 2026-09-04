@@ -402,8 +402,9 @@ reference before changing outbound wiring. For an unmet service requirement, che
 3. The SDK refused the certificate: `CERTIFICATE_VERIFY_FAILED`, `SSLError`, or a
    connection error against a vendor host. When a host rejected every handshake, the
    run prints a line naming the host and a `Next:` step. Follow it.
-   `--patch-bundled-cas` fixes bundled CA files. A JVM client takes
-   `--java-truststore`. An SDK that pins certificates cannot be patched: stop and
+   `--patch-bundled-cas` fixes bundled CA files. Container runs (`--image`)
+   automatically inject the JVM truststore. `--java-truststore` is host-tier only
+   and cannot be combined with `--image`. An SDK that pins certificates cannot be patched: stop and
    report it. The full procedure is in
    [../veris-reference/troubleshooting.md](../veris-reference/troubleshooting.md),
    **An SDK refuses the proxy's certificate**.
@@ -546,7 +547,14 @@ handoff files, build metadata and staged helper versions without executing anyth
 from the project. Repair any reported omissions. If Python 3 is unavailable, check
 the same files and metadata from steps 7 and 9 manually; do not install a runtime
 just for this check. This is a structural check, not a substitute for step 6's
-application proof. Review **How to run** as a fresh session: include commands to
+application proof. Before claiming setup complete, execute the exact saved
+**How to run** commands, including empty-cache preparation, and read back each
+local flow with `veris env get <flow> --json`. If you simplify a successful
+command (for example, remove a TLS wrapper), rerun that saved form. A warm-cache
+run cannot prove cold-cache setup. Mark any untested recipe or missing read-back
+as incomplete in the final handoff instead of saying "no blockers".
+
+Review **How to run** as a fresh session: include commands to
 recreate temporary credential files and external caches, with no credential values
 or undefined shell variables. `RUN.md` and `COVERAGE.md`, when requested, accompany
 the handoff; they do not replace `.veris/NOTES.md` or `.veris/setup.json`.

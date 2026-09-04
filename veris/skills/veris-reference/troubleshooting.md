@@ -98,9 +98,12 @@ The fix, in order:
    failure line names it (`CA-bundle-shaped file(s) the scan does not know: ...`) for
    step 3. Add the flag up front when the dependency set names one of these SDKs; it
    costs nothing when there is nothing to patch.
-2. A JVM client reads a JKS truststore: build one containing the proxy's certificate
+2. A container JVM client (`--image`) receives the runner's generated JKS
+   truststore automatically through `JAVA_TOOL_OPTIONS`. Start with that default;
+   inspect the injection diagnostic if the app overrides its TLS configuration.
+   For a **host-tier** JVM client, build a truststore containing the proxy's certificate
    and pass `--java-truststore <path>` (`--java-truststore-pass` when it is not
-   `changeit`).
+   `changeit`). These flags are rejected with `--image`.
 3. Over-mount by hand when the line persists. Find the SDK's bundled CA file in the
    image, in the mounted venv or in `node_modules`; the failure line names the
    candidates. Copy it out, append the proxy's certificate, and mount the copy back
