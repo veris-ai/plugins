@@ -244,6 +244,10 @@ For multiple entry points, keep one default and record a full command per flow i
 NOTES, including each flow's `--require-service` and any callback flags.
 `require_service` is a list, and explicit `--require-service` flags replace the list
 for that run. A different command after `--` does not replace the requirements.
+For incompatible defaults, such as a webhook flow and a flow with no receiver,
+record separately named local entries using `veris env create <flow> --from <full-id>` with each flow's own flags, and select one with `veris run --env <flow>`.
+Read its settings back with `veris env get <flow>`.
+Adoption writes local defaults without creating another server environment.
 Do not claim another entry point is verified because the default went green.
 
 Mounts, `-e` variables, `--patch-bundled-cas` and `--cap-add` have no key in the file.
