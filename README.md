@@ -62,13 +62,14 @@ default sandbox has neither network nor the Docker socket, so start it with
 `codex -s danger-full-access -a never` (or pre-approve `veris` and `docker` prefix
 rules). Otherwise every command waits on an approval.
 
-OpenCode uses the published skills package plus one selected sandbox plugin:
+OpenCode uses the Veris skills package plus one selected sandbox plugin
+(the renamed skills package needs its first release):
 
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [
-    "@veris-ai/veris-sim-opencode@latest",
+    "@veris-ai/veris-opencode@latest",
     "@veris-ai/daytona-opencode@latest"
   ]
 }
@@ -84,10 +85,11 @@ explicit handoff. Record the resolved published versions for reproducibility.
 
 See [OpenCode installation and release prerequisites](veris/.opencode-plugin/README.md)
 and the [provider differences](veris/skills/veris-reference/opencode.md). The
-published skills 0.7.0 release predates this session path; it requires the next
-skills release. The package name remains `@veris-ai/veris-sim-opencode`, with
-`veris/skills` as its canonical content. It can also be installed alone for a
-CLI-owned workflow.
+published `@veris-ai/veris-sim-opencode` 0.7.0 release predates this session path.
+The next release uses `@veris-ai/veris-opencode`, matching the `veris` name in
+Claude and Codex, with `veris/skills` as its canonical content. After that release,
+replace the old package entry in your OpenCode config with the new one; install
+only one skills package. It can also be installed alone for a CLI-owned workflow.
 
 Any other agent, through the `skills` CLI:
 

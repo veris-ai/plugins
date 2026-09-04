@@ -1,6 +1,6 @@
-# Publishes the tested tarball from canonical veris/skills under the existing
-# public npm name. Configure this scoped package's npm trusted publisher for
-# veris-ai/plugins and this workflow before dispatching. No source-tag downloads.
+# Publishes the tested tarball from canonical veris/skills as
+# @veris-ai/veris-opencode. Complete the new package's initial publication and
+# trusted-publisher setup for veris-ai/plugins and this workflow before dispatching.
 name: release-opencode
 
 on:
@@ -38,14 +38,14 @@ jobs:
           [ -n "$VERSION" ] || VERSION="$(jq -r .version ../.claude-plugin/plugin.json)"
           npm pkg set version="$VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          test "$(node -p 'require("./package.json").name')" = '@veris-ai/veris-sim-opencode'
+          test "$(node -p 'require("./package.json").name')" = '@veris-ai/veris-opencode'
 
       - name: Refuse a version npm already has
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          if npm view "@veris-ai/veris-sim-opencode@$VERSION" version >/dev/null 2>&1; then
-            echo "@veris-ai/veris-sim-opencode@$VERSION is already on npm." >&2
+          if npm view "@veris-ai/veris-opencode@$VERSION" version >/dev/null 2>&1; then
+            echo "@veris-ai/veris-opencode@$VERSION is already on npm." >&2
             echo "Bump the version in the source manifests first." >&2
             exit 1
           fi
@@ -81,5 +81,5 @@ jobs:
           git tag "$TAG"
           git push origin "$TAG"
           gh release create "$TAG" \
-            --title "@veris-ai/veris-sim-opencode $VERSION" \
-            --notes "https://www.npmjs.com/package/@veris-ai/veris-sim-opencode/v/$VERSION"
+            --title "@veris-ai/veris-opencode $VERSION" \
+            --notes "https://www.npmjs.com/package/@veris-ai/veris-opencode/v/$VERSION"

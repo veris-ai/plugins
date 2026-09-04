@@ -9,13 +9,14 @@ it for all linked references and required scripts, with package-relative paths.
 ## Install and record the resolution
 
 These are OpenCode plugins, not `npx` commands. In `opencode.json` (or the global
-OpenCode config), select **one** provider:
+OpenCode config), select **one** provider. The renamed skills package in this
+example needs its first npm release:
 
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [
-    "@veris-ai/veris-sim-opencode@latest",
+    "@veris-ai/veris-opencode@latest",
     "@veris-ai/daytona-opencode@latest"
   ]
 }
@@ -34,14 +35,20 @@ resolved npm versions in config for replay. `verisSkill` returns its own install
 version and the current OpenCode session id. Never replace an unavailable release
 with a Git SHA checkout/build recipe.
 
-Release inspection on 2026-09-04: skills **0.7.0**, Daytona plugin/SDK **0.2.1**,
-E2B plugin/SDK **0.1.1**; OpenCode plugin API **1.18.28**, locally installed
-OpenCode **1.18.25**. The skills 0.7.0 tarball has old `/veris-sim:*` commands and
-host-file templates; this session path requires the subsequent skills release
-containing `verisSkill`. `opencode-veris` in the old source manifest/workflow was
-unpublished. The intended release stays **@veris-ai/veris-sim-opencode**, built
-from canonical `veris/skills` by `veris/.opencode-plugin`; the old `veris-sim/`
-source directory is not an installation path.
+Release inspection on 2026-09-04: the old skills package
+**@veris-ai/veris-sim-opencode 0.7.0**, Daytona plugin/SDK **0.2.1**, E2B plugin/SDK
+**0.1.1**; OpenCode plugin API **1.18.28**, locally installed OpenCode **1.18.25**.
+The old skills tarball uses `/veris-sim:*` commands and host-file templates.
+The next release is **@veris-ai/veris-opencode 0.7.3**, aligning the name with
+`veris` in Claude and Codex and adding `verisSkill`. That new npm name is not yet
+published; its first release and trusted-publisher setup remain prerequisites.
+After release, replace the old package entry in all applicable OpenCode configs
+with the new one and restart; do not load both skills packages. Commands use
+`/veris:*`. The former source name `opencode-veris` was unpublished too.
+
+The package is built from canonical `veris/skills` by `veris/.opencode-plugin`;
+the old `veris-sim/` source directory is not an installation path. Package renaming
+does not require changes to the selected provider plugin or its session ownership.
 
 ## Discovery and control access
 

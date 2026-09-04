@@ -1,4 +1,4 @@
-# @veris-ai/veris-sim-opencode
+# @veris-ai/veris-opencode
 
 The canonical [Veris skills](https://github.com/veris-ai/plugins/tree/main/veris/skills)
 for OpenCode: `/veris:setup`, `/veris:build <request>`, `/veris:fix <request>`.
@@ -7,13 +7,14 @@ claims before designing; fix reproduces a failure before editing and proves it c
 
 ## Install
 
-Add the skills package and **one** sandbox plugin to `opencode.json`:
+After the renamed skills package is published, add it and **one** sandbox plugin
+to `opencode.json`:
 
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [
-    "@veris-ai/veris-sim-opencode@latest",
+    "@veris-ai/veris-opencode@latest",
     "@veris-ai/daytona-opencode@latest"
   ]
 }
@@ -50,16 +51,28 @@ still use [hosted.md](skills/veris-reference/hosted.md) and
 
 ## Release path
 
-Publish **@veris-ai/veris-sim-opencode** from this directory. The former source
-name `opencode-veris` has no npm release; do not publish a second distribution.
-The published 0.7.0 package predates this path and used `/veris-sim:*` commands.
-This change needs a new skills release before `@latest` contains session support.
-The source directory is now `veris/`, with no Git checkout/download step for users.
+Publish **@veris-ai/veris-opencode** from this directory. This aligns the OpenCode
+package with the `veris` plugin name in Claude and Codex. `veris/skills` remains the
+canonical content; there is no separate OpenCode skill tree to maintain.
+
+The published **@veris-ai/veris-sim-opencode** 0.7.0 package is the old name and
+uses `/veris-sim:*` commands. After the new package's first release, replace the old
+entry in your OpenCode `plugin` array with `@veris-ai/veris-opencode@latest`, restart
+OpenCode, and use `/veris:*`. Remove the old entry from both project and global
+configs if present: npm does not migrate a renamed package automatically, and the
+two skills packages should not load together. The prior source name `opencode-veris`
+was also unpublished and should be replaced if configured.
+
+As checked on 2026-09-04, the new npm name is not published. The intended first
+version is **0.7.3**, matching the other plugin manifests. Its initial publication
+and trusted-publisher setup are release prerequisites; this PR does neither and
+does not deprecate or republish the old package.
 
 `prepack` copies `../skills` into the tarball. The release workflow installs locked
-dependencies, runs repository and adapter/package tests, packs once, and publishes
-that tested tarball with public access. Configure npm trusted publishing for this
-scoped package and this repository's `release-opencode.yml` before release.
+dependencies, packs once, runs repository and adapter/package tests against that
+artifact, and publishes it with public access. Configure npm trusted publishing
+for **@veris-ai/veris-opencode**, repository `veris-ai/plugins`, workflow
+`release-opencode.yml`; the old package's publisher configuration does not apply.
 No provider source change is required for asset loading; TLS/control/receipt
 capability limitations of the installed provider remain explicit in the reference.
 
