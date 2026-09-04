@@ -64,11 +64,11 @@ the same checks on stdout.
   another control plane: `veris login --profile dev --api-base <url>`. In CI nobody can
   approve a pairing, so `veris login --key-stdin` reads an existing key from stdin.
   `veris whoami` shows which key, organisation and plane a command would use.
-- `!` about Docker: the container tier in step 3 runs the tests inside Docker, so
-  Docker must be running. Ask the engineer to start it. Never fall back to running
-  without `--image` for code under test. On a machine that cannot run a daemon at
-  all — a cloud dev box is the usual case — the hosted tier in step 3 is the path,
-  and the gateway line above this one is its gate:
+- `!` about Docker: the container tier in step 3 needs a running daemon. If the
+  engineer requested hosted execution, check that tier's gateway and provider
+  prerequisites instead. Otherwise ask them to start Docker; if this machine cannot
+  run a daemon, the hosted tier in step 3 is the path. Never fall back to running
+  without `--image` for code under test. The hosted tier's gateway check is in
   [../veris-reference/hosted.md](../veris-reference/hosted.md).
 - `✗` with `no such host` for the control plane, or `!` with `permission denied` on
   `docker.sock`, on a machine where the engineer says both work: you are sandboxed.
@@ -114,9 +114,10 @@ and ask before creating anything.
 
 ## 3. Pick the tier, then build the image
 
-There are three ways to run the tests, and each one is called a tier. Decide which
-tier before building anything. The first two are decided from the code, not from the
-engineer's answer; the third from `veris doctor`.
+There are three ways to run the tests, and each one is called a tier. Decide before
+building anything. An explicit request to run remotely selects the hosted paragraph
+below, even when Docker works. Otherwise apply the direct-tier gate from the code,
+then use `veris doctor` to choose between container and hosted execution.
 
 Look at every vendor call on the tested path. If each one builds its URL from an
 environment variable the app already reads, and production sets those same variables
@@ -130,23 +131,23 @@ there is no image and no proving run. Step 4's environment rules still apply to 
 environment that wiring makes, so read `veris env list --json` first and reuse one that
 already has every service. Step 4's proxy flags do not apply.
 
-One hardcoded vendor hostname, in the app or inside an SDK it calls, means the
-container tier below. So does a vendor base URL the app registers that no twin
-publishes an env hint for, unless no tested path reaches that base. In the direct tier
+One hardcoded vendor hostname, in the app or inside an SDK it calls, needs redirection
+through the container or hosted tier. So does a vendor base URL the app registers
+that no twin publishes an env hint for, unless no tested path reaches that base. In the direct tier
 such a base keeps talking to the real vendor and nothing catches it. `veris services`
 names the hint variable for every twin, and it needs no sandbox, so check for a
 missing hint here, before anything is running.
 
 The container tier is `veris run --image`: the tests run in a container with the proxy
-beside it. It is the tier for code under test when Docker is available. It covers
-every runtime and can patch an SDK's bundled certificates.
+beside it. It is the default for code needing redirection when Docker is available.
+It covers every runtime and can patch an SDK's bundled certificates.
 
-The hosted tier stands in for the container tier when `veris doctor`'s Docker line
-is `!` and nobody can start a daemon here: the tests run in a hosted box whose
-outbound proxy is the twin's gateway. It is decided from `veris doctor`, never from
-the code, and the direct-tier gate above still comes first.
+The hosted tier runs the tests in a remote box whose outbound proxy is the twin's
+gateway. Choose it when the engineer requests remote execution, or when the code
+needs redirection and `veris doctor` reports unavailable Docker that cannot be started
+here. With no explicit hosted request, the direct-tier gate above comes first.
 In it, go to [../veris-reference/hosted.md](../veris-reference/hosted.md), check its
-gates and follow the supported provider's recipe for *What it needs*. Then rejoin
+gates and follow the chosen provider's recipe for *What it needs*. Then rejoin
 here at step 4 with no image: leave `--image` out, so `proxy.image` stays unset.
 Step 5 is unchanged, and step 6 uses the provider's run steps and the hosted receipt
 rule. Skip the rest of this step.
