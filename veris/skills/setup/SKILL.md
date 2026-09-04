@@ -227,10 +227,17 @@ Add what the command needs, the same way `docker run` would.
 - `-v` to mount the repository where the image expects the code, when the image does
   not already contain it. `docker image inspect <tag>` names the image's WORKDIR.
 - `-v <dir>:/run/keys:ro -e KEYS_DIR=/run/keys` for a credentials directory the app
-  reads. Fill it with a made-up credential of the shape the twin accepts, rather than a
-  real vendor key. That works unless the twin enforces its own published credentials;
-  the paragraph on auth modes below says what to do then.
-- `-e` for any variable the test expects.
+  reads. The credential in it comes from the twin, not from a real vendor and not made
+  up: the manual's Credentials section (`veris sandbox services manual <twin> --raw`)
+  names the table that holds the published keys, and `veris sandbox data get <twin>
+  <table> --json` prints them whole — for Stripe, table `config`, column `api_keys`. A
+  published key works in both auth modes. Make one up only when the manual says
+  well-formed keys are accepted and publishes none, and then match the real vendor's
+  prefix and length, since the twin refuses a malformed key the way the vendor does:
+  Stripe's takes `^(sk|rk)_(test|live)_[A-Za-z0-9]{8,}$`, so `sk_test_veris` is a 401
+  and `sk_test_` followed by 24 characters is not.
+- `-e` for any variable the test expects, a key included: the same rule as the
+  directory above.
 
 Mount nothing but the repository, a dependency cache, or a credentials directory.
 
@@ -257,12 +264,13 @@ them, are the run's receipt.
 Counts above zero are not enough on their own. If both counts are above zero but the
 run failed, the call reached the twin and the twin refused it. Read the twin's auth
 mode with `veris sandbox data get <twin> auth`. A `permissive` twin accepts any
-credential well-formed for that vendor; an `enforced` twin accepts only one it
-published. Read the twin's own Credentials section with
-`veris sandbox services manual <twin> --raw`; it says where those published credentials
-live. Then give the app a credential the twin takes, or prove the wiring with a twin
-whose credential you have. Either way, it goes in step 7 under **Credentials and
-versions**.
+credential well-formed for that vendor, so a 401 from one means the key's shape is
+wrong, not that a published key is required; an `enforced` twin accepts only one it
+published. In both modes the published keys are the answer: the manual's Credentials
+section (`veris sandbox services manual <twin> --raw`) says which table holds them, and
+`veris sandbox data get <twin> <table> --json` prints them — the table view cuts long
+cells short. Then give the app one, or prove the wiring with a twin whose credential
+you have. Either way, it goes in step 7 under **Credentials and versions**.
 
 Then record the full command in `.veris/NOTES.md` at step 7. `twin.yaml` holds only the
 image, the required twin and the command after `--`. Only a mount that produced a
