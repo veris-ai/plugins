@@ -1,78 +1,76 @@
-import { existsSync, readFileSync } from "node:fs"
-import { dirname, join } from "node:path"
+import { existsSync, readFileSync, realpathSync } from "node:fs"
+import { createHash } from "node:crypto"
+import { basename, dirname, join, relative, sep } from "node:path"
 import { fileURLToPath } from "node:url"
+import { z } from "zod"
 
 const pkgDir = dirname(fileURLToPath(import.meta.url))
+const manifest = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf8"))
 const COMMANDS = ["setup", "build", "fix"]
 
-// Published tarball carries skills/ beside this file (prepack copies it in);
-// a git checkout has the tree one level up, at veris/skills/.
-function findSkillsDir() {
-  for (const dir of [join(pkgDir, "skills"), join(pkgDir, "..", "skills")]) {
-    if (existsSync(join(dir, "setup", "SKILL.md"))) return dir
+// An incomplete tarball must fail rather than silently use different content.
+// Only a source checkout falls back to the canonical tree next door.
+const sourceCheckout = basename(pkgDir) === ".opencode-plugin" &&
+  existsSync(join(pkgDir, "..", ".claude-plugin", "plugin.json"))
+const skillsDir = !existsSync(join(pkgDir, "skills")) && sourceCheckout
+  ? join(pkgDir, "..", "skills")
+  : join(pkgDir, "skills")
+
+function resource(path) {
+  if (!/^(setup|build|fix|veris-reference)\/[\w./-]+\.(md|sh)$/.test(path) ||
+      path.split("/").some((part) => part === ".." || part === "." || !part)) {
+    throw new Error("Use a package-relative skill path, such as veris-reference/session.md")
   }
-  return undefined
+  const root = realpathSync(skillsDir)
+  const file = realpathSync(join(root, path))
+  const rel = relative(root, file)
+  if (rel.startsWith(`..${sep}`) || rel === "..") throw new Error("Resource is outside the skills package")
+  return readFileSync(file, "utf8")
 }
 
-function skillDescription(file) {
-  try {
-    const text = readFileSync(file, "utf8")
-    const frontmatter = text.match(/^---\r?\n([\s\S]*?)\r?\n---/)
-    const line = frontmatter?.[1]
-      .split(/\r?\n/)
-      .find((l) => l.startsWith("description:"))
-    return line?.slice("description:".length).trim() || undefined
-  } catch {
-    return undefined
-  }
-}
-
-// Command templates go through opencode's shell/file interpolation, so they
-// must contain no backtick-bang or at-sign sequences. $ARGUMENTS appears once.
-function template(skillsDir, name) {
-  const base = join(skillsDir, name)
+// OpenCode expands file and shell references in command templates. Keep skill
+// Markdown in tool results. This tool reads on the host even when a provider
+// replaces read/bash with remote tools.
+function template(name) {
   return [
     `The engineer invoked the veris "${name}" command with arguments: $ARGUMENTS`,
-    ``,
-    `Read the file ${join(base, "SKILL.md")} now and follow it exactly,`,
-    `treating the arguments above as its input. Relative paths inside that`,
-    `file (reference/..., scripts/...) resolve against ${base}/, and links`,
-    `of the form ../veris-reference/... or ../setup/reference/... resolve`,
-    `against ${skillsDir}/.`,
-  ].join("\n")
-}
-
-function brokenTemplate(name) {
-  return [
-    `The engineer invoked the veris "${name}" command with arguments: $ARGUMENTS`,
-    ``,
-    `The opencode-veris plugin could not find its skill files on disk, so`,
-    `this command cannot run. Tell the engineer the install is broken and to`,
-    `reinstall with: opencode plugin opencode-veris -g --force`,
-    `then restart opencode. Do nothing else.`,
+    `Call verisSkill with path "${name}/SKILL.md" and follow its content.`,
+    "Use verisSkill for linked package references and helper scripts too.",
+    "If that tool is unavailable or the package is incomplete, report the loading error and stop.",
   ].join("\n")
 }
 
 const VerisPlugin = async () => ({
   config: async (cfg) => {
-    try {
-      const skillsDir = findSkillsDir()
-      cfg.command ??= {}
-      for (const name of COMMANDS) {
-        cfg.command[`veris:${name}`] ??= skillsDir
-          ? {
-              template: template(skillsDir, name),
-              description: skillDescription(join(skillsDir, name, "SKILL.md")),
-            }
-          : {
-              template: brokenTemplate(name),
-              description: `veris ${name} (broken install: skill files missing)`,
-            }
+    cfg.command ??= {}
+    for (const name of COMMANDS) {
+      let description = `veris ${name}`
+      try {
+        description = resource(`${name}/SKILL.md`).match(/^description: (.+)$/m)?.[1] ?? description
+      } catch {
+        description += " (broken install: reinstall the configured skills package and restart OpenCode)"
       }
-    } catch {
-      // Never take opencode down; a failed registration surfaces as a missing
-      // command, recoverable by reinstalling.
+      cfg.command[`veris:${name}`] ??= { template: template(name), description }
     }
+  },
+  tool: {
+    verisSkill: {
+      description: "Read Veris workflow instructions, linked references, or helper scripts from the installed skills package. Paths are relative to its skills/ directory; this is not an application file tool.",
+      args: {
+        path: z.string().describe("For example setup/SKILL.md, veris-reference/session.md, or veris-reference/scripts/record.sh"),
+      },
+      async execute({ path }, ctx) {
+        const content = resource(path)
+        return JSON.stringify({
+          package: `${manifest.name}@${manifest.version}`,
+          session_id: ctx.sessionID,
+          path,
+          sha256: createHash("sha256").update(content).digest("hex"),
+          loading: "Resolve relative links against the directory of path, normalize them within skills/, and read them with verisSkill. For scripts, copy content verbatim using the current repository's write tool and verify sha256 before execution. No host filesystem path or download is needed. This session_id identifies OpenCode, not the twin; verify the twin with the provider tools.",
+          content,
+        })
+      },
+    },
   },
 })
 
