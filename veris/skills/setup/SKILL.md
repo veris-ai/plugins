@@ -139,6 +139,25 @@ proxy settings. If deriving the image took real work, keep it as `Dockerfile.ver
 the root with a comment naming the build tag. If the tests cannot run in a container
 at all, stop and tell the engineer. Done when `docker image inspect <tag>` succeeds.
 
+When the proving run in step 6 fails before the app reaches the vendor — a module the
+interpreter cannot find, an import that does not resolve, a binary not on PATH — fix the
+image and rebuild it. Do not repair the run line with `-e PYTHONPATH=…` or a mount over
+the image's own copy: `.veris/NOTES.md` records commands that work against the image as
+built, and every later run inherits the workaround. The usual cause is installing the
+project before its source is in the image. With uv:
+
+```dockerfile
+FROM ghcr.io/astral-sh/uv:0.9-python3.12-bookworm-slim
+WORKDIR /app
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-install-project
+COPY src ./src
+COPY tests ./tests
+RUN uv sync --frozen
+```
+
+Dependencies first, so they cache; the project last, once its source exists.
+
 ## 4. Create the environment
 
 ```
