@@ -161,13 +161,18 @@ bundle, seeds nothing, and `veris run` takes its command after `--`. Only the na
 what it records, not to answer a question. The one pairing is `--boot snapshot`, which
 is refused without `--snapshot ID|NAME`.
 
-Before creating an environment, run `veris env list --json` and read the services of
-every environment already on the server. **If one of them already has every service
-on your list, adopt it rather than creating a second:**
-`veris env create <name> --from <full id>`, with the same remaining flags. Create a
-new environment only when none of them has them all. `--from` and `--services` cannot
-be combined, so an adopted environment keeps the server's service list and you cannot
-extend it here. Names are not unique on the server, so say which id you used.
+Before creating an environment, run `veris env list --json` and read the name and
+services of every environment already on the server. **Adopt one only when it is this
+project's: its services are exactly your list, or its server name is the project's.**
+Then `veris env create <project-name> --from <full id>`, with the same remaining
+flags. Otherwise create one named for the project, even when an existing environment
+contains every service you need. A superset boots and bills twins the code never
+calls, and another project's environment is shared with it: `env delete --server` and
+`baseline promote` by either side land on both. When you adopt, the question you ask
+before creating anything names the environment as the server does, with its id, and
+says it is shared. `--from` and `--services` cannot be combined, so an adopted
+environment keeps the server's service list and you cannot extend it here. Names are
+not unique on the server, so say which id you used.
 
 The name and services go to the server. Everything else is written to
 `.veris/twin.yaml`, under the environment: the TTL if you gave one, boot source, data
