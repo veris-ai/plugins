@@ -268,6 +268,15 @@ CODEF="$(mktemp)" || die "cannot create a temporary file"
 CODE="$(cat "$CODEF" 2>/dev/null || echo 1)"
 rm -f "$CODEF"
 
+# 126 and 127 are the shell's own: the program was not found or not runnable,
+# so nothing was measured. That is a usage error, not a red or a green.
+case "$CODE" in
+  126|127)
+    first="$(head -n 1 "$OUT")"
+    rm -f "$OUT"
+    die "the command could not start (exit $CODE): $first" ;;
+esac
+
 met=false
 detail=''
 case "$EXPECT" in
