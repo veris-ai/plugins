@@ -33,11 +33,12 @@ configured` cannot serve one. The login line stays as it is.
 
 Read the provider's prerequisites, run steps and limitations before `veris up`.
 Check its runner and credentials first so no twin waits while they are obtained.
-The provider documented here is Daytona:
+The available provider recipes are:
 
 | provider | recipe |
 |---|---|
 | Daytona | [daytona.md](daytona.md): installation, keys, exact commands, certificate setup, network limits and sandbox deletion |
+| E2B | [e2b.md](e2b.md): published SDK, attaching to the existing twin, templates, file upload, certificate trust, egress, callbacks and sandbox deletion |
 
 Follow that recipe to provision a box on the task's twin, upload the code, install
 dependencies, prepare certificate trust and run the test command. Use the receipt
@@ -59,7 +60,7 @@ credential files the application needs, using the twin's credential rules from
 setup. Keep those files out of git and upload only what this workload needs; the
 provider's upload exclusions determine what is sent. A local path in `.veris/NOTES.md`
 must be replaced by its path inside the box. Set a path containing `$PWD` or `$HOME`
-inside the remote shell command: a provider's `--env KEY=VALUE` value is literal.
+inside the remote shell command: provider environment values are literal strings.
 After editing source locally, upload the changed code before rerunning the flow;
 an execution command alone does not synchronize the working tree.
 
@@ -70,9 +71,10 @@ move with the source upload.
 
 ## The receipt
 
-There is no `veris run` here, so there is no receipt line, no two ledgers and no
-`--require-service` verdict. The twin's trace is the receipt, the way it is in the
-direct tier. Before the test flow, note the newest entry for the required twin:
+There is no `veris run` here, so there is no CLI receipt line, no two ledgers and no
+`--require-service` verdict. A provider may offer its own receipt API; the twin's
+trace establishes which calls came from this flow, the way it does in the direct
+tier. Before the test flow, note the newest entry for the required twin:
 
 ```
 veris sandbox trace --service <twin> --limit 1 --json
@@ -107,7 +109,7 @@ the other proxy flags have no run to act on here, so leave them out too.
 
 `.veris/NOTES.md`, under *How to run*: name the provider, pin the runner's published
 package version and full invocation, and record the actual
-provisioning command with its image and network options, code upload, dependency
+provisioning invocation with its image or template and network options, code upload, dependency
 install, certificate preparation, test command and teardown. Include the watermark
 read and the trace entry that proved the first real call, with its id, which
 [direct.md](direct.md) calls *The trust anchor*. `build` and `fix` take their run
@@ -116,7 +118,7 @@ lines from here.
 ## Cleanup
 
 Save the evidence before deleting either resource. When the task is done, delete the
-hosted box with the provider's teardown command, then `veris down` for the twin.
+hosted box with the provider's deletion command or SDK method, then `veris down` for the twin.
 The resources have separate lifetimes: provisioning a box does not extend the twin's
 TTL, and `veris down` does not delete the box. The provider recipe specifies deletion
 permissions and any automatic expiry; use explicit teardown when the task is done.
