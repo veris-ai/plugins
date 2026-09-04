@@ -1,4 +1,4 @@
-# Publishes veris-sim/.opencode-plugin to npm as opencode-veris-sim.
+# Publishes veris/.opencode-plugin to npm as opencode-veris.
 #
 # Run manually from the Actions tab. The version comes from
 # .claude-plugin/plugin.json -- the single place versions are bumped -- so the
@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: veris-sim/.opencode-plugin
+        working-directory: veris/.opencode-plugin
     steps:
       - uses: actions/checkout@v4
 
@@ -50,12 +50,12 @@ jobs:
           [ -n "$VERSION" ] || VERSION="$(jq -r .version ../.claude-plugin/plugin.json)"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           npm pkg set version="$VERSION"
-          echo "Publishing opencode-veris-sim@$VERSION"
+          echo "Publishing opencode-veris@$VERSION"
 
       - name: Refuse a version npm already has
         run: |
-          if npm view "opencode-veris-sim@${{ steps.version.outputs.version }}" version >/dev/null 2>&1; then
-            echo "opencode-veris-sim@${{ steps.version.outputs.version }} is already on npm." >&2
+          if npm view "opencode-veris@${{ steps.version.outputs.version }}" version >/dev/null 2>&1; then
+            echo "opencode-veris@${{ steps.version.outputs.version }} is already on npm." >&2
             echo "Bump the version in .claude-plugin/plugin.json (and its siblings) first." >&2
             exit 1
           fi
@@ -64,9 +64,9 @@ jobs:
       - name: Pack and inspect
         run: |
           npm pack
-          tar -tzf "opencode-veris-sim-${{ steps.version.outputs.version }}.tgz" | grep -q "package/skills/setup/SKILL.md" \
+          tar -tzf "opencode-veris-${{ steps.version.outputs.version }}.tgz" | grep -q "package/skills/setup/SKILL.md" \
             || { echo "skills/ missing from tarball" >&2; exit 1; }
-          tar -tzf "opencode-veris-sim-${{ steps.version.outputs.version }}.tgz"
+          tar -tzf "opencode-veris-${{ steps.version.outputs.version }}.tgz"
 
       - name: Publish
         run: npm publish
@@ -79,5 +79,5 @@ jobs:
           git tag "$TAG"
           git push origin "$TAG"
           gh release create "$TAG" \
-            --title "opencode-veris-sim ${{ steps.version.outputs.version }}" \
-            --notes "https://www.npmjs.com/package/opencode-veris-sim/v/${{ steps.version.outputs.version }}"
+            --title "opencode-veris ${{ steps.version.outputs.version }}" \
+            --notes "https://www.npmjs.com/package/opencode-veris/v/${{ steps.version.outputs.version }}"

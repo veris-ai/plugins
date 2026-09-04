@@ -15,7 +15,7 @@ curl -LsSf https://raw.githubusercontent.com/veris-ai/veris-cli/main/scripts/ins
 veris login
 ```
 
-## veris-sim
+## veris
 
 Three commands an engineer invokes with a task. Every mechanism they use is a
 `veris` command; the skills carry the judgment.
@@ -36,34 +36,34 @@ Claude Code:
 
 ```
 /plugin marketplace add veris-ai/plugins
-/plugin install veris-sim@veris
+/plugin install veris@veris
 ```
 
 Then, in a repository:
 
 ```
-/veris-sim:setup
-/veris-sim:build https://github.com/org/repo/issues/42
-/veris-sim:fix   "create_invoice duplicates the invoice when the response is lost"
+/veris:setup
+/veris:build https://github.com/org/repo/issues/42
+/veris:fix   "create_invoice duplicates the invoice when the response is lost"
 ```
 
 Codex reads the same marketplace:
 
 ```
 codex plugin marketplace add veris-ai/plugins
-codex plugin add veris-sim@veris
+codex plugin add veris@veris
 ```
 
-Codex names plugin commands after the plugin: `$veris-sim:setup`,
-`$veris-sim:build <issue link or prompt>`, `$veris-sim:fix <issue link or prompt>`.
+Codex names plugin commands after the plugin: `$veris:setup`,
+`$veris:build <issue link or prompt>`, `$veris:fix <issue link or prompt>`.
 
 OpenCode installs the plugin from npm:
 
 ```
-opencode plugin @veris-ai/veris-sim-opencode -g
+opencode plugin opencode-veris -g
 ```
 
-(equivalently, add `"@veris-ai/veris-sim-opencode"` to the `plugin` array in
+(equivalently, add `"opencode-veris"` to the `plugin` array in
 `~/.config/opencode/opencode.json`). The plugin registers the same three commands.
 The commands are plain OpenCode commands, which only the engineer can start.
 

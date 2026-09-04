@@ -1,6 +1,6 @@
 ---
 name: veris-reference
-description: Knowledge the veris-sim commands read on demand - asking the twin, seeding and keeping state, faults and the clock, webhooks, troubleshooting, the PR evidence shape. Not a command; setup, build and fix name the file to read.
+description: Knowledge the veris plugin commands read on demand - asking the twin, seeding and keeping state, faults and the clock, webhooks, troubleshooting, the PR evidence shape. Not a command; setup, build and fix name the file to read.
 user-invocable: false
 disable-model-invocation: true
 ---

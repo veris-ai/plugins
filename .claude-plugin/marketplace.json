@@ -6,8 +6,8 @@
   "description": "Plugins for working with Veris.",
   "plugins": [
     {
-      "name": "veris-sim",
-      "source": "./veris-sim",
+      "name": "veris",
+      "source": "./veris",
       "description": "Three commands - setup, build, fix - that measure the vendor's twin before designing and prove a change with a receipt, all through the veris CLI.",
       "version": "0.7.0",
       "category": "testing",
