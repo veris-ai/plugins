@@ -45,8 +45,8 @@ Done when `veris-daytona --version` prints a version and both variables are set.
 ## The run
 
 1. `veris up`, as in every tier. It writes the twin's id to `.veris/twin.local.yaml`
-   under `sandbox:` as `id`, and `veris status` shows it. Everything below attaches to that twin; the
-   twin's TTL is its own, and nothing here extends it.
+   under `sandbox:` as `id`, and `veris status` shows it. Everything below attaches to
+   that twin; the twin's TTL is its own, and nothing here extends it.
 2. Provision a box on it:
    ```
    veris-daytona provision --sandbox <twin-id> --image node:20-bookworm
