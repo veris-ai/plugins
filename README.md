@@ -87,7 +87,7 @@ saved profile on every command.
 
 ### Versions
 
-0.8.0 — a Daytona tier. A machine with no Docker daemon — a cloud dev box, the
+0.7.2 — a Daytona tier. A machine with no Docker daemon — a cloud dev box, the
 common case — had no path: `setup` knew the container tier and the direct tier only,
 and said never to run without `--image`. `veris-reference/daytona.md` is the third
 tier: the tests run in a Daytona sandbox whose outbound proxy is the twin's gateway,
