@@ -14,7 +14,9 @@ Three rules, always:
   URL from an environment variable and production sets that same variable. Everywhere
   else, the container or hosted tier redirects the app's traffic from outside the
   process, and the code keeps its production hostnames and credentials.
-- Never print an API key. `veris` masks keys; keep it that way.
+- Never print an API key. Login/status output masks platform keys, but data reads
+  can return complete vendor credentials. Redirect credential-bearing data into
+  a protected file and keep values out of commands, reports, and terminal output.
 - Ask before creating an environment, installing anything, or promoting a sandbox.
 
 The main CLI is `veris`; hosted runners have their own provider commands.
