@@ -270,6 +270,14 @@ while IFS= read -r line || [ -n "$line" ]; do
   elif [ "$layer" = REPOSITORY ]; then
     [ -n "$(get '.evidence_ref.test')" ] ||
       fail "$id: REPOSITORY needs evidence_ref.test — the test that drove the code"
+    [ -n "$(get '.evidence_ref.state_read_back')" ] ||
+      fail "$id: REPOSITORY needs evidence_ref.state_read_back — what the code left behind, read back"
+    # proof.md: a REPOSITORY claim is never closed by a call-shape assertion
+    # against a stub. The words that describe one are the honest tell.
+    if printf '%s\n' "$(get '.evidence_ref.state_read_back') $(get '.evidence_ref.test') $(get '.probe')" |
+       grep -qiE 'mock|stub|assert_called|monkeypatch|MagicMock|patch\('; then
+      fail "$id: REPOSITORY evidence is a call-shape assertion against a stub — proof.md: mocks are branch coverage, never the evidence a claim closes on"
+    fi
   fi
 
   # --against-diff only.
