@@ -1,5 +1,8 @@
 # The run: the application's own code against the twin
 
+In a verified plugin-managed session, use [session.md](session.md) for execution,
+receipts and cleanup. The CLI reference below does not start another proxy there.
+
 Read this to exercise a change, and to know what a green proves. `veris run` puts the
 application's unmodified code, production hostnames, credentials and client stack in
 front of the sandbox: it reroutes the application's outbound HTTP(S) from outside the

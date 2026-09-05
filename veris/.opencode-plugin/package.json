@@ -1,10 +1,11 @@
 {
-  "name": "opencode-veris",
-  "version": "0.7.2",
-  "description": "Test an application against Veris - stateful twins of the external services it calls, driven by the veris CLI. Three commands: setup (wire a repo once), build <issue|prompt> (measure the vendor before designing, prove the change with a receipt), fix <issue|prompt> (reproduce the failure first, prove it closed).",
+  "name": "@veris-ai/veris-opencode",
+  "version": "0.7.3",
+  "description": "Test an application against Veris - stateful twins of the external services it calls, using the Veris CLI or an existing plugin-managed session. Three commands: setup (wire or verify a repo), build <issue|prompt> (measure the vendor before designing, prove the changed flow), fix <issue|prompt> (reproduce the failure first, prove it closed).",
   "type": "module",
   "main": "./index.js",
   "exports": {
+    ".": "./index.js",
     "./server": "./index.js"
   },
   "files": [
@@ -13,10 +14,12 @@
     "README.md"
   ],
   "scripts": {
-    "prepack": "rm -rf skills && cp -R ../skills ./skills"
+    "prepack": "rm -rf skills && cp -R ../skills ./skills",
+    "test": "node --test ../../tests/opencode_plugin.test.mjs"
   },
   "engines": {
-    "opencode": ">=1.16 <2"
+    "node": ">=20",
+    "opencode": ">=1.18 <2"
   },
   "repository": {
     "type": "git",
@@ -31,5 +34,11 @@
     "veris",
     "integration-testing",
     "sandbox"
-  ]
+  ],
+  "dependencies": {
+    "zod": "^4.1.8"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

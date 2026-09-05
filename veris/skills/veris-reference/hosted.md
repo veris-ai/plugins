@@ -1,5 +1,8 @@
 # Hosted tier: the code runs in a hosted box wired to the twin
 
+An OpenCode plugin that already manages this session uses [session.md](session.md)
+instead. This hosted-runner recipe owns a separate test sandbox from the host.
+
 Use this tier when the engineer asks to run the tests on a hosted machine, or when
 the code needs traffic redirection and the machine cannot run Docker. The host tier
 without `--image` is not a fallback for code under test.
