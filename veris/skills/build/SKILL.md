@@ -47,7 +47,8 @@ small things inline: a row count, one table's shape, a filtered trace.
 ## Gate 1: every claim measured before the first source edit
 
 1. `veris up`. One sandbox for the whole task. Done when it exits 0 and lists the
-   twins. `veris status` shows it any time.
+   twins. Check `veris status` for expiry before long work. Set `veris up --ttl <minutes>` before creation to budget for the probes, builds and evidence reads;
+   an existing sandbox cannot be extended. Save evidence as gates finish.
 2. `veris sandbox services manual <twin> --raw`. Read it whole, once. `--raw` puts
    the markdown on stdout; without it the manual renders on stderr. The manual is
    authoritative for the credentials the twin accepts, the API versions, the faults
@@ -55,7 +56,9 @@ small things inline: a row count, one table's shape, a filtered trace.
    everything the twin implements, so read no coverage claim into what it leaves out.
 3. The state. `veris sandbox data get <twin>` lists every table with its row count.
    `veris sandbox data schema <twin> --table <t>` shows a table's columns, required
-   fields and rules. `veris sandbox data get <twin> <table>` shows what is there.
+   fields and rules. `veris sandbox data get <twin> <table>` shows one page.
+   Inspect the relevant owner and time window before assuming the seed fits the task;
+   use the complete-read procedure in the state reference before counting records.
    Seed what the code path needs, in those shapes, from a JSON file keyed by twin:
    ```
    veris sandbox data add rows.json
@@ -77,6 +80,11 @@ small things inline: a row count, one table's shape, a filtered trace.
    flow does not exist yet there is no code to drive: measure the condition itself in
    step 4 instead, and drive the change through it at Gate 3.
 
+A condition in the seeded world is not a vendor constraint. A fully booked fixture,
+for example, does not disprove a request to book tomorrow: seed an appropriate world
+and also prove the no-slot outcome. Do not broaden the feature's date window or other
+requirements merely to fit the default fixture; resolve any scope change with the engineer.
+
 Write source only after every claim has an answer.
 
 ## Gate 2: the identity the design rests on
@@ -88,8 +96,9 @@ misses a repeat.
 
 This binds on every identity, dedup key or external reference the design sends
 across the vendor boundary, however the code got it. Prove it against the twin. Run one
-case per component, with that component changed and every other one held fixed, and one
-case per component that leaves it out of the key altogether. A case that moves two at
+case per component, with that component changed and every other one held fixed.
+Also test omission where the existing code path permits it; otherwise record why
+that case cannot be driven without changing the application. A case that moves two at
 once proves nothing about either.
 
 Drive those cases through the **repository's own code path** under `veris run`, never
@@ -151,8 +160,12 @@ they sit in the listing. A read taken before the changed code ran says nothing a
 it.
 
 **Done when the receipt shows at least one request to the twin from that run and
-the stored state is what the change promises.** Exit 3 means the flow never reached
-the sandbox: fix the wiring, never the call. Exit 4 means the sandbox's ledger could
+the stored state is what the change promises.**
+
+Exit 3 means a requirement was unmet: read which one. A missing callback
+can fail after successful outbound traffic; follow the webhook reference. Fix the
+wiring or receiver issue the evidence identifies, never the vendor call.
+Exit 4 means the sandbox's ledger could
 not be read: run it again, then `veris status`. `--strict` makes the receipt a
 stronger claim: that the code reached nothing but the sandbox.
 
@@ -184,8 +197,10 @@ dispositions.
 
 ## The PR
 
-Open a draft the way the repository does. Its body has three sections, in the shape
-of [../veris-reference/evidence.md](../veris-reference/evidence.md):
+Open a draft the way the repository does. If there is no PR-capable remote, save
+the same description locally as `.veris/evidence/PR-<flow>.md` and report that no PR
+was opened; do not create a repository or remote implicitly.
+The description has three sections, in the shape of [../veris-reference/evidence.md](../veris-reference/evidence.md):
 
 - *What I verified, and how*: each claim, the probe that answered it, the receipt line.
 - *What I am assuming rather than verifying*, and why that is acceptable.

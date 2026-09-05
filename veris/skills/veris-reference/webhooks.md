@@ -7,7 +7,7 @@ addresses are not delivery targets.
 **Under `veris run`:** `--expose <port>` opens a public tunnel and registers it with
 the sandbox, where the port is the one your app listens on. `proxy.expose` in
 `.veris/twin.yaml` sets it for every run. The tunnel is cloudflared, and `veris doctor`
-says whether it is on PATH. The app shares the proxy's port space, and 8081 and 8443
+says whether it is on PATH. The app shares the proxy's port space, and 8080, 8081 and 8443
 are the proxy's own listeners, so have the app listen elsewhere, on 3000 say. Your app
 is handed `VERIS_PUBLIC_URL` and registers it with the vendor through the vendor's own
 API, because that registration call is also code under test.
@@ -39,3 +39,29 @@ Without inbound HTTP, read `deliveries` and `delivery_attempts` through
 delivery the sandbox refused to send, because the destination was private or plain
 HTTP, shows in `delivery_attempts` with the reason. A frozen sandbox clock pauses
 delivery; `veris sandbox clock set --live` resumes it.
+
+## A callback requirement failed after successful outbound calls
+
+Read `deliveries`, `delivery_attempts`, and `veris sandbox trace --tier delivery`
+for this run. An attempt with no response status does not prove the app received it.
+Use the attempt's error to distinguish destination refusal, DNS, connection or TLS
+failure, and timeout. Check `veris doctor` for the tunnel probe while the receiver
+is running, the registered URL and path, and the receiver's listening port.
+
+`connect_error` with `detail: gaierror` means the sandbox failed DNS resolution
+before receiving an HTTP response. A newly allocated quick-tunnel hostname can
+resolve on the laptop before it resolves from the sandbox. Check the sandbox's
+probe again; a printed public URL alone is not readiness. Preserve both probe
+results when a later probe succeeds. Do not weaken callback requirements or
+change the application's vendor hostname to work around this startup failure.
+
+Cloudflare `error code: 1033` means its edge has no connected tunnel; it is
+not a DNS lookup error. During a new tunnel startup, check again within the
+startup deadline. If it persists, inspect the cloudflared process and connector
+configuration. Do not label it `gaierror` or accept its error page as app readiness.
+
+A response status proves an HTTP exchange, not signature verification or processing.
+Check the receiver's own assertion and logs. In particular, a callback can arrive
+before a waiting thread starts: a nonbuffering queue may discard it despite a 200.
+Preserve the attempt error and receiver outcome before teardown. Report the failed
+hop as unresolved when that evidence cannot distinguish the causes.
