@@ -37,7 +37,10 @@ with a Git SHA checkout/build recipe.
 
 Release inspection on 2026-09-04: the old skills package
 **@veris-ai/veris-sim-opencode 0.7.0**, Daytona plugin/SDK **0.2.1**, E2B plugin/SDK
-**0.1.1**; OpenCode plugin API **1.18.28**, locally installed OpenCode **1.18.25**.
+**0.1.1**. The initial API inspection used OpenCode plugin **1.18.28**; the
+follow-up audit found **1.18.29**, with the same tool-context/config contracts used
+here. Local OpenCode remains **1.18.25**; inspecting newer API types is not a live
+run on that version.
 The old skills tarball uses `/veris-sim:*` commands and host-file templates.
 The next release is **@veris-ai/veris-opencode 0.7.3**, aligning the name with
 `veris` in Claude and Codex and adding `verisSkill`. That new npm name is not yet
@@ -50,22 +53,33 @@ The package is built from canonical `veris/skills` by `veris/.opencode-plugin`;
 the old `veris-sim/` source directory is not an installation path. Package renaming
 does not require changes to the selected provider plugin or its session ownership.
 
+Companion [Daytona #31](https://github.com/veris-ai/veris-daytona/pull/31) and
+[E2B #21](https://github.com/veris-ai/veris-e2b/pull/21) correct stale provider docs,
+prompts and receipt explanations. Their instruction text needs future provider
+releases; the resource loader uses the already-published interfaces. Until then,
+interpret receipts by the bounds below even when old tool text makes categorical
+claims about a run or network isolation.
+
 ## Discovery and control access
 
 | Concern | Daytona | E2B |
 |---|---|---|
 | Host credentials | `DAYTONA_API_KEY`, `VERIS_API_KEY`, `VERIS_ENVIRONMENT_ID` | `E2B_API_KEY`, `VERIS_API_KEY`, `VERIS_ENVIRONMENT_ID` |
 | Optional host settings | `DAYTONA_SNAPSHOT`, `VERIS_API_BASE`; SDK honors Daytona API settings | `VERIS_E2B_TEMPLATE`, `VERIS_API_BASE` |
-| Current identity | `verisTwin` without arguments lists twin id and services; compare with unfiltered `verisReceipt` | Unfiltered `verisReceipt` supplies the twin id and HTTP service names, even when traffic is zero; no `verisTwin` tool |
+| Current identity | `verisTwin` without arguments lists twin id and services; compare with unfiltered `verisReceipt` | Unfiltered `verisReceipt` supplies the twin id even at zero traffic, but omits service names when the total is zero; no `verisTwin` tool |
 | Repository | Provider context identifies it; verify remotely (published default `/home/daytona/project`) | Provider context identifies it; verify remotely (published default `/home/user/project`) |
 | Manual | `verisTwin` with `service` | No manual plugin tool; discover a reachable service control route or host interface |
 | MCP | Registers host `veris` at the configured API base's `/mcp` when `VERIS_API_KEY` exists | Does not register MCP |
 
-Both plugin entrypoints require the named host environment variables; the CLI's
-login profile alone does not meet those plugin checks. Do not copy provider/control
-keys into the sandbox or print them. Application credentials come from the service
-manual/seed, not a provider API key. E2B's full receipt lists HTTP services only;
-use service metadata to discover any data planes the application needs.
+Both plugins require the named host environment variables before provisioning;
+the CLI's login profile alone does not meet those plugin checks. Do not copy
+provider/control keys into the sandbox or print them. Application credentials come from the service
+manual/seed, not a provider API key. Both full receipts cover HTTP services only.
+For E2B at zero traffic, check a code-inferred HTTP service with
+`verisReceipt`'s `service` argument (a successful zero result confirms that service
+exists), or use host service metadata. Do not generate a vendor request just to
+populate the list. An unknown-service error lists the available names. Data-plane
+services and their connection settings require service metadata.
 
 Inspect the actual available MCP tools and their schemas. Daytona fills missing
 permissions with create/delete denied and reset/promote asking; existing user
@@ -138,19 +152,26 @@ substitute a mock or a new twin.
 
 | Concern | Daytona | E2B |
 |---|---|---|
-| Network | Published SDK uses a gateway outbound proxy plus a domain allowlist of vendor/gateway/data-plane/registry hosts by default; blocked destinations remain blocked | Plugin explicitly requests `egress: 'open'`; SDK uses gateway interception with open egress. Do not claim unknown vendors are blocked or exclusive twin access |
-| Receipt blind spots | Reports mode, integrity and leaks; retain those claims verbatim | Open egress reports `udp-quic-possible` and `ech-possible`; gateway canary verifies that route, not all application egress |
-| TLS | SDK installs the gateway CA and supplies trust variables. Published 0.2.1 differs from newer source's combined-store and `NODE_OPTIONS=--use-openssl-ca` handling | SDK installs the CA, supplies system-bundle trust variables and `NODE_EXTRA_CA_CERTS`; command wrapper reapplies trust defaults |
+| Network | Published SDK uses a gateway outbound proxy plus a domain allowlist of vendor/gateway/data-plane/registry hosts by default; blocked destinations remain blocked | Plugin requests `egress: 'open'` and leaves SDK mode at `auto`: gateway when available, otherwise the SDK's in-sandbox proxy fallback. Neither mode establishes exclusive twin access or blocks every unknown vendor |
+| Receipt blind spots | Reports mode, integrity and leaks; retain those claims verbatim | Open egress reports `udp-quic-possible` and `ech-possible`; gateway integrity checks its canary route. Proxy fallback reports `proxy-mode-unverified` |
+| TLS | Published 0.2.1 already builds a combined CA bundle and attempts system-store installation; newer source additionally appends `--use-openssl-ca` to `NODE_OPTIONS` | Gateway mode installs the CA and supplies system-bundle trust variables plus `NODE_EXTRA_CA_CERTS`; fallback uses its own proxy trust environment. Command wrapper reapplies the active mode's defaults |
 | Initial source | Host pushes committed `HEAD` over Daytona SSH; uncommitted host edits do not arrive | Committed `HEAD` travels via git bundle and E2B filesystem APIs; no SSH |
 | Return changes | `gitSync` commits remotely and pulls to local `opencode/N`; SSH host-key/network errors can prevent sync | `gitSync` commits remotely and transports a bundle to local `opencode/N`; idle sync is best effort |
-| Persistence | Host storage maps sessions to sandboxes; reconnect retrieves/starts them. Platform idle/stop/delete settings apply; the plugin does not set a guaranteed TTL | Mapping persists across restarts. Plugin uses 20-minute timeout, refreshes on tool use at most every 5 minutes, and requests pause/auto-resume |
+| Persistence | Host storage maps sessions to sandboxes; reconnect retrieves/starts them. Platform idle/stop/delete settings apply; the plugin does not set a guaranteed TTL | Mapping persists across restarts. Plugin requests a 20-minute timeout with pause/auto-resume and attempts refresh on tool use at most every 5 minutes. Refresh is best effort; long work can still outlive the window |
 | Cleanup | Session deletion invokes sandbox deletion and deletion of its owned twin; quitting OpenCode does not request that cleanup | Session deletion calls `kill`, deleting the owned twin; quitting does not. Paused files can survive, but an expired twin can still invalidate evidence |
+
+E2B's fallback is owned by its SDK/plugin, including its binary/runtime and
+credential setup. If fallback provisioning fails, report that provider error;
+do not install a second proxy from the skills or copy keys into the sandbox.
+Keep the receipt's actual mode/integrity in the evidence. A canary success is not
+proof that all vendor/control traffic is isolated, and a proxy-mode receipt must
+not be relabeled gateway-verified.
 
 Preserve the installed provider's trust configuration, including any existing
 `NODE_OPTIONS`. Do not impose newer source's values on an older release. Test HTTPS
 with defaults; a failure is a precise provider release/certificate prerequisite,
-not permission to turn verification off. Daytona's current source contains trust
-fixes absent from the inspected 0.2.1 release, so a runtime needing those fixes is
+not permission to turn verification off. Daytona's current source adds the Node
+trust flag absent from published 0.2.1, so a runtime needing that fix is
 blocked until a published SDK/plugin combination supplies them. Report actual
 resolved versions and symptoms instead of promising all runtimes work on 0.2.1.
 

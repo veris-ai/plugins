@@ -80,7 +80,9 @@ The published OpenCode receipts are cumulative **views of a request log**, not
 `veris run` receipts. Their counts are the length of the returned request array,
 not a guaranteed all-time total; the API can bound that array. They omit trace ids,
 times, tiers and bodies. The unfiltered tool identifies the twin; the service-only
-form does not. Neither form accepts `since`. Never add invented arguments.
+form does not. Neither form accepts `since`. At zero total traffic the full form
+also omits service names; use the provider discovery procedure rather than reading
+an absent list as an empty environment. Never add invented arguments.
 
 For each smoke, red, identity case and green:
 

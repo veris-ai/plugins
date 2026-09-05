@@ -1,5 +1,9 @@
 # Troubleshooting
 
+For a verified plugin-managed session, start with [session.md](session.md) and
+[opencode.md](opencode.md). Preserve the provider's trust configuration; the
+container/proxy remedies below apply to CLI-owned execution.
+
 What each signal means. Most suspected sandbox bugs turn out to be in the test setup,
 and the evidence to tell them apart is already recorded.
 

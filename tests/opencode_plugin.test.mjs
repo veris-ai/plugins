@@ -17,7 +17,7 @@ const files = (dir, prefix = '') => readdirSync(dir, { withFileTypes: true }).fl
   e.isDirectory() ? files(join(dir, e.name), `${prefix}${e.name}/`) : [`${prefix}${e.name}`])
 
 // Models each provider's public composition boundary. Real released hooks and
-// receipt renderers are additionally exercised by opencode_providers.mjs.
+// receipt renderers are additionally exercised by opencode_providers.test.mjs.
 for (const provider of ['daytona', 'e2b']) {
   for (const order of ['skills-first', 'provider-first']) {
     test(`${provider}: commands and assets survive remote file replacements (${order})`, async () => {
