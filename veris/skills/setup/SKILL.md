@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Wire this repository to Veris once - sign in, name the vendors the code calls, create the environment, build a test image, bring up a sandbox, and prove with one run that the code's own vendor calls reach the fake vendors. Run before build or fix. Run when the engineer names this command.
+description: Wire or verify this repository's Veris execution path - establish session and lifecycle ownership, identify the vendors the code calls, and prove with one application run that its vendor calls reach the twins. Run before build or fix. Run when the engineer names this command.
 argument-hint: "[service names...]"
 disable-model-invocation: true
 ---

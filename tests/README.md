@@ -32,8 +32,9 @@ VERIS_PUBLISHED_PACKAGES=<artifacts> bun test tests/opencode_providers.test.mjs
 ```
 
 Bun resolves the released providers' extensionless imports. No provider SDK is
-executed; no keys are needed. The tests cover twin discovery, absent attachment,
-control traffic in counts, 20/50-entry truncation, count plateaus, replacement
+executed; no keys are needed. The tests cover twin discovery, the absence of
+service names at zero total traffic, service-filtered zero receipts, absent
+attachment, control traffic in counts, 20/50-entry truncation, count plateaus, replacement
 identity, and configuration composition. Record resolved versions when testing
 newer releases; do not treat a source checkout as a published package.
 

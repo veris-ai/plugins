@@ -1,6 +1,6 @@
 interface:
   display_name: "Veris setup"
-  short_description: "Wire this repository to Veris, once: sign in, name the vendors, create the environment, prove one run reaches the twins."
+  short_description: "Wire or verify this repository's Veris setup; prove one application run reaches the twins."
   default_prompt: "$setup"
 policy:
   allow_implicit_invocation: true
@@ -8,4 +8,4 @@ dependencies:
   tools:
     - type: "cli"
       value: "veris"
-      description: "The veris CLI on PATH (curl -LsSf https://raw.githubusercontent.com/veris-ai/veris-cli/main/scripts/install.sh | sh), signed in with `veris login`."
+      description: "For CLI-owned execution: the veris CLI on PATH (curl -LsSf https://raw.githubusercontent.com/veris-ai/veris-cli/main/scripts/install.sh | sh), signed in with `veris login`."

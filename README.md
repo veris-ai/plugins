@@ -8,27 +8,32 @@ sandboxes, seeds them, and runs the application's own tests through them:
 process, so the code under test keeps its production hostnames, credentials and
 client stack, and every run ends with a **receipt** of what the sandbox received.
 
-Install the CLI once, on any machine:
+For a CLI-owned workflow, install the CLI once on the controlling machine:
 
 ```
 curl -LsSf https://raw.githubusercontent.com/veris-ai/veris-cli/main/scripts/install.sh | sh
 veris login
 ```
 
+An OpenCode sandbox plugin can instead own the session and its attached twin.
+The same skills then use its remote application tools and current-run evidence;
+local CLI installation and Docker are not prerequisites for that session path.
+See the OpenCode configuration below.
+
 ## veris
 
-Three commands an engineer invokes with a task. Every mechanism they use is a
-`veris` command; the skills carry the judgment.
+Three commands an engineer invokes with a task. The skills keep the same
+measurement and evidence gates across CLI-owned and plugin-managed execution.
 
 | command | what it does | not done until |
 |---|---|---|
-| `setup` | wires the repository to Veris, once: sign-in, the vendors the code calls, the environment, a test image, and one proving run | the run's receipt names each vendor with a count above zero |
-| `build <issue link \| prompt>` | measures every vendor claim the task rests on against the twin before designing, implements, proves the change with `veris run` | every claim measured before the first source edit; a receipt from the changed flow; a PR stating what was verified and what is assumed |
+| `setup` | verifies the current session or wires a CLI-owned workflow, identifies vendors, and proves one application run reaches the twin | evidence attributable to that run shows the required vendor calls and expected responses/state |
+| `build <issue link \| prompt>` | measures every vendor claim the task rests on against the twin before designing, implements, proves the changed application flow against the twin | every claim measured before the first source edit; a receipt from the changed flow; a PR stating what was verified and what is assumed |
 | `fix <issue link \| prompt>` | reproduces the failure the issue describes through the repository's own code before designing, fixes it, proves the same failure closed | the failure reproduced before the first source edit; the same failure re-run green with a receipt; the PR as above |
 
-The reference set lives once, in `veris-reference/`, a directory with a `SKILL.md`
-nobody can invoke, so both installers copy it. It is read only when a command names
-a file.
+The reference set lives once in `veris/skills/veris-reference/`. Claude and Codex
+ship that canonical tree; the OpenCode npm package bundles it and exposes its
+files through `verisSkill`. References are loaded when a command needs them.
 
 ### Install
 
@@ -57,8 +62,8 @@ codex plugin add veris@veris
 Codex names plugin commands after the plugin: `$veris:setup`,
 `$veris:build <issue link or prompt>`, `$veris:fix <issue link or prompt>`.
 
-The commands run `veris`, `docker` and the control plane from the shell, and Codex's
-default sandbox has neither network nor the Docker socket, so start it with
+For a CLI-owned container workflow, commands use `veris`, Docker and the control
+plane from the shell. Codex's default sandbox has neither network nor the Docker socket, so start it with
 `codex -s danger-full-access -a never` (or pre-approve `veris` and `docker` prefix
 rules). Otherwise every command waits on an approval.
 
@@ -110,8 +115,13 @@ saved profile on every command.
 
 ### Versions
 
-0.7.3 — OpenCode commands load skills from the installed package in Daytona and
-E2B sessions, reuse the attached twin, and require evidence attributable to each
+These entries describe the source plugin history. The old
+`@veris-ai/veris-sim-opencode` npm 0.7.0 tarball predates the CLI migration below;
+matching version numbers across that old distribution and this source do not
+establish matching content.
+
+0.7.3 (unreleased) — OpenCode commands load skills from the installed package in
+Daytona and E2B sessions, reuse the attached twin, and require evidence attributable to each
 application run. The plugin owns lifecycle; generated changes use its git sync.
 
 0.7.2 — a hosted tier, with a Daytona provider recipe. `setup` can run tests remotely
@@ -125,8 +135,9 @@ and provider limits. The flow is `veris up`, then `provision`, `push`, `exec` an
 Earlier Node/Stripe and Python/Stripe trials informed the guidance; these
 documentation changes were not run against a live box.
 
-0.7.1 — no MCP, and the first-run lessons of two measured sessions. The plugin
-registers commands only: `.mcp.json`, `.codex-mcp.json` and the OpenCode plugin's
+0.7.1 — the skills adapters retired their MCP registration, alongside the
+first-run lessons of two measured sessions. At that release they registered
+commands only: `.mcp.json`, `.codex-mcp.json` and the OpenCode plugin's
 injected server are gone, since every mechanism is a `veris` command and a machine
 signed in with `veris login` has no `VERIS_API_KEY` for them to send. `record.sh` runs
 the command after `--` as argv, never through `sh -c`, and treats a command that cannot
@@ -136,14 +147,15 @@ that is the project's, reads the twin's published key instead of inventing one, 
 the image rather than the run line, and recognises the two `doctor` lines that mean
 the agent is in a sandbox of its own.
 
-0.7.0 — CLI-first. Every mechanism the commands used to spell out as HTTP calls,
-MCP tools and shell scripts is a `veris` command: `login`, `doctor`, `services`,
+0.7.0 — CLI-first. Most mechanisms formerly spelled out as HTTP calls, MCP tools
+and shell scripts moved to `veris` commands: `login`, `doctor`, `services`,
 `env create`, `up`, `sandbox data add|schema|get`, `sandbox services manual`,
 `sandbox trace`, `sandbox clock`, `run`, `snapshot`, `baseline`, `down`. The skills
 keep the gates and the judgment, in plain language: measure before designing,
-reproduce before fixing, prove with a receipt. `preflight.sh`, `.veris/run.sh`,
-`.veris/setup.json` and the direct/transport references are gone; the project file
-is `.veris/twin.yaml`, written by `veris env create`. The container tier with
+reproduce before fixing, prove with a receipt. `preflight.sh` and `.veris/run.sh`
+were retired; CLI environment configuration lives in `.veris/twin.yaml`, written by `veris env create`. Current setup also
+writes `.veris/setup.json` for source/build facts and artifact policy, and keeps
+the direct-tier reference. The container tier with
 `--patch-bundled-cas` is the default for code under test.
 
 0.6.9 — the clock is sandbox state, not a service choice.

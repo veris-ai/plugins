@@ -27,8 +27,8 @@ proxy for its vendor twins and this tier for those.
 
 Before using it, verify in the code, not from the engineer's answer, that every
 vendor call on the tested path builds its URL from those variables. One hardcoded
-vendor hostname, in the app or inside an SDK it calls, means the container tier. The
-host tier is not a fallback either. Greenfield and agent-built applications usually
+vendor hostname, in the app or inside an SDK it calls, needs container or hosted
+interception. The host tier is not a fallback either. Greenfield and agent-built applications usually
 pass this gate; retrofits usually do not.
 
 Then the second half of the gate, which the first half hides. The risk is per base,
@@ -49,8 +49,8 @@ goes.
 SDK caveat, measured: an SDK whose base-URL setting keeps the vendor's host and
 replaces only the path cannot reach a sandbox URL, which carries a path prefix.
 Google's client libraries' `rootUrl` is such a setting. Raw HTTP clients and SDKs
-that accept a full base URL work. When the SDK cannot, that is a container-tier
-signal, not a reason to fork the app's HTTP layer.
+that accept a full base URL work. When the SDK cannot, use container or hosted
+interception rather than forking the app's HTTP layer.
 
 ## Wiring
 
@@ -63,7 +63,7 @@ signal, not a reason to fork the app's HTTP layer.
 2. `veris up`.
 3. `veris sandbox exports` prints one `export NAME=url` line per twin to stdout and
    nothing else there; a twin with no env hint is skipped with a `!` line on stderr,
-   though in practice every twin in the catalog carries one today. Set those variables
+   so check the current service metadata for any missing hints. Set those variables
    wherever the app's environment actually comes from:
    `eval "$(veris sandbox exports)"`, an env file (`--format dotenv` prints
    `KEY=value` lines), or a platform's secrets pane. Some panes take input only from a
@@ -79,16 +79,17 @@ signal, not a reason to fork the app's HTTP layer.
 
 Nothing else is needed, and it is worth knowing how little that is. Measured: the
 process ran with no `veris` binary, no Veris key or sandbox id, no proxy variable, and
-no CA material at all. A sandbox URL is plain HTTP, so the certificate work the
-container tier sometimes needs for an SDK that bundles its own roots does not arise
-here.
+no CA material at all in that trial, whose sandbox URLs were HTTP. Use the actual
+exported scheme: an HTTPS endpoint still needs valid TLS trust. Do not downgrade
+the URL or disable verification. Direct execution has no interception CA handoff.
 
 ## The trust anchor
 
 There is no proxy receipt. The twin's trace replaces it: after the smallest real call
 the app can make, `veris sandbox trace` must show that call. An empty trace with a
-green smoke means the traffic went to the real vendor. Every later "did it work"
-question has the same two answers the proxy tier has: the trace, what was sent, and
+green smoke means arrival is unproven: the flow may have skipped its vendor call,
+failed before reaching it, or used an unwired base. It does not prove real-vendor
+traffic. Every later "did it work" question has the same two answers the proxy tier has: the trace, what was sent, and
 `veris sandbox data get`, what the vendor stored.
 
 ## Sandbox lifetime and rotation

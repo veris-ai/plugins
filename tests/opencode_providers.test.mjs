@@ -40,6 +40,8 @@ suite('published provider contracts (fake sandbox, no live validation)', () => {
       const before = await tool.execute({}, ctx)
       expect(before).toContain('twin-current')
       expect(before).toContain('ZERO')
+      expect(before).not.toContain('stripe')
+      expect(await tool.execute({ service: 'stripe' }, ctx)).toContain("Receipt for 'stripe': ZERO requests")
       entries = [{ method: 'GET', path: '/veris/schema', status: 200 }]
       // Control traffic is NOT filtered by the published renderer.
       expect(await tool.execute({ service: 'stripe' }, ctx)).toContain('1 request(s)')
