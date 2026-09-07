@@ -8,8 +8,8 @@
     {
       "name": "veris",
       "source": "./veris",
-      "description": "Three commands - setup, build, fix - that measure the vendor's twin before designing and prove a change with a receipt, all through the veris CLI.",
-      "version": "0.7.2",
+      "description": "Three commands - setup, build, fix - that measure the vendor's twin before designing and prove a change with current-run evidence, through the Veris CLI or an existing plugin-managed session.",
+      "version": "0.7.3",
       "category": "testing",
       "tags": [
         "veris",

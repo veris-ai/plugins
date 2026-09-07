@@ -1,6 +1,6 @@
 ---
 name: build
-description: Build a feature against the vendor's twin - measure every vendor claim the task rests on before designing, prove the change with a receipt from veris run, write the PR with what was verified and assumed. Takes an issue link or a prompt. Run when the engineer names this command.
+description: Build a feature against the vendor's twin - measure every vendor claim the task rests on before designing, prove the changed application flow with current-run twin evidence, write the PR with what was verified and assumed. Takes an issue link or a prompt. Run when the engineer names this command.
 argument-hint: "<issue link | prompt>"
 disable-model-invocation: true
 ---
@@ -8,7 +8,17 @@ disable-model-invocation: true
 Build the feature in the request that came with this command: a GitHub issue URL or
 number, or free text. Not done until every gate below is met and the PR says so.
 
-Needs `.veris/twin.yaml` in the repository. If it is missing, stop: `setup` runs first.
+Check the current runtime tools/context before using saved setup. In a plugin-managed
+session, read [../veris-reference/session.md](../veris-reference/session.md) and
+revalidate the provider, attached twin and remote repository now. That path replaces
+CLI lifecycle and execution instructions throughout these gates: use the existing
+twin, direct application commands, attributed provider receipts and the discovered
+control interface; finish with change sync, leaving plugin-owned resources alive.
+The evidence gates below are unchanged. Saved session metadata is not identity.
+
+A CLI-owned workflow needs `.veris/twin.yaml` in the repository. If it is missing,
+stop: `setup` runs first. In a verified plugin session, setup's notes, metadata and staged
+helpers replace that CLI file; if missing, run `setup`.
 
 Three rules, always:
 
@@ -37,7 +47,11 @@ does gets every gate below.
 Read `.veris/NOTES.md` first. It holds what earlier tasks measured; do not measure
 it again. Append what you measure here that a later task will need.
 
-Keep the conversation small. Send anything that reads wide or returns long to a
+Keep the conversation small. In a plugin-managed session, follow
+[session delegation rules](../veris-reference/session.md#verify-now-including-on-resume):
+run suites and repository operations in the verified parent; the delegation advice
+here and in later surveys/sweeps applies only when those rules permit it.
+Otherwise, send anything that reads wide or returns long to a
 subagent where one exists: a code survey, a full test-suite run, any output past a
 screenful. Keep the answer it gives you, not the transcript. Where no subagent exists,
 bound the read yourself. Name the files, grep for the symbol, and read only the hunk.
@@ -215,7 +229,9 @@ Paste the sandbox id. Ids stop resolving once the sandbox is deleted. So before
 `veris sandbox trace` writes them. Name that path beside the ids. Whether that file is
 committed with the change or only kept on disk is `artifact_policy` in
 `.veris/setup.json`, which `setup` set at step 9. Save identifiers, counts and excerpts
-only, never credentials. Then run `veris down`.
+only, never credentials. Then run `veris down` only in a CLI-owned workflow;
+a plugin session uses
+[session handoff](../veris-reference/session.md#hand-back-code-and-evidence).
 
 When a step needs it: [../veris-reference/faults.md](../veris-reference/faults.md)
 for faults, credentials and the clock; [../veris-reference/webhooks.md](../veris-reference/webhooks.md)

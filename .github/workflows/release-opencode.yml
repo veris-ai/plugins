@@ -1,26 +1,18 @@
-# Publishes veris/.opencode-plugin to npm as opencode-veris.
-#
-# Run manually from the Actions tab. The version comes from
-# .claude-plugin/plugin.json -- the single place versions are bumped -- so the
-# release flow is: bump the version in a PR, merge, run this. The input exists
-# only to override that in an emergency.
-#
-# Auth is npm trusted publishing (OIDC): configure once on npmjs.com under the
-# package's Settings -> Trusted Publisher (repo veris-ai/plugins, workflow
-# release-opencode.yml). No token, no secret; npm's 2FA rules don't apply to
-# OIDC and provenance comes for free.
+# Publishes the tested tarball from canonical veris/skills as
+# @veris-ai/veris-opencode. Complete the new package's initial publication and
+# trusted-publisher setup for veris-ai/plugins and this workflow before dispatching.
 name: release-opencode
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Override version (default: the version in .claude-plugin/plugin.json)"
+        description: "Override version (default: veris/.claude-plugin/plugin.json)"
         required: false
 
 permissions:
-  contents: write # tag + GitHub release
-  id-token: write # npm trusted publishing
+  contents: write
+  id-token: write
 
 jobs:
   publish:
@@ -30,54 +22,64 @@ jobs:
         working-directory: veris/.opencode-plugin
     steps:
       - uses: actions/checkout@v4
-
-      # No registry-url: it makes setup-node write an .npmrc pinning token auth
-      # to a placeholder NODE_AUTH_TOKEN, and npm then never reaches for OIDC.
-      # That is what failed run 33198510143 — a token-authed PUT, no provenance
-      # line in the log, and npm's 404-for-bad-auth. The default registry is
-      # npmjs.org anyway, which is where this publishes.
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-
-      # Trusted publishing needs npm >= 11.5.1.
+      # No registry-url/token .npmrc: npm trusted publishing uses OIDC.
       - run: npm install -g npm@latest
+      - run: npm ci
 
       - name: Resolve version
         id: version
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
         run: |
-          VERSION='${{ inputs.version }}'
+          VERSION="$REQUESTED_VERSION"
           [ -n "$VERSION" ] || VERSION="$(jq -r .version ../.claude-plugin/plugin.json)"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           npm pkg set version="$VERSION"
-          echo "Publishing opencode-veris@$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          test "$(node -p 'require("./package.json").name')" = '@veris-ai/veris-opencode'
 
       - name: Refuse a version npm already has
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          if npm view "opencode-veris@${{ steps.version.outputs.version }}" version >/dev/null 2>&1; then
-            echo "opencode-veris@${{ steps.version.outputs.version }} is already on npm." >&2
-            echo "Bump the version in .claude-plugin/plugin.json (and its siblings) first." >&2
+          if npm view "@veris-ai/veris-opencode@$VERSION" version >/dev/null 2>&1; then
+            echo "@veris-ai/veris-opencode@$VERSION is already on npm." >&2
+            echo "Bump the version in the source manifests first." >&2
             exit 1
           fi
 
-      # prepack copies ../skills into the tarball; prove it landed before publish.
-      - name: Pack and inspect
+      - name: Pack canonical skills
+        id: pack
         run: |
-          npm pack
-          tar -tzf "opencode-veris-${{ steps.version.outputs.version }}.tgz" | grep -q "package/skills/setup/SKILL.md" \
-            || { echo "skills/ missing from tarball" >&2; exit 1; }
-          tar -tzf "opencode-veris-${{ steps.version.outputs.version }}.tgz"
+          npm pack --json > packed.json
+          TARBALL="$(jq -r '.[0].filename' packed.json)"
+          echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
+          tar -tzf "$TARBALL"
 
-      - name: Publish
-        run: npm publish
+      - name: Test repository and exact release tarball
+        working-directory: .
+        env:
+          VERIS_TEST_TARBALL: ${{ github.workspace }}/veris/.opencode-plugin/${{ steps.pack.outputs.tarball }}
+        run: |
+          sh tests/ledger_repository.sh
+          sh tests/record_argv.sh
+          sh tests/opencode_plugin.sh
+
+      - name: Publish the packed artifact
+        env:
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: npm publish "$TARBALL" --access public
 
       - name: Tag and GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          TAG="opencode-v${{ steps.version.outputs.version }}"
+          TAG="opencode-v$VERSION"
           git tag "$TAG"
           git push origin "$TAG"
           gh release create "$TAG" \
-            --title "opencode-veris ${{ steps.version.outputs.version }}" \
-            --notes "https://www.npmjs.com/package/opencode-veris/v/${{ steps.version.outputs.version }}"
+            --title "@veris-ai/veris-opencode $VERSION" \
+            --notes "https://www.npmjs.com/package/@veris-ai/veris-opencode/v/$VERSION"

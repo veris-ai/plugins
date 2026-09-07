@@ -1,6 +1,6 @@
 ---
 name: fix
-description: Fix a defect against the vendor's twin - reproduce the failure the issue describes through the repository's own code before designing, prove it closed with a receipt from veris run, write the PR with what was verified and assumed. Takes an issue link or a prompt. Run when the engineer names this command.
+description: Fix a defect against the vendor's twin - reproduce the failure the issue describes through the repository's own code before designing, prove it closed with current-run twin evidence, write the PR with what was verified and assumed. Takes an issue link or a prompt. Run when the engineer names this command.
 argument-hint: "<issue link | prompt>"
 disable-model-invocation: true
 ---
@@ -8,7 +8,17 @@ disable-model-invocation: true
 Fix the defect in the request that came with this command: a GitHub issue URL or
 number, or free text. Not done until every gate below is met and the PR says so.
 
-Needs `.veris/twin.yaml` in the repository. If it is missing, stop: `setup` runs first.
+Check the current runtime tools/context before using saved setup. In a plugin-managed
+session, read [../veris-reference/session.md](../veris-reference/session.md) and
+revalidate the provider, attached twin and remote repository now. That path replaces
+CLI lifecycle and execution instructions throughout these gates: use the existing
+twin, direct application commands, attributed provider receipts and the discovered
+control interface; finish with change sync, leaving plugin-owned resources alive.
+The evidence gates below are unchanged. Saved session metadata is not identity.
+
+A CLI-owned workflow needs `.veris/twin.yaml` in the repository. If it is missing,
+stop: `setup` runs first. In a verified plugin session, setup's notes, metadata and staged
+helpers replace that CLI file; if missing, run `setup`.
 
 Three rules, always:
 
@@ -32,7 +42,8 @@ repository's own. The repository's own defects include state lost between reques
 queue, a cache, a race, and no twin can represent any of those. The twin confirms a
 diagnosis chosen
 from code evidence; it does not choose it. In a large repository, hand this survey to a
-subagent where one exists, and keep the list, each candidate with its file and line.
+subagent where one exists, subject to the session rules below, and keep the list,
+each candidate with its file and line.
 
 Then say where the vendor boundary sits. A defect with no vendor claim on its path is
 verified the repository's own way, and the twin is spent on one end-to-end run of the
@@ -40,7 +51,11 @@ changed flow. A defect that rests on what the vendor does gets every gate below.
 
 Read `.veris/NOTES.md` first. Append what you measure here that outlives the task.
 
-Keep the conversation small. Send anything that reads wide or returns long to a
+Keep the conversation small. In a plugin-managed session, follow
+[session delegation rules](../veris-reference/session.md#verify-now-including-on-resume):
+run suites and repository operations in the verified parent; the delegation advice
+here and in later surveys/sweeps applies only when those rules permit it.
+Otherwise, send anything that reads wide or returns long to a
 subagent where one exists: the code survey above, a full test-suite run, any output
 past a screenful. Keep the answer it gives you, not the transcript. Where no subagent
 exists, bound the read yourself. Name the files, grep for the symbol, and read only the
@@ -236,7 +251,9 @@ Every premise that measured false is its own line, and is never restated as fact
 Paste the sandbox id. Where the diagnosis, ledger and record go is `artifact_policy` in
 `.veris/setup.json`, which `setup` set at step 9: rendered into the PR body
 (`pr-body`), kept on disk only (`local`), or committed under
-`.veris/tasks/<task-id>/` (`commit`). Then run `veris down`.
+`.veris/tasks/<task-id>/` (`commit`). Then run `veris down` only in a CLI-owned workflow;
+a plugin session uses
+[session handoff](../veris-reference/session.md#hand-back-code-and-evidence).
 
 When a step needs it: [../veris-reference/faults.md](../veris-reference/faults.md),
 [../veris-reference/webhooks.md](../veris-reference/webhooks.md),
