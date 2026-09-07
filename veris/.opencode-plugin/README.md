@@ -30,4 +30,10 @@ missing. The plugin reads no credential and registers no server of its own.
 The commands are plain OpenCode commands: only the engineer can start them,
 the model cannot invoke them on its own.
 
+For application tests on a separately managed hosted box, setup reads the bundled
+`skills/veris-reference/hosted.md` and its `daytona.md` or `e2b.md` provider recipe.
+E2B uses an exact published SDK version and attaches to the task's existing
+twin. These recipes do not configure an OpenCode provider plugin or manage a
+session-owned sandbox.
+
 Source and the shared skill files: https://github.com/veris-ai/plugins
