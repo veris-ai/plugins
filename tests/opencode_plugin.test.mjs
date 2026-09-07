@@ -88,6 +88,72 @@ test('all canonical references resolve through the tool and script bytes survive
   } finally { rmSync(dest, { recursive: true, force: true }) }
 })
 
+for (const provider of ['daytona', 'e2b']) {
+  test(`${provider}: documented bash fallback stages literal helpers with write/edit hidden`, async () => {
+    const hooks = await plugin()
+    const dir = mkdtempSync(join(tmpdir(), 'veris-bash-stage-'))
+    const host = join(dir, 'host')
+    const remote = join(dir, "parent's remote repo")
+    const child = join(dir, 'child-from-host-head')
+    for (const path of [host, remote, child]) mkdirSync(path)
+    const quote = (s) => `'${s.replaceAll("'", "'\\''")}'`
+    const session = await read(hooks, 'veris-reference/session.md')
+    // Execute the canonical documented recipe, not a separately implemented copier.
+    const recipe = session.content.match(/```sh\n([\s\S]*?)\n```/)[1]
+    const render = (name, content, sha256) => {
+      assert.ok(content.endsWith('\n'))
+      assert.ok(!content.split('\n').includes('VERIS_HELPER_LITERAL'))
+      return recipe.replace("'<verified-repository>'", quote(remote))
+        .replace('<helper-name>', name).replace('<sha256>', sha256)
+        .replace('<exact-content>\n', content)
+    }
+    // Model-visible fixture: provider bash remains, write/edit are filtered out,
+    // and the native apply_patch must never be used for remote files.
+    let shellEnv = process.env
+    const visible = {
+      ...hooks.tool,
+      bash: { execute({ command }, context) {
+        assert.equal(context.sessionID, ctx.sessionID)
+        return execFileSync('/bin/sh', ['-c', command], { cwd: host, env: shellEnv, stdio: 'pipe' })
+      } },
+      apply_patch: { execute() { assert.fail('native apply_patch would modify host files') } },
+    }
+    try {
+      assert.equal(visible.write, undefined)
+      assert.equal(visible.edit, undefined)
+      // Force each checksum branch; do not rely on the host's preferred utility.
+      for (const hashTool of ['sha256sum', 'shasum']) {
+        const bin = join(dir, hashTool)
+        mkdirSync(bin)
+        for (const tool of ['mkdir', 'mktemp', 'cat', 'chmod', 'mv', 'rm', hashTool]) {
+          const executable = execFileSync('/bin/sh', ['-c', `command -v ${tool}`], { encoding: 'utf8' }).trim()
+          symlinkSync(executable, join(bin, tool))
+        }
+        shellEnv = { ...process.env, PATH: bin }
+        for (const name of ['record.sh', 'ledger.sh']) {
+          const result = JSON.parse(await visible.verisSkill.execute({ path: `veris-reference/scripts/${name}` }, ctx))
+          visible.bash.execute({ command: render(name, result.content, result.sha256) }, ctx)
+          const staged = join(remote, '.veris/bin', name)
+          assert.deepEqual(readFileSync(staged), readFileSync(join(skills, 'veris-reference/scripts', name)))
+          execFileSync('/bin/sh', ['-n', staged])
+          // Corrupted/truncated transport must not replace the verified helper.
+          assert.throws(() => visible.bash.execute({ command: render(name, result.content.slice(0, 100) + '\n', result.sha256) }, ctx),
+            /hash mismatch; helper not installed/)
+          assert.equal(readFileSync(staged, 'utf8'), result.content)
+        }
+        const literal = '#!/bin/sh\n# $(touch SUBSTITUTION) `touch BACKTICKS` $UNSET_VARIABLE\nexit 0\n'
+        visible.bash.execute({ command: render('record.sh', literal, createHash('sha256').update(literal).digest('hex')) }, ctx)
+        assert.equal(readFileSync(join(remote, '.veris/bin/record.sh'), 'utf8'), literal)
+        assert.ok(!existsSync(join(remote, 'SUBSTITUTION')))
+        assert.ok(!existsSync(join(remote, 'BACKTICKS')))
+        assert.deepEqual(readdirSync(join(remote, '.veris/bin')).sort(), ['ledger.sh', 'record.sh'])
+      }
+      assert.deepEqual(readdirSync(host), [])
+      assert.deepEqual(readdirSync(child), [])
+    } finally { rmSync(dir, { recursive: true, force: true }) }
+  })
+}
+
 test('resource tool rejects traversal, absolute files and unknown resources', async () => {
   const hooks = await plugin()
   for (const path of ['/etc/passwd', '../package.json', 'setup/../../secret.md', 'setup/../fix/SKILL.md', 'setup//SKILL.md', 'setup/%2e%2e/secret.md', 'veris-reference/missing.md']) {

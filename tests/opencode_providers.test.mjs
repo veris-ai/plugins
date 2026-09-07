@@ -1,8 +1,8 @@
 // Optional contract check against unpacked *published* npm releases, without
 // credentials or remote resources. Run with Bun (provider JS uses extensionless
 // imports): VERIS_PUBLISHED_PACKAGES=/path/to/unpacked bun test this-file.
-// Expected folders: daytona/package and e2b/package. Only the SDK type guard is
-// stubbed; the providers' receipt renderers and Daytona config hook run unchanged.
+// Expected folders: daytona/package and e2b/package. SDK/session/git boundaries
+// are stubbed; published receipt, config and idle-event hooks run unchanged.
 import { describe, test, expect, mock } from 'bun:test'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -15,6 +15,32 @@ mock.module('@veris-ai/daytona', () => ({ isVerisSandbox: (s) => Boolean(s.veris
 const suite = artifacts ? describe : describe.skip
 suite('published provider contracts (fake sandbox, no live validation)', () => {
   for (const provider of ['daytona', 'e2b']) {
+    test(`${provider} child idle resolves its own sandbox even without a child tool call`, async () => {
+      const base = resolve(artifacts, provider, `package/.opencode/plugin/${provider}`)
+      mock.module(resolve(base, 'git/session-git-manager.js'), () => ({
+        SessionGitManager: { async enqueueSessionSync(_id, work) { return work() } },
+      }))
+      const { eventHandlers } = await import(pathToFileURL(resolve(base, 'plugins/session-events.js')).href)
+      const parent = { id: 'parent-box', sandboxId: 'parent-box', twin: 'parent-twin', source: 'parent-remote-edits' }
+      const bindings = new Map([['parent-session', parent]])
+      const lookups = []
+      const manager = {
+        isSessionDeleting() { return false },
+        async getSandbox(id) {
+          lookups.push(id)
+          if (!bindings.has(id)) bindings.set(id, { id: 'child-box', sandboxId: 'child-box', twin: 'child-twin', source: 'host-HEAD' })
+          return bindings.get(id)
+        },
+        getBranchNumberForSandbox() { return undefined }, // Do not execute git transport.
+      }
+      const onEvent = await eventHandlers({ project: { id: 'project' }, worktree: '/host/repo' }, manager, '/remote/repo')
+      await onEvent({ event: { type: 'session.idle', properties: { sessionID: 'child-session' } } })
+      expect(lookups).toEqual(['child-session'])
+      expect(bindings.size).toBe(2)
+      expect(bindings.get('parent-session')).toBe(parent)
+      expect(bindings.get('child-session').twin).not.toBe(parent.twin)
+      expect(bindings.get('child-session').source).not.toBe(parent.source)
+    })
     test(`${provider} receipt binds to tool session and exposes cumulative/truncated traffic`, async () => {
       const base = resolve(artifacts, provider, 'package')
       const manifest = JSON.parse(readFileSync(resolve(base, 'package.json'), 'utf8'))

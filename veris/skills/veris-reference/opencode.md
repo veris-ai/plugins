@@ -6,6 +6,30 @@ multiedit/ls/glob/grep tools operate on remote application files. `verisSkill`
 reads this installed package on the host, independent of those replacements. Use
 it for all linked references and required scripts, with package-relative paths.
 
+## Tool visibility and child sessions
+
+Inspect the tools actually available to the selected model. In the inspected
+OpenCode 1.18.25–1.18.29 [tool registry](https://github.com/anomalyco/opencode/blob/v1.18.29/packages/opencode/src/tool/registry.ts),
+GPT models other than GPT-4/GPT-OSS hide `write` and `edit`, including plugin
+replacements. The remaining native `apply_patch` uses the host filesystem; neither
+provider replaces it. Stage helpers with the
+[remote bash recipe](session.md#stage-through-remote-bash) and perform application
+edits through the provider's bash in the verified repository when remote editing
+tools are unavailable. Preserve permissions; missing write does not require a
+different model or a host edit.
+
+OpenCode's [task tool](https://github.com/anomalyco/opencode/blob/v1.18.29/packages/opencode/src/tool/task.ts)
+creates a child session id. Published Daytona 0.2.1 and E2B 0.1.1 bind sandboxes to
+that id and initialize new repositories from host HEAD, missing the parent's remote
+edits and seeded twin state. Their idle hooks also call `getSandbox` for the child,
+so even analysis without tool calls can create resources. Do not launch OpenCode
+task subagents with these releases. Keep full suites, source surveys, edits and
+twin operations in the verified parent; capture and summarize long output there.
+Only a provider-supported binding covering the same sandbox, twin, current working
+tree **and child lifecycle hooks** could permit shared execution. A parent id or
+repository path in a prompt does not establish it. Any otherwise permitted
+subagent analysis must use supplied content without provider/repository operations.
+
 ## Install and record the resolution
 
 These are OpenCode plugins, not `npx` commands. In `opencode.json` (or the global

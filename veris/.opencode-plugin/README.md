@@ -30,8 +30,10 @@ for credentials, E2B's optional host MCP configuration, trust and release limita
 The reasoning loop runs locally and the sandbox plugin runs application tools
 remotely. The skills' `verisSkill` tool reads entrypoints, references and helper
 scripts from this installed package on the host, so a remote `read` never needs
-access to a local npm-cache path. Setup copies helper content through the remote
-write tool and verifies its hash. `veris/skills` remains the only maintained copy.
+access to a local npm-cache path. Setup copies helper content through remote write
+or a hash-verified remote bash fallback when model filtering hides write/edit.
+Native `apply_patch` operates on the host and is not a remote editing fallback.
+`veris/skills` remains the only maintained copy.
 The adapter adds no MCP, changes no permissions or trust settings, and preserves
 user-defined commands. Commands are engineer-invoked; no automatic skill paths
 are registered.
@@ -42,6 +44,9 @@ existing interception, and retain the same evidence gates. Receipts are cumulati
 and truncated: use before/after evidence and application response/state assertions,
 and report missing attribution rather than claiming a run was observed. The plugin
 owns cleanup. Finish with `gitSync`; ignored evidence needs an explicit handoff.
+Tests and repository operations stay in the verified parent session. Published
+providers can provision a separate sandbox/twin for a child session, even on idle;
+do not launch OpenCode task subagents for this workflow with those releases.
 See [the shared session path](skills/veris-reference/session.md).
 
 The skills can also be installed alone for a CLI-owned workflow. That workflow

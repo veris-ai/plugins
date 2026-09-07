@@ -30,6 +30,16 @@ setup, build, fix, and their references. Their evidence gates still apply:
 - Work with the sandbox's application tools, in the verified repository. Run the
   application's own command directly with existing interception. Do not nest
   `veris run`, a proxy, Docker, a provider CLI, or another sandbox around it.
+- Keep repository reads, edits, full suites, probes, seeding, receipts and git sync
+  in this verified **parent session**. This overrides build/fix instructions to
+  delegate surveys, test runs or coverage sweeps. A child session is not this
+  sandbox: do not test its host-HEAD checkout or use its twin as parent evidence.
+  Subagents may only analyze supplied content when their session cannot provision
+  resources; never give them repository or provider operations without an explicitly
+  established shared sandbox/twin binding, including lifecycle hooks. Published
+  OpenCode providers can provision on child idle even without a tool call, so do
+  not launch OpenCode `task` subagents in those versions (see [opencode.md](opencode.md)).
+  Bound reads and summarize long output in the parent instead.
 - Reuse this twin. Skip `veris up`, environment creation, image/proxy setup,
   `--fresh`, promotion, reset and all teardown commands. Do not clear history to
   simplify a receipt. The plugin owns these resources; no `veris down` at finish.
@@ -57,11 +67,56 @@ actual application command, dependencies, source revision, services, interface
 names/locations, trust findings, versions, evidence and synchronization procedure.
 Stage the two canonical helper scripts from the installed package. With OpenCode,
 read `veris-reference/scripts/record.sh` and `veris-reference/scripts/ledger.sh`
-using `verisSkill`; write each returned `content` unchanged into `.veris/bin/`
-using the remote write tool and verify its returned SHA-256 there. Use
-`sha256sum` or `shasum -a 256`. Do not fetch helpers from GitHub or another release.
+using `verisSkill`; stage each returned `content` unchanged into `.veris/bin/`
+and verify its returned SHA-256 there. Use a provider-backed `write` when available,
+or the remote `bash` recipe below when model filtering hides `write`/`edit`.
+OpenCode's native `apply_patch` edits host files; it cannot stage or edit this
+remote repository. Use the provider's `bash` for application edits too when the
+remote editing tools are absent, then inspect the diff in the same sandbox.
+Do not fetch helpers from GitHub or another release.
 Check `sh`, `git`, `jq`, and the application's runtime in this sandbox. Missing
 helpers/tools are a concrete prerequisite; report any blocked dependency install.
+
+### Stage through remote bash
+
+Send this command through the provider's `bash` in the verified parent session,
+once for each helper. Replace `<verified-repository>` with the verified remote path
+(shell-quote it), `<helper-name>` with `record.sh` or `ledger.sh`, and `<sha256>`
+with that resource's returned hash. Replace the entire `<exact-content>` line with
+the returned content, retaining its final newline without adding a blank line.
+Keep the heredoc delimiter quoted and choose one absent as a full line in the
+content; shell variables, backticks and substitutions in the helper must stay
+literal. Require a complete resource result; truncated content is not stageable.
+
+```sh
+(
+  set -eu
+  cd '<verified-repository>'
+  mkdir -p .veris/bin
+  veris_stage=$(mktemp .veris/bin/.helper.XXXXXX)
+  trap 'rm -f "$veris_stage"' EXIT
+  cat > "$veris_stage" <<'VERIS_HELPER_LITERAL'
+<exact-content>
+VERIS_HELPER_LITERAL
+  if command -v sha256sum >/dev/null 2>&1; then
+    veris_hash=$(sha256sum "$veris_stage")
+  else
+    veris_hash=$(shasum -a 256 "$veris_stage")
+  fi
+  if [ "${veris_hash%% *}" != '<sha256>' ]; then
+    printf '%s\n' 'Veris helper hash mismatch; helper not installed' >&2
+    exit 1
+  fi
+  chmod 755 "$veris_stage"
+  mv "$veris_stage" '.veris/bin/<helper-name>'
+)
+```
+
+This writes to a temporary remote file and installs it only after the hash matches.
+If neither remote write nor remote bash is usable, or no SHA-256 utility exists,
+report that staging prerequisite and stop. Do not substitute a host file operation.
+
+### Persist setup observations
 
 Keep step 9's source/build facts and artifact policy in `.veris/setup.json`, adding
 `"execution": "plugin-session"` and a `session` object with the observations above.

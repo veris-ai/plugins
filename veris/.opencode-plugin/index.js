@@ -66,7 +66,7 @@ const VerisPlugin = async () => ({
           session_id: ctx.sessionID,
           path,
           sha256: createHash("sha256").update(content).digest("hex"),
-          loading: "Resolve relative links against the directory of path, normalize them within skills/, and read them with verisSkill. For scripts, copy content verbatim using the current repository's write tool and verify sha256 before execution. No host filesystem path or download is needed. This session_id identifies OpenCode, not the twin; verify the twin with the provider tools.",
+          loading: "Resolve relative links against the directory of path, normalize them within skills/, and read them with verisSkill. For scripts, copy content verbatim with the current repository's provider-backed write or bash tool and verify sha256 before execution; veris-reference/session.md#stage-through-remote-bash gives the quoted-heredoc fallback when write is hidden. Native apply_patch operates on the host, not the provider repository. Keep provider operations in the verified parent session. No host filesystem path or download is needed. This session_id identifies OpenCode, not the twin; verify the twin with the provider tools.",
           content,
         })
       },

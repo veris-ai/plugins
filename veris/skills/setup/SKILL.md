@@ -504,8 +504,10 @@ sandbox into `.veris/NOTES.md`: owners, paths, hashes.
 scripts that ship in this plugin do the work. Copy `record.sh` and `ledger.sh` from
 this plugin's `veris-reference/scripts/` directory into `.veris/bin/`; derive the
 absolute path of that directory from the path of the file you are reading. In
-OpenCode, use `verisSkill` to read the installed scripts, write their exact content
-with the repository's write tool, and verify the returned SHA-256. Re-running
+OpenCode, use `verisSkill` to read the installed scripts and verify the returned
+SHA-256 after staging. In a provider session use its remote write tool, or the
+[remote bash fallback](../veris-reference/session.md#stage-through-remote-bash)
+when write is hidden; native `apply_patch` edits the host. Re-running
 setup copies them again, which is how a stale copy is repaired.
 
 `record.sh` reads three facts from `.veris/setup.json`, and `ledger.sh` reads none.

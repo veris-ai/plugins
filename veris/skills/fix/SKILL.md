@@ -42,7 +42,8 @@ repository's own. The repository's own defects include state lost between reques
 queue, a cache, a race, and no twin can represent any of those. The twin confirms a
 diagnosis chosen
 from code evidence; it does not choose it. In a large repository, hand this survey to a
-subagent where one exists, and keep the list, each candidate with its file and line.
+subagent where one exists, subject to the session rules below, and keep the list,
+each candidate with its file and line.
 
 Then say where the vendor boundary sits. A defect with no vendor claim on its path is
 verified the repository's own way, and the twin is spent on one end-to-end run of the
@@ -50,7 +51,11 @@ changed flow. A defect that rests on what the vendor does gets every gate below.
 
 Read `.veris/NOTES.md` first. Append what you measure here that outlives the task.
 
-Keep the conversation small. Send anything that reads wide or returns long to a
+Keep the conversation small. In a plugin-managed session, follow
+[session delegation rules](../veris-reference/session.md#verify-now-including-on-resume):
+run suites and repository operations in the verified parent; the delegation advice
+here and in later surveys/sweeps applies only when those rules permit it.
+Otherwise, send anything that reads wide or returns long to a
 subagent where one exists: the code survey above, a full test-suite run, any output
 past a screenful. Keep the answer it gives you, not the transcript. Where no subagent
 exists, bound the read yourself. Name the files, grep for the symbol, and read only the

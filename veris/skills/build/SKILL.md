@@ -47,7 +47,11 @@ does gets every gate below.
 Read `.veris/NOTES.md` first. It holds what earlier tasks measured; do not measure
 it again. Append what you measure here that a later task will need.
 
-Keep the conversation small. Send anything that reads wide or returns long to a
+Keep the conversation small. In a plugin-managed session, follow
+[session delegation rules](../veris-reference/session.md#verify-now-including-on-resume):
+run suites and repository operations in the verified parent; the delegation advice
+here and in later surveys/sweeps applies only when those rules permit it.
+Otherwise, send anything that reads wide or returns long to a
 subagent where one exists: a code survey, a full test-suite run, any output past a
 screenful. Keep the answer it gives you, not the transcript. Where no subagent exists,
 bound the read yourself. Name the files, grep for the symbol, and read only the hunk.
