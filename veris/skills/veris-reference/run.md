@@ -93,7 +93,7 @@ fallback.
 | `--keep-proxy` | leave the proxy container up for inspection |
 | `--patch-bundled-cas` | append the proxy's certificate to the SDK-bundled CA files it knows ([troubleshooting.md](troubleshooting.md)) |
 | `--cap-add <CAP>` | hand one Linux capability back to the workload; repeatable |
-| `--java-truststore <path>` | a JKS truststore holding the proxy's certificate for a JVM client (`--java-truststore-pass` when it is not `changeit`) |
+| `--java-truststore <path>` | host-tier only; incompatible with `--image`, whose runner injects the JVM truststore automatically. A JKS truststore holding the proxy's certificate for a host JVM client (`--java-truststore-pass` when it is not `changeit`) |
 
 Without `--fresh`, the run attaches to this folder's sandbox, the one `veris up` made,
 and leaves it running. Use that for a task: the faults armed and the state read back

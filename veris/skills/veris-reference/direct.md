@@ -70,18 +70,17 @@ signal, not a reason to fork the app's HTTP layer.
    human, and Replit's is one. There, name each variable and its value, wait for the
    engineer to confirm, and never print other secrets while doing it. For a vendor MCP
    server, use the twin's URL with the vendor's MCP path.
-4. Credentials stay vendor-shaped. Read `veris sandbox data get <twin> auth` before
-   hunting for a published key: a `permissive` twin accepts any well-formed credential,
-   so a throwaway value in whatever file or variable the app already reads is enough,
-   and that is how twins boot. Only an `enforced` twin needs the published one (`veris
-   sandbox data get <twin>` per the manual), and an app with its own connect flow
-   mints its own against the identity twin.
+4. Credentials stay vendor-shaped. Read the manual and
+   `veris sandbox data get <twin> auth`. A permissive API-key or client-credential
+   check can accept a throwaway value of the right shape. OAuth tokens still need
+   to be issued by the sandbox, including a product twin's companion issuer;
+   permissive mode does not remove that requirement. Follow
+   [faults.md](faults.md), **Credentials**, for token bootstrap and refusal tests.
 
 Nothing else is needed, and it is worth knowing how little that is. Measured: the
 process ran with no `veris` binary, no Veris key or sandbox id, no proxy variable, and
-no CA material at all. A sandbox URL is plain HTTP, so the certificate work the
-container tier sometimes needs for an SDK that bundles its own roots does not arise
-here.
+no CA material at all. Keep the scheme in the returned sandbox URL. Public HTTPS URLs use normal
+server-certificate validation; this tier adds no interception CA.
 
 ## The trust anchor
 

@@ -9,12 +9,18 @@ and the evidence to tell them apart is already recorded.
 | `veris sandbox trace` | the wire trace of every request and response. The failing exchange can be replayed with curl before the sandbox, the proxy or the code is blamed. Ask for the tier the evidence is on |
 | `veris sandbox data get <twin> <table>` | what the vendor stored: the row a create produced, the replay it recorded, the state a callback left |
 
-## An empty receipt, exit 3
+Sandbox totals can include sibling token verification or concurrent traffic that the
+app's proxy never saw. A mismatch alone does not fail a requirement; compare the
+per-twin traces and the application's own outcome.
+
+## An unmet requirement, exit 3
 
 `veris run --fresh` exits 3 on its own when the run sent the sandbox nothing:
 deploying a sandbox for a suite that never called it is a failure, not a pass. A run
 against this folder's sandbox exits 3 when a `--require-*` is unmet. Causes, in
-order:
+order. If the failed requirement names a callback, use
+[webhooks.md](webhooks.md), **A callback requirement failed after successful outbound calls**,
+even when the outbound receipt is nonempty.
 
 1. The suite genuinely never calls its dependency: an in-process mock still active,
    the tests filtered out. Pick a test that does.
@@ -92,9 +98,12 @@ The fix, in order:
    failure line names it (`CA-bundle-shaped file(s) the scan does not know: ...`) for
    step 3. Add the flag up front when the dependency set names one of these SDKs; it
    costs nothing when there is nothing to patch.
-2. A JVM client reads a JKS truststore: build one containing the proxy's certificate
+2. A container JVM client (`--image`) receives the runner's generated JKS
+   truststore automatically through `JAVA_TOOL_OPTIONS`. Start with that default;
+   inspect the injection diagnostic if the app overrides its TLS configuration.
+   For a **host-tier** JVM client, build a truststore containing the proxy's certificate
    and pass `--java-truststore <path>` (`--java-truststore-pass` when it is not
-   `changeit`).
+   `changeit`). These flags are rejected with `--image`.
 3. Over-mount by hand when the line persists. Find the SDK's bundled CA file in the
    image, in the mounted venv or in `node_modules`; the failure line names the
    candidates. Copy it out, append the proxy's certificate, and mount the copy back
