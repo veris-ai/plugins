@@ -118,13 +118,18 @@ saved profile on every command.
 The hosted tier has provider recipes for
 [Daytona](veris/skills/veris-reference/daytona.md) and
 [E2B](veris/skills/veris-reference/e2b.md), with selection and evidence rules in
-[hosted.md](veris/skills/veris-reference/hosted.md). E2B uses the published
-`@veris-ai/e2b` SDK: attach a separate application-test box to the task's existing
-twin, upload the code, install dependencies and run commands. Resolve the latest
-release once, record its exact version and retain the dependency lockfile. The
-checked 0.1.1 release has no CLI; Daytona's verbs do not apply. E2B supports strict
-egress and public callbacks, with provider-specific setup and limits in its recipe.
-OpenCode provider configuration and session-owned sandboxes are a separate workflow.
+[hosted.md](veris/skills/veris-reference/hosted.md). Both use the provider's
+published SDK as shipped — `@veris-ai/daytona`, a drop-in for `@daytona/sdk`,
+and `@veris-ai/e2b` — through a task-local script: attach a separate
+application-test box to the task's existing twin
+(`create({ veris: { attachSandboxId } })`), upload the code, install
+dependencies, run commands with the trust environment applied, and read the
+receipt since a baseline. Neither package ships a CLI the skills depend on.
+Resolve the latest release once, record its exact version and retain the
+dependency lockfile. The Daytona recipe spells out what the SDK sets for the
+proxy and for trust, and what a Node process needs on top; provider-specific
+setup and limits are in each recipe. OpenCode provider configuration and
+session-owned sandboxes are a separate workflow.
 
 ### Versions
 
@@ -132,6 +137,18 @@ These entries describe the source plugin history. The old
 `@veris-ai/veris-sim-opencode` npm 0.7.0 tarball predates the CLI migration below;
 matching version numbers across that old distribution and this source do not
 establish matching content.
+
+0.7.4 (unreleased) — the Daytona recipe is written around the `@veris-ai/daytona`
+SDK as shipped (0.3.0 and later), the same shape as the E2B recipe: a task-local
+`sandbox.mjs` that attaches to the task's twin, pushes, execs with the trust
+environment, and reads receipts since a baseline. It states what the SDK sets
+for egress and trust and what a Node process needs beyond it: `NODE_USE_ENV_PROXY`,
+`--use-openssl-ca`, and the Agent proxy preload for SDKs that build their own
+`https.Agent` (stripe-node measured), installed by the script on 0.3.0 and by the
+SDK from 0.3.1. Also: one organisation for the CLI and the SDK, `COPYFILE_DISABLE`
+on macOS uploads, workspace packages staged as a copy, and the application's own
+database inside the box until data planes are carried through. Run against a live
+box on 2026-09-08 (Medusa's payment module through the Stripe provider).
 
 0.7.3 (unreleased) — OpenCode commands load skills from the installed package in
 Daytona and E2B sessions, reuse the attached twin, and require evidence attributable to each

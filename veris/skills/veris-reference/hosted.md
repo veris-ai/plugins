@@ -40,7 +40,7 @@ The available provider recipes are:
 
 | provider | recipe |
 |---|---|
-| Daytona | [daytona.md](daytona.md): installation, keys, exact commands, certificate setup, network limits and sandbox deletion |
+| Daytona | [daytona.md](daytona.md): published SDK, attaching to the existing twin, image, upload, proxy and trust (what a Node process needs), data planes, callbacks and sandbox deletion |
 | E2B | [e2b.md](e2b.md): published SDK, attaching to the existing twin, templates, file upload, certificate trust, egress, callbacks and sandbox deletion |
 
 Follow that recipe to provision a box on the task's twin, upload the code, install
