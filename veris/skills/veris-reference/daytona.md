@@ -25,16 +25,13 @@ npm view @veris-ai/daytona@latest version
 npm view @veris-ai/daytona@<version> version peerDependencies exports --json
 ```
 
-The recipe needs, at least, **0.3.0**: `veris.attachSandboxId` on `create()`,
+The recipe needs, at least, **0.3.1**: `veris.attachSandboxId` on `create()`,
 the gateway address pin (`networkAllowList`, never a `domainAllowList`, which
 turns on Daytona's TLS inspection and ends every vendor call in a 502),
-`receiptBaseline()` / `receiptSince()`, `getTrustEnv()` and
-`patchBundledCas()`. 0.2.1 and earlier have none of that; if `latest` is older
-than 0.3.0, stop and report the release prerequisite. Do not clone or build
-unreleased code to fill the gap. A Node application whose SDK builds its own
-`https.Agent` (stripe-node, the AWS SDK, Twilio) additionally needs the Node
-proxy preload described under *Proxy and trust*, shipped from 0.3.1; with
-0.3.0 the runner script below installs the same preload itself.
+`receiptBaseline()` / `receiptSince()`, `getTrustEnv()`, `patchBundledCas()`
+and the Node proxy preload described under *Proxy and trust*. 0.3.0 lacks the
+preload and 0.2.1 lacks all of it; if `latest` is older, stop and report the
+release prerequisite. Do not clone or build unreleased code to fill the gap.
 
 Create a local runner directory, excluded from git and from the workload
 upload. `@daytona/sdk` is a peer dependency and is installed beside it:
@@ -106,105 +103,31 @@ workspace, stage a copy of the package plus the root config files it extends:
 `npm install` inside a yarn or npm workspace resolves the whole monorepo and
 fails on root-only conflicts.
 
-Save the following as `.veris/daytona/sandbox.mjs` and run it from that
-directory. It is a task-local script over the supported SDK; the verbs are
-the ones `build` and `fix` expect.
+Write a small task-local script, `.veris/daytona/sandbox.mjs`, over the SDK.
+Do not copy the SDK into it: the installed package documents its own surface,
+and that is what to read first. `node_modules/@veris-ai/daytona/README.md` is
+the manual, `dist/index.d.ts` the exact signatures, and the E2B recipe's
+script is the shape to follow (state in a `sandbox.json` beside the script,
+one verb per action, the twin id checked on every call). The calls the
+script needs, all of them on the SDK as shipped:
 
-```js
-import { readFileSync, writeFileSync, unlinkSync, existsSync } from "node:fs"
-import { execFileSync } from "node:child_process"
-import path from "node:path"
-import { Daytona } from "@veris-ai/daytona"
+| verb | SDK call |
+|---|---|
+| `create [--image <name>]` | `new Daytona({ apiKey })`, then `daytona.create({ image?, veris: { attachSandboxId: twinId } })`; save `sbx.id` and `sbx.verisSandboxId` at once, refuse to continue if the latter is not this task's twin |
+| reconnect on every later verb | `daytona.get(savedId)` rehydrates the Veris surface from the box's labels |
+| `push <dir>` | tar the staging directory (`COPYFILE_DISABLE=1`, exclude `.git`, `node_modules`, `dist`, `.venv`, `._*`), `sbx.fs.uploadFile(localTgz, remotePath)`, then `tar -xzf` through `executeCommand` into a work directory under `$HOME` |
+| `exec [--cwd] [--env K=V] [--timeout s] -- <cmd>` | `sbx.process.executeCommand(cmd, cwd, { ...sbx.veris.getTrustEnv(), ...env }, timeoutSeconds)`; build a caller's `NODE_OPTIONS` with `verisNodeOptions()`; exit with the command's own code |
+| `patch-cas` | `sbx.veris.patchBundledCas()`, after every dependency install |
+| `baseline` | `sbx.veris.receiptBaseline()`, saved beside the state, before every run |
+| `receipt` | `sbx.veris.receiptSince(baseline)`; `sbx.veris.assertTouched(service, match?)` when a run must have reached a twin |
+| callbacks | `sbx.veris.deliverTo(port)` and `deliverTo(null)` |
+| `delete` | `sbx.delete()`; the attached twin is left running |
 
-const [action, ...args] = process.argv.slice(2)
-const HERE = path.dirname(new URL(import.meta.url).pathname)
-const STATE = path.join(HERE, "sandbox.json")
-const BASELINE = path.join(HERE, "baseline.json")
-const twinId = process.env.VERIS_TWIN_ID
-if (!twinId) throw new Error("Set VERIS_TWIN_ID to this task's existing twin")
-const daytona = new Daytona({ apiKey: process.env.DAYTONA_API_KEY })
-const state = () => JSON.parse(readFileSync(STATE, "utf8"))
-const box = async () => {
-  const s = state()
-  if (s.twinId !== twinId) throw new Error("sandbox.json belongs to another twin")
-  return daytona.get(s.daytonaSandboxId)
-}
-const flag = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined)
-
-// Merges the SDK's NODE_OPTIONS (the trust flag and, from 0.3.1, the proxy
-// preload) into a caller's own, so `--env NODE_OPTIONS=…` never drops them.
-const NODE_PRELOAD = "/tmp/veris-node-proxy.cjs"
-const nodeOptions = (own = "") =>
-  [own, `--require ${NODE_PRELOAD}`, "--use-openssl-ca"]
-    .filter((flag, i) => flag && (i === 0 || !own.includes(flag)))
-    .join(" ").trim()
-
-switch (action) {
-  case "create": {
-    if (existsSync(STATE)) throw new Error("sandbox.json exists: delete that task box first")
-    const image = flag("--image")
-    const sbx = await daytona.create({ ...(image ? { image } : {}), veris: { attachSandboxId: twinId } })
-    const home = (await sbx.process.executeCommand("echo $HOME")).result.trim()
-    const workDir = `${home}/veris-run`
-    await sbx.process.executeCommand(`mkdir -p ${workDir}`)
-    // With an SDK older than 0.3.1 the proxy preload is not in the box; put it there.
-    const preload = [
-      'for (const mod of [require("http"), require("https")]) {',
-      "  const Base = mod.Agent",
-      "  mod.Agent = class Agent extends Base { constructor(o) { super({ proxyEnv: process.env, ...(o || {}) }) } }",
-      "}", "",
-    ].join("\n")
-    await sbx.fs.uploadFile(Buffer.from(preload), NODE_PRELOAD)
-    const info = {
-      daytonaSandboxId: sbx.id, twinId: sbx.verisSandboxId, workDir,
-      trustEnv: sbx.veris.getTrustEnv(),
-      services: (await sbx.veris.services()).map((s) => s.name),
-    }
-    if (info.twinId !== twinId) { await sbx.delete(); throw new Error("attached to an unexpected twin") }
-    writeFileSync(STATE, JSON.stringify(info, null, 2), { mode: 0o600 })
-    console.log(JSON.stringify({ daytonaSandboxId: info.daytonaSandboxId, twinId: info.twinId, workDir, services: info.services }))
-    break
-  }
-  case "push": {                      // push <staging dir>
-    const dir = path.resolve(args[0])
-    const s = state(); const sbx = await box()
-    const tgz = path.join(HERE, "workload.tgz")
-    execFileSync("tar", ["-czf", tgz, "-C", dir, "--exclude=.git", "--exclude=node_modules", "--exclude=dist",
-      "--exclude=.venv", "--exclude=venv", "--exclude=__pycache__", "--exclude=._*", "."],
-      { env: { ...process.env, COPYFILE_DISABLE: "1" } })
-    await sbx.fs.uploadFile(tgz, `${s.workDir}.tgz`)
-    const r = await sbx.process.executeCommand(`tar -xzf ${s.workDir}.tgz -C ${s.workDir} && du -sh ${s.workDir}`)
-    process.stdout.write(r.result); process.exit(r.exitCode)
-  }
-  case "exec": {                      // exec [--cwd d] [--env K=V]... [--timeout s] -- <command>
-    const s = state(); const sbx = await box()
-    const sep = args.indexOf("--")
-    const opts = args.slice(0, sep); const command = args.slice(sep + 1).join(" ")
-    const env = { ...s.trustEnv }; let cwd = s.workDir; let timeout = 1800
-    for (let i = 0; i < opts.length; i++) {
-      if (opts[i] === "--cwd") cwd = path.isAbsolute(opts[++i]) ? opts[i] : `${s.workDir}/${opts[i]}`
-      else if (opts[i] === "--env") { const [k, ...v] = opts[++i].split("="); env[k] = k === "NODE_OPTIONS" ? nodeOptions(v.join("=")) : v.join("=") }
-      else if (opts[i] === "--timeout") timeout = Number(opts[++i])
-    }
-    const r = await sbx.process.executeCommand(command, cwd, env, timeout)
-    process.stdout.write(r.result.endsWith("\n") ? r.result : r.result + "\n"); process.exit(r.exitCode)
-  }
-  case "patch-cas": { console.log(JSON.stringify(await (await box()).veris.patchBundledCas())); break }
-  case "baseline": {                  // before every run
-    const b = await (await box()).veris.receiptBaseline()
-    writeFileSync(BASELINE, JSON.stringify(b, null, 2)); console.log(JSON.stringify(b)); break
-  }
-  case "receipt": {                   // what the twin received since the baseline
-    const r = await (await box()).veris.receiptSince(JSON.parse(readFileSync(BASELINE, "utf8")))
-    console.log(JSON.stringify(r, null, 2)); break
-  }
-  case "delete": {                    // the box; the attached twin is left running
-    const sbx = await box(); await sbx.delete(); unlinkSync(STATE)
-    console.log(`deleted Daytona sandbox ${sbx.id}; twin ${sbx.verisSandboxId} left running`); break
-  }
-  default: console.error("create | push <dir> | exec [opts] -- <cmd> | patch-cas | baseline | receipt | delete"); process.exit(2)
-}
-```
+Also on the surface and worth knowing: `sbx.veris.services()` and
+`manual(service)`, `getDataPlaneEnv()`, `trustPrelude()` for a command line
+you can only prefix, and the exported constants (`VERIS_BUNDLE`,
+`NODE_PROXY_PRELOAD`, `BUNDLED_CA_PATCH_SCRIPT`). Nothing in the package runs
+from a shell: it ships no executable.
 
 For an npm application with a lockfile, the run lines are:
 
@@ -222,11 +145,9 @@ node sandbox.mjs receipt
 Replace the install and test commands with this project's actual commands
 and record them in *How to run*, with the exact `--env` values the app needs
 (credentials come from the twin's manual and `veris sandbox data get`, never
-from the real vendor). Each `exec` runs one shell string from `workDir` with
-the trust variables applied, returns the command's own exit code, and returns
-output when the command ends rather than streaming it; a long install shows
-nothing until it finishes. `--env NODE_OPTIONS=…` keeps the SDK's flags
-merged in. After editing source locally, `push` again; files removed locally
+from the real vendor). `executeCommand` returns output when the command ends
+rather than streaming it, so a long install shows nothing until it finishes.
+After editing source locally, `push` again; files removed locally
 stay in the box, so delete them there or create a fresh box before measuring
 a change that removes files.
 
@@ -245,16 +166,15 @@ broken one:
 |---|---|
 | egress | `networkAllowList` = the Veris gateway's address as one `/32`, and `outboundProxyUrl` = the gateway. Daytona chains its own proxy (`HTTP_PROXY`, `HTTPS_PROXY`, lower-case twins and `NO_PROXY` are set in the box) to the gateway, which answers vendor hostnames from the twin and passes public hosts through. Never a `domainAllowList`. |
 | trust | The Veris CA at `/tmp/veris-ca.crt`; a bundle of the public roots plus ours at `/tmp/veris-ca-bundle.crt`; eighteen path-valued variables (`SSL_CERT_FILE`, `REQUESTS_CA_BUNDLE`, `CURL_CA_BUNDLE`, `NODE_EXTRA_CA_CERTS`, `PIP_CERT`, …) pointing at it, returned by `getTrustEnv()`; a best-effort install into the system store and the JVM. Daytona overwrites four of those variables on its own commands, which is why every `exec` above re-applies the map. |
-| Node | `NODE_USE_ENV_PROXY=1`, or Node ignores the proxy variables and Daytona blocks the direct dial. `NODE_OPTIONS=--use-openssl-ca`, or Node validates the gateway's leaf against Daytona's CA file and fails. From 0.3.1, `NODE_OPTIONS` also carries `--require /tmp/veris-node-proxy.cjs`: `NODE_USE_ENV_PROXY` reaches only Node's global agents and `fetch`, and an SDK that builds its own `https.Agent` for keep-alive (stripe-node, the AWS SDK, Twilio) otherwise resolves the vendor host itself and dies with `EAI_AGAIN`. Measured: global agent 200, own agent `EAI_AGAIN`, own agent with `proxyEnv` 200. The script above installs the same preload when the SDK is older. |
+| Node | `NODE_USE_ENV_PROXY=1`, or Node ignores the proxy variables and Daytona blocks the direct dial. `NODE_OPTIONS=--use-openssl-ca`, or Node validates the gateway's leaf against Daytona's CA file and fails. `NODE_OPTIONS` also carries `--require /tmp/veris-node-proxy.cjs`: `NODE_USE_ENV_PROXY` reaches only Node's global agents and `fetch`, and an SDK that builds its own `https.Agent` for keep-alive (stripe-node, the AWS SDK, Twilio) otherwise resolves the vendor host itself and dies with `EAI_AGAIN`. Measured: global agent 200, own agent `EAI_AGAIN`, own agent with `proxyEnv` 200. |
 | bundled CAs | An SDK that ships its own CA file reads no variable: stripe-python's first call fails with "Could not verify Stripe's SSL certificate". `patch-cas` appends the Veris CA to the known bundles (certifi, pip's vendored certifi, botocore, stripe, httplib2); run it after every dependency install. Anything else is [troubleshooting.md](troubleshooting.md)'s over-mount procedure, done inside the box with `exec`. |
 
 Three rules follow from that table:
 
 - `NODE_OPTIONS` is one variable. An application that sets its own value
   (`--experimental-vm-modules`, `--max-old-space-size`) replaces the SDK's
-  flags and every Node vendor call fails on DNS or on the certificate. Pass it
-  through `exec --env NODE_OPTIONS=…`, which merges, or build it with the
-  SDK's `verisNodeOptions()`.
+  flags and every Node vendor call fails on DNS or on the certificate. Build
+  it with the SDK's `verisNodeOptions()`, which appends them once.
 - Never set proxy or CA variables of your own, disable verification, or point
   the application at the twin's URL. The application keeps its production
   hostnames; the box's egress is what makes them reach the twin.
