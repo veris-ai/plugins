@@ -61,7 +61,10 @@ with a Git SHA checkout/build recipe.
 
 Release inspection on 2026-09-04: the old skills package
 **@veris-ai/veris-sim-opencode 0.7.0**, Daytona plugin/SDK **0.2.1**, E2B plugin/SDK
-**0.1.1**. The initial API inspection used OpenCode plugin **1.18.28**; the
+**0.1.1**. Daytona has published further releases since, dropping the `veris-daytona`
+executable and adding the Node trust and proxy flags, so resolve both provider packages
+rather than reasoning from those figures. The initial API inspection used OpenCode
+plugin **1.18.28**; the
 follow-up audit found **1.18.29**, with the same tool-context/config contracts used
 here. Local OpenCode remains **1.18.25**; inspecting newer API types is not a live
 run on that version.
@@ -79,9 +82,9 @@ does not require changes to the selected provider plugin or its session ownershi
 
 Companion [Daytona #31](https://github.com/veris-ai/veris-daytona/pull/31) and
 [E2B #21](https://github.com/veris-ai/veris-e2b/pull/21) correct stale provider docs,
-prompts and receipt explanations. Their instruction text needs future provider
-releases; the resource loader uses the already-published interfaces. Until then,
-interpret receipts by the bounds below even when old tool text makes categorical
+prompts and receipt explanations. The Daytona side is published; the E2B side still
+needs a release, and the resource loader uses the already-published interfaces either
+way. Interpret receipts by the bounds below whenever old tool text makes categorical
 claims about a run or network isolation.
 
 ## Discovery and control access
@@ -194,10 +197,10 @@ not be relabeled gateway-verified.
 Preserve the installed provider's trust configuration, including any existing
 `NODE_OPTIONS`. Do not impose newer source's values on an older release. Test HTTPS
 with defaults; a failure is a precise provider release/certificate prerequisite,
-not permission to turn verification off. Daytona's current source adds the Node
-trust flag absent from published 0.2.1, so a runtime needing that fix is
-blocked until a published SDK/plugin combination supplies them. Report actual
-resolved versions and symptoms instead of promising all runtimes work on 0.2.1.
+not permission to turn verification off. The Node trust and proxy flags absent from
+Daytona 0.2.1 are published now, so a runtime needing that fix is no longer blocked,
+though a config pinned to an older release still is. Report actual resolved versions
+and symptoms instead of promising every runtime works on whichever release installed.
 
 Daytona SSH trust must be provisioned on the host (supported versions honor
 `DAYTONA_SSH_KNOWN_HOSTS`); preserve verification. E2B bundles avoid that dependency.

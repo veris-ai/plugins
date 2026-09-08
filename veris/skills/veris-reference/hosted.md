@@ -110,10 +110,12 @@ empty trace by changing the call or its base URL.
 `.veris/twin.yaml`: no `--image` on `veris env create`, so `proxy.image` stays unset;
 the other proxy flags have no run to act on here, so leave them out too.
 
-`.veris/NOTES.md`, under *How to run*: name the provider, pin the runner's published
-package version and full invocation, and record the actual
-provisioning invocation with its image or template and network options, code upload, dependency
-install, certificate preparation, test command and teardown. Include the watermark
+`.veris/NOTES.md`, under *How to run*: name the provider, record the runner package
+versions the task resolved and the full invocation, and record the actual
+creation call with its image or template and network options, code upload, dependency
+install, certificate preparation, test command and deletion. A recorded version says what
+produced this evidence; a later session resolves the release again rather than reusing it,
+and a difference is worth noting against a receipt that no longer reproduces. Include the watermark
 read and the trace entry that proved the first real call, with its id, which
 [direct.md](direct.md) calls *The trust anchor*. `build` and `fix` take their run
 lines from here.

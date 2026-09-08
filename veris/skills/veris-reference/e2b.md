@@ -13,41 +13,38 @@ The controlling machine needs Node 20 or newer, npm, tar and a working `veris`
 installation. First check the credentials, gateway and template requirements below,
 before creating resources.
 
-Reuse the exact SDK version in `.veris/NOTES.md`. On first setup, resolve latest
-once and record the concrete result, then use that version for the entire task:
-
-```sh
-npm view @veris-ai/e2b@latest version
-# Put the returned concrete version in <version> for all following commands.
-npm view @veris-ai/e2b@<version> version bin engines dependencies exports --json
-npm pack @veris-ai/e2b@<version> --dry-run --json
-```
-
-As checked on 2026-09-04, latest is **0.1.1**. Its 20-file npm tarball exports ESM,
-CommonJS and TypeScript declarations, with **no `bin` entry or CLI file**. Use the
-SDK below; there is no `npx veris-e2b` or Daytona-style runner. The tarball also
-omits the repository's `examples/` and `docs/`; those paths in its README are not
-installed programs. This recipe was checked against 0.1.1 with its published `e2b`
-dependency resolved to **2.46.1**.
-
-Create a local runner directory, excluded from git and from the workload upload:
+Resolve the release at the start of the task and let npm hold it there, in a local
+runner directory excluded from git and from the workload upload:
 
 ```sh
 mkdir -p .veris/e2b
 cd .veris/e2b
 npm init -y
-npm install --save-exact --ignore-scripts @veris-ai/e2b@<version>
+npm install --save-exact --ignore-scripts @veris-ai/e2b@latest
 npm ls @veris-ai/e2b e2b
 node --input-type=module -e 'import { Sandbox, SDK_VERSION } from "@veris-ai/e2b"; console.log(SDK_VERSION, typeof Sandbox.create, typeof Sandbox.connect, typeof Sandbox.kill)'
 ```
 
-Keep this runner's `package.json` and `package-lock.json` for the task; use
-`npm ci --ignore-scripts` when restoring it. The Veris package permits newer E2B 2.x releases,
-so the lockfile also fixes the underlying SDK. Record both resolved versions in
-*How to run*. Verify any different release against its shipped declarations and
-implementation. Missing attachment, egress proxy, trust, file or command support is
-a release prerequisite: report it before `veris up`. Do not clone or build
-unreleased integration code to fill a gap.
+`--save-exact` writes the concrete resolved version into `package.json` and the lockfile,
+so every command in the task uses one runner even though the task asked for `latest`. The
+Veris package permits newer E2B 2.x releases, so the lockfile also fixes the underlying
+SDK. Keep both files for the task and restore them with `npm ci --ignore-scripts`.
+
+This package publishes no executable: there is no `npx veris-e2b`, and its npm tarball
+omits the repository's `examples/` and `docs/`, so those paths in its README are not
+installed programs. Inspect what actually resolved when a detail matters:
+
+```sh
+npm view @veris-ai/e2b engines dependencies exports --json
+```
+
+Record both resolved versions in *How to run* as a description of what produced the
+evidence, not as a version to reuse: a later session resolves the release again, and a
+difference is worth noting against a receipt that no longer reproduces. Verify any
+different release against its shipped declarations and implementation. Missing
+attachment, egress proxy, trust, file or command support is a release prerequisite:
+report it before `veris up`. Do not clone or build unreleased integration code to fill a
+gap. The behaviour notes below were measured against 0.1.1.
 
 ### Credentials and gateway
 

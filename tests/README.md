@@ -7,8 +7,15 @@ Run the repository checks with Node 20+ and `git`, `sh`, `jq`, `tar`, npm,
 npm ci --prefix veris/.opencode-plugin
 sh tests/ledger_repository.sh
 sh tests/record_argv.sh
+sh tests/skill_version_claims.sh
 sh tests/opencode_plugin.sh
 ```
+
+`skill_version_claims.sh` denies three ways a skill document freezes a fact about a
+moving release: a package specifier pinned to a version or a `<version>` placeholder
+instead of `@latest`, a recorded resolution of the `latest` tag, and a command form of
+the `veris-daytona` executable that `@veris-ai/daytona` no longer ships. Point
+`SKILL_DOCS` at another copy to check it.
 
 The adapter tests compose both providers' remote file-tool boundaries in both
 orders, retain user config, read every canonical reference/helper, check script
