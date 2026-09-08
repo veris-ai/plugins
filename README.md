@@ -139,10 +139,10 @@ matching version numbers across that old distribution and this source do not
 establish matching content.
 
 0.7.4 (unreleased) — the Daytona recipe is written around the `@veris-ai/daytona`
-SDK as shipped (0.3.1 and later), the same shape as the E2B recipe: a task-local
-`sandbox.mjs` over the SDK's own surface, which the recipe points at rather than
-reprints, that attaches to the task's twin, pushes, execs with the trust
-environment, and reads receipts since a baseline. It states what the SDK sets
+SDK as shipped (0.3.1 and later): the run is a sequence of SDK calls the
+agent's own task-local script makes (attach to the task's twin, upload, install,
+patch bundled CAs, baseline, run with the trust environment, receipt, delete),
+with the SDK's README and typings as the reference rather than a reprinted script. It states what the SDK sets
 for egress and trust and what a Node process needs beyond it: `NODE_USE_ENV_PROXY`,
 `--use-openssl-ca`, and the Agent proxy preload for SDKs that build their own
 `https.Agent` (stripe-node measured). Also: one organisation for the CLI and the SDK, `COPYFILE_DISABLE`

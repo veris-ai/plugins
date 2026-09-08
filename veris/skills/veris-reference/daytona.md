@@ -5,8 +5,8 @@ as receipt, project notes and cleanup ownership. This recipe uses the published
 [@veris-ai/daytona SDK](https://www.npmjs.com/package/@veris-ai/daytona) from
 [veris-daytona](https://github.com/veris-ai/veris-daytona), a drop-in for
 `@daytona/sdk`, to manage a separate application-test box attached to the
-task's existing twin. It is the same shape as the [E2B recipe](e2b.md): a
-task-local script over the SDK, not a CLI. OpenCode provider configuration and
+task's existing twin. Like the [E2B recipe](e2b.md), it is the SDK used as
+is, from a script the agent writes; the package ships no command-line tool. OpenCode provider configuration and
 session-owned sandboxes belong to [session.md](session.md).
 
 ## Prerequisites and the release
@@ -103,53 +103,57 @@ workspace, stage a copy of the package plus the root config files it extends:
 `npm install` inside a yarn or npm workspace resolves the whole monorepo and
 fails on root-only conflicts.
 
-Write a small task-local script, `.veris/daytona/sandbox.mjs`, over the SDK.
-Do not copy the SDK into it: the installed package documents its own surface,
-and that is what to read first. `node_modules/@veris-ai/daytona/README.md` is
-the manual, `dist/index.d.ts` the exact signatures, and the E2B recipe's
-script is the shape to follow (state in a `sandbox.json` beside the script,
-one verb per action, the twin id checked on every call). The calls the
-script needs, all of them on the SDK as shipped:
+The run is a sequence of SDK calls, made from a task-local Node script in
+`.veris/daytona/` that the agent writes for this repository. There is no
+command-line tool in the package and none to build: the installed package
+documents its surface (`node_modules/@veris-ai/daytona/README.md` is the
+manual, `dist/index.d.ts` the exact signatures), and the script is whatever
+shape the task needs, as long as it makes these calls in this order and keeps
+the box id in a state file so later invocations reattach instead of creating
+a second box.
 
-| verb | SDK call |
-|---|---|
-| `create [--image <name>]` | `new Daytona({ apiKey })`, then `daytona.create({ image?, veris: { attachSandboxId: twinId } })`; save `sbx.id` and `sbx.verisSandboxId` at once, refuse to continue if the latter is not this task's twin |
-| reconnect on every later verb | `daytona.get(savedId)` rehydrates the Veris surface from the box's labels |
-| `push <dir>` | tar the staging directory (`COPYFILE_DISABLE=1`, exclude `.git`, `node_modules`, `dist`, `.venv`, `._*`), `sbx.fs.uploadFile(localTgz, remotePath)`, then `tar -xzf` through `executeCommand` into a work directory under `$HOME` |
-| `exec [--cwd] [--env K=V] [--timeout s] -- <cmd>` | `sbx.process.executeCommand(cmd, cwd, { ...sbx.veris.getTrustEnv(), ...env }, timeoutSeconds)`; build a caller's `NODE_OPTIONS` with `verisNodeOptions()`; exit with the command's own code |
-| `patch-cas` | `sbx.veris.patchBundledCas()`, after every dependency install |
-| `baseline` | `sbx.veris.receiptBaseline()`, saved beside the state, before every run |
-| `receipt` | `sbx.veris.receiptSince(baseline)`; `sbx.veris.assertTouched(service, match?)` when a run must have reached a twin |
-| callbacks | `sbx.veris.deliverTo(port)` and `deliverTo(null)` |
-| `delete` | `sbx.delete()`; the attached twin is left running |
+1. **Attach a box to the twin, once.** `new Daytona({ apiKey })`, then
+   `daytona.create({ image?, veris: { attachSandboxId: twinId } })`. Save
+   `sbx.id` at once (it is the only way back to the box) and check
+   `sbx.verisSandboxId` is this task's twin; delete the box if it is not.
+   Every later invocation reattaches with `daytona.get(savedId)`, which
+   rehydrates the Veris surface from the box's labels.
+2. **Put the code in.** Tar the staging directory on the controlling machine
+   (`COPYFILE_DISABLE=1`, excluding `.git`, `node_modules`, `dist`, `.venv`,
+   `._*`), `sbx.fs.uploadFile(localTgz, remotePath)`, then unpack it with
+   `sbx.process.executeCommand('tar -xzf …')` into a work directory under
+   the box's `$HOME`. Repeat after every local edit; a file removed locally
+   stays in the box, so remove it there or use a fresh box before measuring
+   a change that removes files.
+3. **Install, then patch bundled CAs.** `sbx.process.executeCommand(install,
+   workDir, sbx.veris.getTrustEnv(), timeoutSeconds)`, then
+   `await sbx.veris.patchBundledCas()`. Repeat the patch after any later
+   install; it is idempotent.
+4. **Take the watermarks.** `const baseline = await sbx.veris.receiptBaseline()`
+   in the script, and on the controlling machine, in the project root,
+   `veris sandbox trace --service <twin> --limit 1 --json` for each required
+   twin, as [hosted.md](hosted.md#the-receipt) says.
+5. **Run the flow.** `sbx.process.executeCommand(testCommand, workDir, env,
+   timeoutSeconds)` with `env` built from `sbx.veris.getTrustEnv()` plus what
+   the application reads (its vendor credential from the twin's manual, never
+   the real one), and a caller's `NODE_OPTIONS` passed through
+   `verisNodeOptions()`. The result carries `exitCode` and `result`; output
+   arrives when the command ends, not as it streams, so a long install shows
+   nothing until it finishes. Exit the script with the command's own code.
+6. **Read the receipt.** `await sbx.veris.receiptSince(baseline)` for what
+   the twin received from this run, `sbx.veris.assertTouched(service, match?)`
+   when the run must have reached a twin, and the CLI's
+   `veris sandbox trace --service <twin> --since <watermark>` for tiers and
+   bodies, which is what the ledger snapshots.
+7. **Delete the box** with `sbx.delete()` when the task is done; the attached
+   twin is left running, and `veris down` takes it.
 
-Also on the surface and worth knowing: `sbx.veris.services()` and
-`manual(service)`, `getDataPlaneEnv()`, `trustPrelude()` for a command line
-you can only prefix, and the exported constants (`VERIS_BUNDLE`,
-`NODE_PROXY_PRELOAD`, `BUNDLED_CA_PATCH_SCRIPT`). Nothing in the package runs
-from a shell: it ships no executable.
-
-For an npm application with a lockfile, the run lines are:
-
-```sh
-node sandbox.mjs create                        # or: create --image node:20-bookworm
-node sandbox.mjs push /path/to/staging
-node sandbox.mjs exec -- 'node --version && npm ci'
-node sandbox.mjs patch-cas                      # after dependencies are in; see Proxy and trust
-node sandbox.mjs baseline
-# On the controlling machine, in the project root, capture each twin's watermark.
-node sandbox.mjs exec --timeout 900 --env KEY=value -- 'npm test'
-node sandbox.mjs receipt
-```
-
-Replace the install and test commands with this project's actual commands
-and record them in *How to run*, with the exact `--env` values the app needs
-(credentials come from the twin's manual and `veris sandbox data get`, never
-from the real vendor). `executeCommand` returns output when the command ends
-rather than streaming it, so a long install shows nothing until it finishes.
-After editing source locally, `push` again; files removed locally
-stay in the box, so delete them there or create a fresh box before measuring
-a change that removes files.
+Also on the surface: `sbx.veris.services()` and `manual(service)`,
+`getDataPlaneEnv()`, `trustPrelude()` for a command line you can only prefix,
+`deliverTo(port)` for callbacks, and the exported constants (`VERIS_BUNDLE`,
+`NODE_PROXY_PRELOAD`, `BUNDLED_CA_PATCH_SCRIPT`). Record the script's exact
+invocations, with the real install and test commands and the `env` the
+application needed, in *How to run*.
 
 Read [the shared receipt rule](hosted.md#the-receipt) from the project root
 before and after the test, including after a failed command. `baseline` and
@@ -212,8 +216,8 @@ application's own handling, as [webhooks.md](webhooks.md) says.
 
 ## Teardown and limitations
 
-After saving evidence and restoring any callback registration, `node
-sandbox.mjs delete`, then `veris down` from the project root. Deleting needs
+After saving evidence and restoring any callback registration, delete the
+box (`sbx.delete()`), then `veris down` from the project root. Deleting needs
 the key's delete permission; without it the box lives until its own brakes
 (30 idle minutes, then 60 minutes, then 4 hours in all).
 
