@@ -15,14 +15,13 @@ The controlling machine needs Node 20 or newer, npm, tar and a working `veris`
 installation. Check the credentials and gateway requirements below before
 creating resources.
 
-Reuse the exact SDK version in `.veris/NOTES.md`. On first setup, resolve
-latest once and record the concrete result, then use that version for the
-entire task:
+Resolve the release at the start of the task and let npm hold it there. Ask for
+`latest`; `--save-exact` writes the concrete resolved version into `package.json`
+and the lockfile, so every command in the task uses one runner without a version
+having to be copied by hand:
 
 ```sh
-npm view @veris-ai/daytona@latest version
-# Put the returned concrete version in <version> for all following commands.
-npm view @veris-ai/daytona@<version> version peerDependencies exports --json
+npm view @veris-ai/daytona@latest version peerDependencies exports --json
 ```
 
 The recipe needs, at least, **0.3.1**: `veris.attachSandboxId` on `create()`,
@@ -40,14 +39,17 @@ upload. `@daytona/sdk` is a peer dependency and is installed beside it:
 mkdir -p .veris/daytona
 cd .veris/daytona
 npm init -y
-npm install --save-exact --ignore-scripts @veris-ai/daytona@<version> @daytona/sdk
+npm install --save-exact --ignore-scripts @veris-ai/daytona@latest @daytona/sdk
 npm ls @veris-ai/daytona @daytona/sdk
-node --input-type=module -e 'import { Daytona, SDK_VERSION } from "@veris-ai/daytona"; console.log(SDK_VERSION, typeof Daytona)'
+node --input-type=module -e 'import { Daytona, SDK_VERSION, canDeleteSandboxes } from "@veris-ai/daytona"; console.log(SDK_VERSION, typeof Daytona, typeof canDeleteSandboxes)'
 ```
 
 Keep this runner's `package.json` and `package-lock.json` for the task and
 restore it with `npm ci --ignore-scripts`. Record both resolved versions in
-*How to run*.
+*How to run* as a description of what produced the evidence, not as a version to
+reuse: a later `build` or `fix` session resolves `latest` again, and a difference
+from the recorded version is worth noting against a receipt that no longer
+reproduces.
 
 ### Credentials and gateway
 
@@ -71,13 +73,26 @@ restore it with `npm ci --ignore-scripts`. Record both resolved versions in
 
 `create()` takes Daytona's default snapshot when nothing is passed: Ubuntu, a
 non-root `daytona` user with passwordless sudo, Node (25 as of 2026-09-08),
-Python, `curl`, `tar`, `update-ca-certificates`. Pass `image: 'node:20-bookworm'`
+Python, `curl`, `tar`, `update-ca-certificates`. Pass `image: 'node:24-bookworm'`
 for a specific runtime; Daytona builds a snapshot from any public image, which
 takes a minute the first time, and such an image runs as root. The image needs
 `curl` and a POSIX shell: the canary that proves the box reaches the twin uses
 them, and a slim image fails at `create()`. Record the runtime versions the
 box actually has (`node --version` inside it), not the ones the image name
 suggests.
+
+**A Node application needs Node 24 or newer in the box.** Both halves of the
+proxy routing described under *Proxy and trust* are Node 24 features:
+`NODE_USE_ENV_PROXY`, and the `proxyEnv` option the preload hands every
+`http(s).Agent`. Node 20 ignores `proxyEnv` outright, so on `node:20-bookworm`
+the box comes up, the canary passes and `curl` returns 200 from the twin, while
+`fetch`, the `https` module and therefore stripe-node all fail `EAI_AGAIN` —
+they resolve the vendor host themselves, and Daytona blocks the direct dial.
+Nothing in `create()` reports it, and the box looks healthy throughout.
+Measured on `node:20-bookworm` against a live twin: `curl` 200, `fetch`
+`EAI_AGAIN`, `https.get` `EAI_AGAIN`, `new https.Agent({proxyEnv}).proxyEnv`
+undefined. The default snapshot's Node is new enough; a pinned image must be
+24 or newer.
 
 The default box is small: 3 GB of disk and a shared CPU. A JavaScript
 application with a large dependency tree fits; a monorepo does not. It stops
@@ -112,7 +127,13 @@ shape the task needs, as long as it makes these calls in this order and keeps
 the box id in a state file so later invocations reattach instead of creating
 a second box.
 
-1. **Attach a box to the twin, once.** `new Daytona({ apiKey })`, then
+1. **Attach a box to the twin, once.** Check the Daytona key can delete
+   sandboxes before creating one:
+   `canDeleteSandboxes(await fetchDaytonaKey(process.env.DAYTONA_API_KEY))`.
+   A key with `write:sandboxes` alone creates a box that nothing can remove —
+   `sbx.delete()` answers `DaytonaAuthorizationError: Access denied` (403) and
+   it bills until its own brakes take it — so refuse to create rather than
+   discover this at cleanup. Then `new Daytona({ apiKey })` and
    `daytona.create({ image?, veris: { attachSandboxId: twinId } })`. Save
    `sbx.id` at once (it is the only way back to the box) and check
    `sbx.verisSandboxId` is this task's twin; delete the box if it is not.
@@ -170,10 +191,10 @@ broken one:
 |---|---|
 | egress | `networkAllowList` = the Veris gateway's address as one `/32`, and `outboundProxyUrl` = the gateway. Daytona chains its own proxy (`HTTP_PROXY`, `HTTPS_PROXY`, lower-case twins and `NO_PROXY` are set in the box) to the gateway, which answers vendor hostnames from the twin and passes public hosts through. Never a `domainAllowList`. |
 | trust | The Veris CA at `/tmp/veris-ca.crt`; a bundle of the public roots plus ours at `/tmp/veris-ca-bundle.crt`; eighteen path-valued variables (`SSL_CERT_FILE`, `REQUESTS_CA_BUNDLE`, `CURL_CA_BUNDLE`, `NODE_EXTRA_CA_CERTS`, `PIP_CERT`, …) pointing at it, returned by `getTrustEnv()`; a best-effort install into the system store and the JVM. Daytona overwrites four of those variables on its own commands, which is why every `exec` above re-applies the map. |
-| Node | `NODE_USE_ENV_PROXY=1`, or Node ignores the proxy variables and Daytona blocks the direct dial. `NODE_OPTIONS=--use-openssl-ca`, or Node validates the gateway's leaf against Daytona's CA file and fails. `NODE_OPTIONS` also carries `--require /tmp/veris-node-proxy.cjs`: `NODE_USE_ENV_PROXY` reaches only Node's global agents and `fetch`, and an SDK that builds its own `https.Agent` for keep-alive (stripe-node, the AWS SDK, Twilio) otherwise resolves the vendor host itself and dies with `EAI_AGAIN`. Measured: global agent 200, own agent `EAI_AGAIN`, own agent with `proxyEnv` 200. |
+| Node | `NODE_USE_ENV_PROXY=1`, or Node ignores the proxy variables and Daytona blocks the direct dial. `NODE_OPTIONS=--use-openssl-ca`, or Node validates the gateway's leaf against Daytona's CA file and fails. `NODE_OPTIONS` also carries `--require /tmp/veris-node-proxy.cjs`: `NODE_USE_ENV_PROXY` reaches only Node's global agents and `fetch`, and an SDK that builds its own `https.Agent` for keep-alive (stripe-node, the AWS SDK, Twilio) otherwise resolves the vendor host itself and dies with `EAI_AGAIN`. Measured on Node 24: global agent 200, own agent `EAI_AGAIN`, own agent with `proxyEnv` 200. Both mechanisms are Node 24 features, so on Node 20 the global agent and `fetch` fail too — see *Image and runtime*. |
 | bundled CAs | An SDK that ships its own CA file reads no variable: stripe-python's first call fails with "Could not verify Stripe's SSL certificate". `patch-cas` appends the Veris CA to the known bundles (certifi, pip's vendored certifi, botocore, stripe, httplib2); run it after every dependency install. Anything else is [troubleshooting.md](troubleshooting.md)'s over-mount procedure, done inside the box with `exec`. |
 
-Three rules follow from that table:
+Four rules follow from that table:
 
 - `NODE_OPTIONS` is one variable. An application that sets its own value
   (`--experimental-vm-modules`, `--max-old-space-size`) replaces the SDK's
@@ -184,6 +205,14 @@ Three rules follow from that table:
   hostnames; the box's egress is what makes them reach the twin.
 - A client built on undici `Pool` or `Client`, or any client that verifies a
   pinned certificate, is not covered by any of the above. Stop and report it.
+- The preload and `NODE_USE_ENV_PROXY` together break npm on Node 24: `npm ci`
+  fails with `npm error Cannot read properties of undefined (reading
+  'protocol')`, because npm builds its own agent over a proxy environment Node
+  is already applying. Dropping either fixes it, so run installs without the
+  preload and let Node's own proxy support carry them —
+  `NODE_OPTIONS="--use-openssl-ca" npm ci` — keeping the full environment for
+  the application's own commands. Expect the same of any installer that builds
+  its own agent.
 
 ## Data planes
 
@@ -219,7 +248,9 @@ application's own handling, as [webhooks.md](webhooks.md) says.
 After saving evidence and restoring any callback registration, delete the
 box (`sbx.delete()`), then `veris down` from the project root. Deleting needs
 the key's delete permission; without it the box lives until its own brakes
-(30 idle minutes, then 60 minutes, then 4 hours in all).
+(30 idle minutes, then 60 minutes, then 4 hours in all), which is why step 1
+checks for it before creating anything. `sbx.delete()` removes the box and
+leaves an attached twin, which belongs to the task.
 
 - The box and the twin have separate lifetimes; neither extends the other.
   A 120-minute twin fits a setup, a red, a fix and a green, but not with much
@@ -231,6 +262,11 @@ the key's delete permission; without it the box lives until its own brakes
   `build_failed`; the SDK reaps it and names the reason. A `create()`
   interrupted between the accept and the state file needs the box found in
   Daytona by its `veris_twin_id` label and deleted by hand.
+- This flow was measured end to end against a live twin on `node:24-bookworm`:
+  an unmodified stripe-node application reaching `api.stripe.com`, and
+  `receiptSince()` reporting the two calls of that run where the twin's full
+  trace held three. Deleting an *attached* box was not exercised, because the
+  key available for the measurement could not delete sandboxes.
 - If a release prerequisite or missing credential prevents the run, report it
   and say **live execution was not tested**. A canary, a receipt count or a
   green shell exit alone does not prove the application reached the twin.

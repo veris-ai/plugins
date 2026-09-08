@@ -125,8 +125,14 @@ application-test box to the task's existing twin
 (`create({ veris: { attachSandboxId } })`), upload the code, install
 dependencies, run commands with the trust environment applied, and read the
 receipt since a baseline. Neither package ships a CLI the skills depend on.
-Resolve the latest release once, record its exact version and retain the
-dependency lockfile. The Daytona recipe spells out what the SDK sets for the
+Each task resolves `latest` itself and lets `--save-exact` and the lockfile hold
+it for that run, so a recorded version describes the evidence instead of
+dictating the next run; `tests/skill_version_claims.sh` fails a skill document
+that pins a specifier, records what `latest` resolved to, or names the removed
+`veris-daytona` executable. A Daytona box running a Node application needs Node
+24 or newer in the image: the SDK's proxy routing rests on `NODE_USE_ENV_PROXY`
+and an `Agent` `proxyEnv` that Node 20 ignores, so there the canary and `curl`
+still pass while every Node client fails DNS. The Daytona recipe spells out what the SDK sets for the
 proxy and for trust, and what a Node process needs on top; provider-specific
 setup and limits are in each recipe. OpenCode provider configuration and
 session-owned sandboxes are a separate workflow.

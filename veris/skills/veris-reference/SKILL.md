@@ -16,7 +16,7 @@ Not a command. `setup`, `build` and `fix` link to the file a step needs:
 | `session.md` | current tools/context indicate an existing plugin-managed sandbox: verify identity, reuse interception, attribute receipts and sync changes |
 | `opencode.md` | the existing session is OpenCode: provider tools, credentials, trust, control access and lifecycle differences |
 | `hosted.md` | the engineer requests remote tests, or code needs redirection and Docker is unavailable: provider recipes, remote workload preparation, trace evidence, project notes and cleanup |
-| `daytona.md` | the hosted tier selects Daytona: installation, credentials, exact run commands, certificate setup and provider limits |
+| `daytona.md` | the hosted tier selects Daytona: published SDK, existing-twin attachment, images, upload, trust, egress, callbacks and deletion |
 | [e2b.md](e2b.md) | the hosted tier selects E2B: published SDK, existing-twin attachment, templates, upload, trust, network policy, callbacks and deletion |
 | `faults.md` | the task is about a failure, or a case needs a condition the vendor will not produce on demand: fault rows, credentials, the clock |
 | `webhooks.md` | the application receives callbacks |
