@@ -266,11 +266,14 @@ Three rules follow from that table:
 A data-plane twin (postgres, yente) is handed over, not intercepted: its DSN
 arrives in the box under the variable `veris services` names
 (`DATABASE_URL`), and `getDataPlaneEnv()` returns the same map. Whether the
-box can reach that address is a platform question: as of 0.3.0 and the dev
-plane on 2026-09-08 it could not, because the gateway forwards vendor hostnames
-and public HTTPS and the box's egress is pinned to the gateway. Until the SDK
-and gateway carry data planes through, an application that needs its own
-database runs it inside the box: for Postgres, `embedded-postgres` from npm
+box can reach that address is a platform question, and as of 0.3.0 on
+2026-09-08 the answer is no: with `outboundProxyUrl` set, Daytona's proxy is
+the box's only way out and it tunnels CONNECT to port 443 only (measured:
+`CONNECT <pg-gateway>:5432` times out, `:443` is accepted; a direct dial fails
+even with the address on the allowlist). Postgres clients speak no HTTP proxy
+either. The design that fixes it (a data plane served on 443 and a forwarder in
+the box) is veris-ai/veris-daytona's open issue; until it ships, an
+application that needs its own database runs it inside the box: for Postgres, `embedded-postgres` from npm
 (`initdb` and `pg_ctl` from its `native/bin`, a port on `127.0.0.1`, the
 `DB_*` or `DATABASE_URL` variables the application reads set on each `exec`).
 Postgres refuses to run as root, so this needs the default snapshot's
