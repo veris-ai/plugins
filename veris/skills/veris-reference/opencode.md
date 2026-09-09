@@ -69,8 +69,9 @@ follow-up audit found **1.18.29**, with the same tool-context/config contracts u
 here. Local OpenCode remains **1.18.25**; inspecting newer API types is not a live
 run on that version.
 The old skills tarball uses `/veris-sim:*` commands and host-file templates.
-The next release is **@veris-ai/veris-opencode 0.7.3**, aligning the name with
-`veris` in Claude and Codex and adding `verisSkill`. That new npm name is not yet
+The next release is **@veris-ai/veris-opencode**, aligning the name with
+`veris` in Claude and Codex and adding `verisSkill`; its version is the one in the
+plugin manifest on the day it is cut. That new npm name is not yet
 published; its first release and trusted-publisher setup remain prerequisites.
 After release, replace the old package entry in all applicable OpenCode configs
 with the new one and restart; do not load both skills packages. Commands use

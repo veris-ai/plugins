@@ -168,6 +168,31 @@ These entries describe the source plugin history. The old
 matching version numbers across that old distribution and this source do not
 establish matching content.
 
+Every release changes what the commands do, so a report of a run names the
+version it ran, and a series of runs meant to be compared with each other pins
+one version for all of them. The 0.5.0–0.6.6 entries below were reconstructed
+from the commits and are dated by them, not by a release note written at the
+time.
+
+0.8.0 — the reconciliation. After the green run and before the PR, each measured
+fact the change claims to encode gets a **falsifier** — the input or state under
+which the shipped code would violate it — driven through the shipping path under
+`veris run` and read back off the twin; a reproduction is a contradiction, and
+the code changes. `ledger.sh` fails an `ENCODED` row without that falsifier and
+the `run_ref` of the run that drove it, requires a `DEFAULT_PATH` row (the call
+the task names, from a caller that changed nothing, driven twice, rows counted),
+refuses `--against-diff` without the `record.json` that pinned the base and no
+longer takes `--base`, stamps each row through a new `ledger.sh add`, and rejects
+a ledger whose rows all share one timestamp. `setup` stops gitignoring
+`.veris/tasks/`. The proportional path's single end-to-end run becomes a
+deliverable with a pasted receipt, and an unreachable sandbox stops the task
+instead of hiding in it. `fix` writes a differential before its first twin call
+and re-asks after the code survey whether the code alone explains the symptom;
+the manual is documented as a list of transport-visible faults in its author's
+order, not a ranked catalogue of the repository's defects. A `UserPromptSubmit`
+hook ships in `veris/hooks/`, because a directive in skill prose does not move
+work that the same words in the prompt do.
+
 0.7.4 (unreleased) — the Daytona recipe is written around the `@veris-ai/daytona`
 SDK as shipped (0.3.1 and later): the run is a sequence of SDK calls the
 agent's own task-local script makes (attach to the task's twin, upload, install,
@@ -224,10 +249,56 @@ the direct-tier reference. The container tier with
 
 0.6.7 — the word *world* is gone: `veris-reference/worlds.md` is `state.md`.
 
+0.6.6 — the proof scripts and the measurements-against-the-diff gate. `record.sh`
+pins the declared source before the failing run, refuses a red whose source or
+build output has moved since, and writes down what each run did; `ledger.sh`
+types every measurement, requires evidence that survives the sandbox, and checks
+each encoded row against the diff. `setup` stages both into `.veris/bin/`. The
+proportional path gains its floor: a task that drove nothing through the twin has
+left the change unproven. Cut as 0.6.6 because 0.6.5 had already shipped as a
+docs release while this work carried 0.6.5-rc.1.
+
 0.6.5 — files: bytes go in through the twin's upload route, rows first, files second;
 `setup` gains the files step.
 
 0.6.4 — the manual is not a coverage catalogue; discovery runs cheapest-first.
+
+0.6.3 — any identity, however the code got it. Gate 2 had bound only on a key the
+change computes, so a change that copies an id — one input reused, another
+silently discarded — read the clause, correctly read it as not applying, and
+shipped an identity that merges two distinct records. It now binds on any
+identity, dedup key or external reference sent across the vendor boundary, and
+asks for the general experiment: vary each component independently, omit one,
+confirm the vendor stored distinct records. Gate 3 gains sibling branches — the
+same response handled inline, selected by a mode or type switch, which a grep for
+the changed symbol cannot find — each named and either driven or listed under
+limitations. The operations list is named as the one surface that enumerates
+operations.
+
+0.6.2 — a derived identity is proven, not looked up. Gate 2 had presupposed that
+the change copies an identity the vendor owns; a key the change computes — parts
+joined, a value normalized, truncated, hashed — has no row to read, so the gate
+cleared the source fields and let the collision through in the derivation. It now
+asks for two inputs the code must keep apart that map to the same key, both driven
+through the same path, the vendor's rows counted. Gate 3 gains the entry points
+that reach the changed lines and which of them the green run drove; the rest go
+under limitations and risks.
+
+0.6.1 — OpenCode install, with the API base defaulted inline; one plugin file
+registers the commands.
+
+0.6.0 — gate ordering is the evidence. The red run happens against unmodified
+code before the first edit, and a red produced later by stashing the fix proves
+nothing. Proportionality to the vendor boundary: a change with no vendor claim on
+its path is verified the repository's own way and spends the twin on one
+end-to-end run. Bulk reconnaissance is delegated rather than read into the
+conversation.
+
+0.5.0 — diagnose from the code first. Every distinct defect that could produce the
+symptom is listed from code evidence, the repository's own defects included,
+before any sandbox: the twin confirms a diagnosis, it does not choose one. With
+it: the coverage contract, escalation when a task's premise measures false, suite
+discipline, and the `.veris/NOTES.md` setup handoff.
 
 0.4.3 — `build` and `fix` seed the world before they measure.
 

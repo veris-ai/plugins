@@ -74,8 +74,10 @@ configs if present: npm does not migrate a renamed package automatically, and th
 two skills packages should not load together. The prior source name `opencode-veris`
 was also unpublished and should be replaced if configured.
 
-As checked on 2026-09-04, the new npm name is not published. The intended first
-version is **0.7.3**, matching the other plugin manifests. Its initial publication
+As checked on 2026-09-04, the new npm name is not published. The release workflow
+takes the version from `veris/.claude-plugin/plugin.json`, so the first publication
+carries whatever that manifest holds on the day; `package.json` here is only the
+placeholder it overwrites. Its initial publication
 and trusted-publisher setup are release prerequisites; this PR does neither and
 does not deprecate or republish the old package.
 
