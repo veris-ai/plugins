@@ -21,8 +21,8 @@ Not a command. `setup`, `build` and `fix` link to the file a step needs:
 | `faults.md` | the task is about a failure, or a case needs a condition the vendor will not produce on demand: fault rows, credentials, the clock |
 | `webhooks.md` | the application receives callbacks |
 | `troubleshooting.md` | what the receipt, an exit code, a trace tier, a certificate error, a vendor-shaped error or a sandboxed agent's `doctor` lines mean |
-| `evidence.md` | writing the PR's verification section |
-| `proof.md` | what closes a claim: the three layers, the ledger's four dispositions, the identity a fix rests on |
+| `evidence.md` | writing a concise result with existing evidence and material limitations |
+| `proof.md` | interpreting test evidence, investigating retry/identity behavior, or using optional audit helpers |
 
 In a verified plugin session, [session.md](session.md) replaces CLI operations
 and lifecycle with the discovered session interfaces. Otherwise twin operations use `veris`; `veris <command> --help` documents its flags. Hosted
@@ -30,5 +30,6 @@ runner commands are documented in their provider recipe. Three twin operations h
 no verb of their own: file upload, a per-twin reset, the operations list. Each of those
 is a `curl` to the twin's control URL, which
 `veris sandbox services get <twin>` prints, and the file that covers it shows the call.
-`scripts/` holds `record.sh` and `ledger.sh`, the measurement ledger `fix` uses;
-`setup` step 9 copies them into the repository's `.veris/bin/`.
+`scripts/` holds optional `record.sh` and `ledger.sh` audit helpers; `setup` step 9
+explains staging when an investigation needs them. Ordinary development does not
+require a task ledger or a separate proof phase.

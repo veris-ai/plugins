@@ -315,9 +315,7 @@ if [ "$met" = true ]; then verdict="$(printf '%s' "$MODE" | tr a-z A-Z)_EXPECTAT
 else verdict="$(printf '%s' "$MODE" | tr a-z A-Z)_EXPECTATION_NOT_MET"; fi
 
 tmp="$(mktemp)" || die "cannot create a temporary file"
-# `at` is the time this run finished, in UTC. A ledger row's run_ref points back
-# at one of these, so a reader can put the run and the row that cites it in one
-# order instead of taking the order from a sentence.
+# `at` is the time this run finished, in UTC, for optional audit context.
 jq --arg phase "$MODE" --arg cmd "$CMD" --arg expect "$EXPECT" \
    --arg detail "$detail" --arg verdict "$verdict" \
    --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \

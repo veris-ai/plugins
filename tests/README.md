@@ -1,31 +1,21 @@
 # Validation
 
-Run the repository checks with Node 20+ and `git`, `sh`, `jq`, `tar`, npm,
+Run the repository checks with Node 20+, Python 3 and `git`, `sh`, `jq`, `tar`, npm,
 `sha256sum` and `shasum` (both checksum branches are exercised):
 
 ```sh
 npm ci --prefix veris/.opencode-plugin
 sh tests/ledger_repository.sh
-sh tests/ledger_gates.sh
 sh tests/record_argv.sh
 sh tests/skill_version_claims.sh
-sh tests/hook_directives.sh
 sh tests/opencode_plugin.sh
+python3 -m unittest discover -s tests -v
 ```
 
-`ledger_gates.sh` covers the gates that keep the ledger a record of the task
-rather than an account of it: an `ENCODED` row without a `falsifier` and the
-`run_ref` of the run that drove it, a ledger with no `DEFAULT_PATH` row, a
-`--against-diff` with no `record.json` pinning the base (and the removed
-`--base`), and a ledger whose every row carries one `written_at`. Each case
-names the run whose failure it closes. Point `LEDGER_SH` and `RECORD_SH` at
-other copies to check them.
-
-`hook_directives.sh` holds the `UserPromptSubmit` hook to the shape the plugin
-loader reads. That hook fails silently -- malformed JSON, a top-level
-`additionalContext`, a missing `hookEventName` all read as no context, with no
-error anywhere -- so the file checks the shape, that all four imperatives are
-still there, and that the injected text stays under twelve lines.
+`test_setup_handoff.py` checks the required handoff without executing a build.
+A normal setup works without Git or optional record/ledger helpers; missing
+required files and invalid metadata still fail. Optional remote helper staging
+retains hash verification in the OpenCode tests.
 
 `skill_version_claims.sh` denies three ways a skill document freezes a fact about a
 moving release: a package specifier pinned to a version or a `<version>` placeholder
@@ -69,10 +59,10 @@ newer releases; do not treat a source checkout as a published package.
 
 Live acceptance requires separate sessions with each provider and an attached
 environment covering the fixture's vendor. Run setup; build a vendor-reaching
-feature; reproduce and fix a meaningful failure with source pinned before red.
+feature; investigate and fix a meaningful application failure.
 Capture per-service receipt baselines and raw traces/state, prove a diagnostic
-probe cannot satisfy an application gate, and recheck identity after reconnect.
-Exercise helper staging and edits with a GPT model that hides write/edit. Keep
+probe cannot satisfy application verification, and recheck identity after reconnect.
+Exercise optional helper staging and application edits with a GPT model that hides write/edit. Keep
 tests and repository/twin operations in the parent; do not start task subagents
 with the inspected providers. Finish with gitSync and verify code and retained
 evidence on local `opencode/N`.

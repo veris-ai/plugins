@@ -141,12 +141,16 @@ A green suite and a receipt prove a change only together, and only from the same
   request to a twin's hostname, setup traffic included, and `veris sandbox trace`
   says whose it was;
 - the run executed the changed code on its way to the vendor: a flow from the boundary
-  the task names, with the call the report describes, unchanged. A green earned by
-  changing the caller's call proves the caller changed;
-- the same flow red before the change and green after it is the strongest form;
-- nothing in the repository or its environment was pointed at a sandbox.
+  the task promises to support. For an optional feature, exercise its new option
+  and preserve required existing behavior;
+- assertions establish the relevant response or persisted outcome. Reuse them rather
+  than repeating the same checks manually; an observed failure before the fix is useful
+  context, not a prerequisite for every change;
+- intercepted execution preserves production vendor routing; direct execution uses
+  the application's existing URL configuration as described in [direct.md](direct.md).
 
-A green suite with an empty receipt is not a pass. A red suite whose receipt shows the
+An empty receipt does not verify a vendor-reaching change. Tests with no meaningful
+vendor interaction use repository validation without an unrelated twin call. A red suite whose receipt shows the
 traffic arrived is a real integration finding. Only one outcome is silent: a run whose
 SDK calls all failed TLS still prints a healthy receipt if anything else in the run
 completed a request on that host, a health check or a second client. When the SDK

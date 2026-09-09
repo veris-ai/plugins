@@ -109,8 +109,9 @@ exists), or use host service metadata. Do not generate a vendor request just to
 populate the list. An unknown-service error lists the available names. Data-plane
 services and their connection settings require service metadata.
 
-The control plane is the `veris` CLI. Nothing in `setup`, `build` or `fix`
-reaches it through MCP, and no plugin in this repository registers an MCP server.
+CLI-owned work uses the `veris` CLI for control operations. No plugin in this
+repository registers an MCP server; plugin-managed work uses the verified interfaces
+below when the CLI is absent.
 What follows describes a provider session in which the CLI is not installed and
 the host has chosen to configure one itself: read it as a fallback for service
 metadata in that session, never as a way to seed, read schema or arm a fault.
@@ -170,7 +171,7 @@ Confirm the installed service supports the required operation; a schema does not
 establish vendor behavior. The request-log default is a bounded page (50 in the
 inspected control implementation), explaining why the SDK's count can plateau.
 An empty page only ends pagination after a successful read on the same service;
-check for resets and gaps. Bodies may be redacted or unavailable: keep the gate's
+check for resets and gaps. Bodies may be redacted or unavailable: keep the assertion's
 response/state assertion, and report exactly what cannot be observed.
 
 Use [twin.md](twin.md), [state.md](state.md) and [faults.md](faults.md) for the
@@ -179,7 +180,7 @@ seed files are keyed by service: do not send a CLI envelope to `/veris/data`.
 Treat all these operations as probes/control work, outside application receipt
 windows. If neither the host interface nor the intercepted control route supports
 the operation, name exactly what is missing (for example E2B manual access, fault
-writes, trace bodies or file upload) and leave the dependent gate unproven. Do not
+writes, trace bodies or file upload) and report the dependent behavior as unverified. Do not
 substitute a mock or a new twin.
 
 ## Trust, network, lifetime and synchronization

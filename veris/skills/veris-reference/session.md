@@ -16,23 +16,24 @@ a directory existing does not prove initial git sync succeeded. Record the curre
 OpenCode session id when supplied by `verisSkill`, provider, twin id, repository,
 source commit, installed package versions, and **lifecycle owner: plugin**.
 
-Call the provider's identity/receipt tools again at every setup/build/fix entry and
-after reconnect or compaction. Compare with the saved observations. If the twin,
-session, or source base changed, take fresh baselines and redo dependent seeding and
-measurements; never pair an old red with a new twin's green. A transient failure is
-not an empty baseline. An unattached session needs the provider's host credentials
+Reuse a binding already verified in this live session. Revalidate with the provider's
+identity/receipt tools after reconnect, a relevant identity/configuration change, or
+when the binding is uncertain after compaction. Saved metadata alone is not a live
+binding. If the twin, session or source base changed, refresh the affected baselines
+and dependent state/evidence. A transient failure is not an empty baseline.
+An unattached session needs the provider's host credentials
 and an environment with the required services, then a new/repaired provider session.
 Name that prerequisite and stop; do not switch into CLI provisioning.
 
 Once verified, these rules replace CLI execution and lifecycle instructions in
-setup, build, fix, and their references. Their evidence gates still apply:
+setup, build, fix, and their references. Application assertions and evidence from the
+same execution still determine what is verified:
 
 - Work with the sandbox's application tools, in the verified repository. Run the
   application's own command directly with existing interception. Do not nest
   `veris run`, a proxy, Docker, a provider CLI, or another sandbox around it.
-- Keep repository reads, edits, full suites, probes, seeding, receipts and git sync
-  in this verified **parent session**. This overrides build/fix instructions to
-  delegate surveys, test runs or coverage sweeps. A child session is not this
+- Keep repository reads, edits, tests, probes, seeding, receipts and git sync
+  in this verified **parent session**. A child session is not this
   sandbox: do not test its host-HEAD checkout or use its twin as parent evidence.
   Subagents may only analyze supplied content when their session cannot provision
   resources; never give them repository or provider operations without an explicitly
@@ -43,11 +44,11 @@ setup, build, fix, and their references. Their evidence gates still apply:
 - Reuse this twin. Skip `veris up`, environment creation, image/proxy setup,
   `--fresh`, promotion, reset and all teardown commands. Do not clear history to
   simplify a receipt. The plugin owns these resources; no `veris down` at finish.
-- Discover the available manual, schema, data, fault, trace and file interfaces
-  before using them. Bind every control operation to the freshly verified twin
+- Discover the interface needed for the current operation before using it;
+  reuse verified interface information. Bind every control operation to the current twin
   and service. CLI examples elsewhere describe the intended operation; use the
-  verified session interface instead. A missing operation blocks that claim or
-  gate, not permission to guess an endpoint or weaken the evidence.
+  verified session interface instead. A missing operation blocks verification that
+  needs it; report that gap while continuing independent work. Do not guess endpoints.
 - Preserve the provider's TLS environment, system trust, proxy and network settings.
   A cert failure under those defaults is a provider/twin finding. Do not disable
   verification, relax Python's strict certificate checks, patch production TLS
@@ -65,7 +66,8 @@ using the receipt procedure below and response/state assertions.
 Then do setup steps 7 and 9 in the remote repository. In `NOTES.md`, record the
 actual application command, dependencies, source revision, services, interface
 names/locations, trust findings, versions, evidence and synchronization procedure.
-Stage the two canonical helper scripts from the installed package. With OpenCode,
+Optional helpers are needed only for an explicitly requested audit or investigation.
+When staging one in OpenCode,
 read `veris-reference/scripts/record.sh` and `veris-reference/scripts/ledger.sh`
 using `verisSkill`; stage each returned `content` unchanged into `.veris/bin/`
 and verify its returned SHA-256 there. Use a provider-backed `write` when available,
@@ -74,13 +76,14 @@ OpenCode's native `apply_patch` edits host files; it cannot stage or edit this
 remote repository. Use the provider's `bash` for application edits too when the
 remote editing tools are absent, then inspect the diff in the same sandbox.
 Do not fetch helpers from GitHub or another release.
-Check `sh`, `git`, `jq`, and the application's runtime in this sandbox. Missing
-helpers/tools are a concrete prerequisite; report any blocked dependency install.
+Check tools needed by the actual command in this sandbox; optional audit helpers
+need `sh`, `git` and `jq`. Missing helpers do not block ordinary development.
+Report any blocked dependency install that the requested work needs.
 
 ### Stage through remote bash
 
-Send this command through the provider's `bash` in the verified parent session,
-once for each helper. Replace `<verified-repository>` with the verified remote path
+Use this recipe only when staging an optional helper. Send it through the provider's
+`bash` in the verified parent session. Replace `<verified-repository>` with the verified remote path
 (shell-quote it), `<helper-name>` with `record.sh` or `ledger.sh`, and `<sha256>`
 with that resource's returned hash. Replace the entire `<exact-content>` line with
 the returned content, retaining its final newline without adding a blank line.
@@ -114,7 +117,7 @@ VERIS_HELPER_LITERAL
 
 This writes to a temporary remote file and installs it only after the hash matches.
 If neither remote write nor remote bash is usable, or no SHA-256 utility exists,
-report that staging prerequisite and stop. Do not substitute a host file operation.
+report that helper's staging prerequisite. Do not substitute a host file operation.
 
 ### Persist setup observations
 
@@ -122,8 +125,8 @@ Keep step 9's source/build facts and artifact policy in `.veris/setup.json`, add
 `"execution": "plugin-session"` and a `session` object with the observations above.
 These are observations, never authority to reuse a twin. Do not manufacture
 `.veris/twin.yaml`: the plugin owns selection. On build/fix, verified session
-metadata plus staged scripts and `NOTES.md` replace that CLI file prerequisite.
-Re-stage helpers after a package upgrade or if hashes differ.
+metadata and `NOTES.md` replace that CLI file prerequisite. Verify or refresh an
+optional helper before using it after an upgrade; it is not a setup prerequisite.
 
 Step 8's file seeding, when needed, uses the discovered interface on this twin;
 read back hashes, but skip baseline promotion. Finish with saved evidence and
@@ -139,7 +142,10 @@ form does not. Neither form accepts `since`. At zero total traffic the full form
 also omits service names; use the provider discovery procedure rather than reading
 an absent list as an empty environment. Never add invented arguments.
 
-For each smoke, red, identity case and green:
+When using these cumulative receipts to attribute an application execution, use the
+procedure below. One execution may include several assertions or retry scenarios;
+do not create another evidence window for each claim or replay an already attributed
+test of the final relevant code and conditions.
 
 1. Finish seeding, diagnostic probes and other test runs first. Await background
    work. Read an unfiltered receipt to identify the twin, save its output, then a
@@ -155,9 +161,10 @@ For each smoke, red, identity case and green:
    proves nothing. Exclude `/veris/*`, canaries, provisioning and diagnostic calls.
    A hand-addressed vendor probe is still a probe, even with a non-control path.
 4. Prefer raw trace entries after the per-service watermark, with tier `handler`
-   or `fault`, and response/state reads keyed by the application's returned ids.
-   Save the request/response or stored outcome the gate requires, after the run.
-   An injected-failure gate needs the fault exchange and the reproduced outcome;
+   or `fault`, and response/state assertions keyed by the application's returned ids.
+   Save the existing result; read state manually only if the test did not establish
+   the required outcome or the result is ambiguous. A test of injected failure needs
+   evidence that the relevant fault occurred and the expected application outcome;
    a method/path/status summary cannot prove a duplicate write or fault phase.
 
 A count increase is only supporting evidence: attribute the new application
@@ -171,13 +178,12 @@ unproven**, with the precise missing data. Do not reset the twin, subtract unrel
 traffic by guess, or turn the summary into a synthetic `veris run` receipt.
 Preserve the reported interception mode, integrity and blind spots with the result.
 
-For fix, keep the same pinned-source record and measurement ledger. Wrap the
-application command in `record.sh red/green --task ... --expect ... -- <command>`
-in the remote repository. Store the raw before/after receipt outputs and state or
-trace alongside the record. `record.sh` records commands and source/build hashes;
-it does not verify provider receipt attribution. Red precedes source edits, green
-uses the same failure and flow on the same twin, and Gate 4 must still pass. Finish
-the full suite before taking Gate 3's baseline; do not use `--fresh` here.
+Use the affected integration test and the repository's required checks. A suite whose
+assertions and attributed traffic already establish the change needs no separate
+verification flow. Do not overlap unrelated work in a cumulative-receipt window.
+Optional `record.sh` and `ledger.sh` can support a requested audit, as described in
+[proof.md](proof.md#optional-audit-helpers); neither verifies provider attribution
+or is required for ordinary `fix` or `build` work.
 
 ## Hand back code and evidence
 

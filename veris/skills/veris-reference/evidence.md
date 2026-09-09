@@ -1,41 +1,25 @@
-# A shape for the verification section of a change description
+# A short change summary
 
-A heading with nothing under it is information too.
+Use the repository's PR or handoff format. Include the behavior changed, the relevant
+test/command and its outcome with an existing evidence reference, and any material
+limitation. For example:
 
 ```markdown
-## What I verified, and how
+Retrying a payment now reuses its operation key through the checkout handler.
 
-<For each claim the change rests on: the run that showed it, the receipt line
-(the receipt's line for the twin), and where the evidence is: a trace entry id
-from `veris sandbox trace`, a row from `veris sandbox data get <twin> <table>`.>
+Verified with <command>: <assertions/result>, against <twin/sandbox>.
+Receipt or retained trace: <path/reference>.
 
-- **The failure, reproduced:** <the fault armed, the flow driven, the wrong
-  outcome observed, before any code changed>
-- **The fix, through the shipping path:** <the same flow, green, from the
-  boundary the task names; receipt from that run>
-- **What the vendor recorded:** <the `veris sandbox data get` or
-  `veris sandbox trace` read-back that shows the change did what it claims, not
-  a layer below it; for a file, the row's SHA-256 matching the local file>
-- **The falsifier, driven:** <for each measurement the change encodes: the input
-  or state that would violate it, the run that drove that through the shipping
-  path, and what the twin said back>
-- **The default path:** <the call the task names, made by a caller that changed
-  nothing, driven twice; the rows the twin stored across both>
-
-## What I am assuming rather than verifying
-
-<Every behaviour the design relies on that has no measurement behind it,
-including anything remembered from vendor documentation, and why it is
-acceptable to assume it. A measurement in the ledger that points the other
-way belongs here, stated, not omitted.>
-
-## Limitations and risks
-
-<What the change does not cover; what a caller could still do wrong; what
-depends on a vendor setting this sandbox could not exercise.>
+<Only if relevant: original failure not reproduced; required case not tested;
+provider/twin limitation; task premise the investigation disproved.>
 ```
 
-A measurement that contradicts a design decision is a decision to revisit. It is
-not a line under *assuming rather than verifying*, and it is not a limitation:
-those headings are for what was never measured, not for a measurement the code
-disagrees with.
+One run may support several assertions. Link its existing receipt or retained output;
+do not create another run, ledger or copy of the evidence for the description.
+Omit empty sections. Use package/version metadata already available when it helps
+reproduce a finding; OpenCode's `verisSkill` result includes the installed package.
+
+Save cited redacted excerpts before sandbox cleanup, following the existing
+`artifact_policy`. A trace id that disappears with the sandbox needs a saved excerpt
+if it is the evidence being cited. Known contradictory behavior is a defect to resolve,
+not an assumption that makes the task complete. State unverified outcomes precisely.

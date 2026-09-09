@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 
-def check(project: Path, scripts: Path):
+def check(project: Path):
     errors = []
     for name in ('.veris/twin.yaml', '.veris/NOTES.md', '.gitignore'):
         path = project / name
@@ -46,15 +46,7 @@ def check(project: Path, scripts: Path):
             if not isinstance(outputs, list) or not all(isinstance(x, str) and x.strip() for x in outputs):
                 errors.append('build_outputs: expected a list of paths; [] is valid when no directory is produced')
             if data.get('artifact_policy') not in ('local', 'pr-body', 'commit'):
-                errors.append('artifact_policy: choose local, pr-body, or commit from the engineer\'s preference')
-    for name in ('record.sh', 'ledger.sh'):
-        target = project / '.veris/bin' / name
-        source = scripts / name
-        try:
-            if target.read_bytes() != source.read_bytes():
-                errors.append(f'.veris/bin/{name}: differs from this plugin; refresh the staged helper')
-        except OSError:
-            errors.append(f'.veris/bin/{name}: unavailable; copy the plugin helper from this installation')
+                errors.append('artifact_policy: use the saved local, pr-body, or commit preference; default to pr-body')
     return errors
 
 
@@ -62,7 +54,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--project', type=Path, default=Path.cwd())
     args = parser.parse_args()
-    errors = check(args.project, Path(__file__).resolve().parent)
+    errors = check(args.project)
     if errors:
         for error in errors:
             print(f'Incomplete setup: {error}')

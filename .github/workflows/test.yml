@@ -15,8 +15,7 @@ jobs:
           node-version: 24
       - run: npm ci --prefix veris/.opencode-plugin
       - run: sh tests/ledger_repository.sh
-      - run: sh tests/ledger_gates.sh
       - run: sh tests/record_argv.sh
       - run: sh tests/skill_version_claims.sh
-      - run: sh tests/hook_directives.sh
+      - run: python3 -m unittest discover -s tests -p 'test_setup_handoff.py'
       - run: sh tests/opencode_plugin.sh

@@ -9,7 +9,7 @@ cd "$T" || exit 1
 mkdir -p .veris/tasks/t/snapshots
 
 row() { # row <probe> <evidence_ref json>
-  printf '{"id":"r1","claim":"refund carries the requested amount","layer":"REPOSITORY","probe":"%s","observed":"2 passed","evidence_ref":%s,"decision":"pass amount when given","code_ref":{"file":"refunds/service.py","symbol":"refund"},"disposition":"ENCODED","falsifier":"a refund with amount omitted would send the full charge","run_ref":"snapshots/green-receipt.json","written_at":"2026-09-09T10:00:00Z"}\n' \
+  printf '{"id":"r1","claim":"refund carries the requested amount","layer":"REPOSITORY","probe":"%s","observed":"2 passed","evidence_ref":%s,"decision":"pass amount when given","code_ref":{"file":"refunds/service.py","symbol":"refund"},"disposition":"ENCODED"}\n' \
     "$1" "$2" > .veris/tasks/t/measurements.jsonl
 }
 fails=0

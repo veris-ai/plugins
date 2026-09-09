@@ -1,283 +1,120 @@
 ---
 name: build
-description: Build a feature against the vendor's twin - measure every vendor claim the task rests on before designing, prove the changed application flow with current-run twin evidence, write the PR with what was verified and assumed. Takes an issue link or a prompt. Run when the engineer names this command.
+description: Build a feature using Veris to answer relevant service questions and test the changed application. Reuse normal development tests and report their results. Takes an issue link or a prompt. Run when the engineer names this command.
 argument-hint: "<issue link | prompt>"
 disable-model-invocation: true
 ---
 
-Build the feature in the request that came with this command: a GitHub issue URL or
-number, or free text. Not done until every gate below is met and the PR says so.
+Build the requested feature. Use the twin to answer questions that affect the change
+and exercise the application. Reuse evidence from normal development: once the required
+behavior is covered and passes, finish. Investigate further when a failure or a
+specific unanswered requirement warrants it.
 
-Check the current runtime tools/context before using saved setup. In a plugin-managed
-session, read [../veris-reference/session.md](../veris-reference/session.md) and
-revalidate the provider, attached twin and remote repository now. That path replaces
-CLI lifecycle and execution instructions throughout these gates: use the existing
-twin, direct application commands, attributed provider receipts and the discovered
-control interface; finish with change sync, leaving plugin-owned resources alive.
-The evidence gates below are unchanged. Saved session metadata is not identity.
+For a change with no meaningful vendor interaction, skip Veris setup and twin work;
+use the repository's validation and state that scope in the result.
 
-A CLI-owned workflow needs `.veris/twin.yaml` in the repository. If it is missing,
-stop: `setup` runs first. In a verified plugin session, setup's notes, metadata and staged
-helpers replace that CLI file; if missing, run `setup`.
+## Use the working setup
 
-Three rules, always:
+Read `.veris/NOTES.md` for the saved application command and useful observations.
+Reuse them unless the relevant code, service configuration or evidence has changed.
+Run `setup` when the needed wiring or handoff is missing or broken.
 
-- Never modify the vendor call to make a test pass. A green earned that way proves
-  the test changed, not the code. Never point the code at a sandbox. The one exception
-  is a repository wired without the proxy, where the variables that point the code
-  there are the ones production sets
-  ([../veris-reference/direct.md](../veris-reference/direct.md)).
-- Anything the task says about the vendor is a **claim** until the twin answers it.
-  Vendor documentation is a claim too.
-- Never promote a sandbox from this command.
+In a plugin-managed session, follow
+[session.md](../veris-reference/session.md): use the verified remote repository,
+attached twin and provider tools. Reuse a binding established in this live session;
+revalidate after reconnect or a relevant identity change. Provider execution replaces
+the CLI commands below. Leave plugin-owned resources alive.
 
-## The task
+For CLI-owned work, use `.veris/twin.yaml` and the saved command. Reuse this task's
+sandbox; `veris up` creates one if needed. Budget its TTL when creating it; an existing
+sandbox cannot be extended. Check expiry before work that may outlast it.
 
-A GitHub reference: read it with `gh issue view <ref> --json title,body,comments`.
-Free text: take the request as it arrived. Quote it, whichever it is. Then list every
-claim it makes about the vendor: what the vendor supports, what a field means, what a
-repeat does.
+An unavailable twin blocks verification that needs it. Report the concrete error;
+independent code work and local checks can continue. Retry only when the error suggests
+a recoverable condition or something changed. Do not report unrun checks as passed.
 
-Then say where the vendor boundary sits. A feature with no vendor claim on its path is
-verified the repository's own way, and the twin is spent on one end-to-end run of the
-changed flow. **That run is a deliverable, not a discount**: its receipt is pasted into
-the PR body, and a task that cannot produce one stops and says why. A task that drove
-nothing through the twin has left the change unproven, whatever else it ran. A feature
-that rests on what the vendor does gets every gate below.
+## Understand and implement
 
-Read `.veris/NOTES.md` first. It holds what earlier tasks measured; do not measure
-it again. Append what you measure here that a later task will need.
+Read the issue (`gh issue view <ref> --json title,body,comments` for GitHub) or the
+supplied prompt. Identify the requested behavior, its caller and relevant service
+dependencies. Inspect existing application code and tests before designing a new flow.
 
-Keep the conversation small. In a plugin-managed session, follow
-[session delegation rules](../veris-reference/session.md#verify-now-including-on-resume):
-run suites and repository operations in the verified parent; the delegation advice
-here and in later surveys/sweeps applies only when those rules permit it.
-Otherwise, send anything that reads wide or returns long to a
-subagent where one exists: a code survey, a full test-suite run, any output past a
-screenful. Keep the answer it gives you, not the transcript. Where no subagent exists,
-bound the read yourself. Name the files, grep for the symbol, and read only the hunk.
-Send long output to a file and grep that file, rather than into the conversation. Read
-small things inline: a row count, one table's shape, a filtered trace.
+Use the cheapest twin interface that answers an unresolved question affecting that
+design. [twin.md](../veris-reference/twin.md) maps questions to the manual, schema,
+operation list and data. Fetch the manual with
+`veris sandbox services manual <twin> --raw` when credentials, API versions or fault
+details are needed; read the applicable sections. A direct twin probe is useful
+discovery. A test through the application can answer the same question while also
+checking the implementation. Reuse an answer already established for these conditions.
 
-## Gate 1: every claim measured before the first source edit
+Seed the state the feature needs using [state.md](../veris-reference/state.md).
+Inspect the relevant owner/time window rather than assuming the default seed fits.
+Use ids from this sandbox. A fully booked fixture, for example, does not disprove a
+feature that books another date; do not change the requested behavior to fit the seed.
 
-1. `veris up`. One sandbox for the whole task. Done when it exits 0 and lists the
-   twins. Check `veris status` for expiry before long work. Set `veris up --ttl <minutes>` before creation to budget for the probes, builds and evidence reads;
-   an existing sandbox cannot be extended. Save evidence as gates finish.
-   **If no sandbox is reachable, stop here and report that** — `veris up` failing,
-   `veris status` answering `✗ No sandbox for this folder`, or the plane rejecting the
-   key. Do not build the feature blind: the report of why the sandbox was unreachable
-   is worth more than a change nobody can check.
-2. `veris sandbox services manual <twin> --raw`. Read it whole, once. `--raw` puts
-   the markdown on stdout; without it the manual renders on stderr. The manual is
-   authoritative for the credentials the twin accepts, the API versions, the faults
-   it can inject, and the `match` keys it supports. It is **not** a list of
-   everything the twin implements, so read no coverage claim into what it leaves out.
-3. The state. `veris sandbox data get <twin>` lists every table with its row count.
-   `veris sandbox data schema <twin> --table <t>` shows a table's columns, required
-   fields and rules. `veris sandbox data get <twin> <table>` shows one page.
-   Inspect the relevant owner and time window before assuming the seed fits the task;
-   use the complete-read procedure in the state reference before counting records.
-   Seed what the code path needs, in those shapes, from a JSON file keyed by twin:
-   ```
-   veris sandbox data add rows.json
-   ```
-   It prints the twin's own added counts. When a row is refused, it prints the twin's
-   reasons line by line and stops, and nothing is applied for that twin; fix the file
-   and add it again. Ids come from the sandbox. Never guess one, and never copy one
-   from another sandbox. A call that fails because a row was missing has measured
-   nothing. File bytes are not rows: seed the owning rows first, then upload them, as
-   [../veris-reference/state.md](../veris-reference/state.md) shows. The state dies
-   with its sandbox; resetting it or keeping it is in the same file.
-4. For each claim: one probe that answers it. A schema rule, a read of what the
-   twin stored, or a direct call at the twin's URL with the credentials the manual
-   names. Record the call and the answer. A measurement that contradicts the task is
-   the finding, not an error.
-5. If the feature is about a failure — a lost response, a limit, a refusal — make
-   that failure happen and drive the current code through it before designing.
-   [../veris-reference/faults.md](../veris-reference/faults.md) shows how. When the
-   flow does not exist yet there is no code to drive: measure the condition itself in
-   step 4 instead, and drive the change through it at Gate 3.
+Implement using the repository's conventions and extend the relevant test. When the
+feature changes failure handling, use [fault injection](../veris-reference/faults.md)
+for the relevant condition. For retry, idempotency or identity changes, include the
+applicable duplicate, distinct-operation and recovery cases in the affected test;
+[proof.md](../veris-reference/proof.md#retry-and-identity-changes) has focused recipes.
+Investigate an unanswered claim when it would change a decision, without postponing
+all source edits until every possible vendor question has been catalogued.
 
-A condition in the seeded world is not a vendor constraint. A fully booked fixture,
-for example, does not disprove a request to book tomorrow: seed an appropriate world
-and also prove the no-slot outcome. Do not broaden the feature's date window or other
-requirements merely to fit the default fixture; resolve any scope change with the engineer.
+Exercise the caller promised by the task. For an optional feature, test the new
+argument/flag and preserve required existing behavior. Cover relevant alternate
+dispatch branches when they can change that outcome. A test-only path that normal
+callers never reach does not establish the feature works for them.
 
-Write source only after every claim has an answer.
+## Test the changed application
 
-## Gate 2: the identity the design rests on
-
-Before the change keys, looks up or dedupes on any field, read that field's rule in
-`veris sandbox data schema <twin> --table <t>`. A field the vendor accepts twice for
-distinct records is not an identity; a design keyed on it collapses two records or
-misses a repeat.
-
-This binds on every identity, dedup key or external reference the design sends
-across the vendor boundary, however the code got it. Prove it against the twin. Run one
-case per component, with that component changed and every other one held fixed.
-Also test omission where the existing code path permits it; otherwise record why
-that case cannot be driven without changing the application. A case that moves two at
-once proves nothing about either.
-
-Drive those cases through the **repository's own code path** under `veris run`, never
-with curl at the twin's URL. A probe you hand-address, with a credential you invented
-to send it, measures the twin and not the code the change ships in, and it leaves no
-receipt behind. Count the rows the twin stored. Distinct inputs must leave distinct
-records; fewer records is the design's own defect. A component the code path always
-sends cannot be left out without editing the code: record that as the answer rather
-than faking it with a hand-made call. The field, each case with the one component it
-moved, and the counts go in the PR.
-
-## Implement
-
-As the repository does it: its test conventions, its coverage gate. Run the
-repository's full test gate once, in the background, with no timeout of your own. Poll
-it to completion, and read its result before writing the PR. If the suite runs under
-`veris run`, it is a second run against the same sandbox, and its traffic lands in the
-same ledger — the sandbox's running record of what it received. So finish the suite
-before Gate 3, or give it `--fresh` and a sandbox of its own. Never kill a running
-suite to relaunch it. Never report a result you did not read.
-
-If the gate cannot run for a reason that predates the change — a collection error in a
-file you did not touch, a module the repository does not have — it is not red. Run the
-largest subset that does collect. Quote the command with every flag it carried, and put
-what you left out, and why, under *limitations and risks*.
-
-## Gate 3: the change through veris run, with a receipt
-
-Run the changed flow through the sandbox from Gate 1, starting at the boundary the
-task names: the endpoint, the worker or the handler.
+Prefer the repository's affected integration test, run with the command from
+**How to run**. For a CLI container, its shape is:
 
 ```
-veris run --patch-bundled-cas --require-service <twin> <the mounts and variables from NOTES.md> -- <the flow>
+veris run --patch-bundled-cas --require-service <twin> <saved mounts and variables> --receipt <file> -- <affected test or flow>
 ```
 
-The image and defaults come from `.veris/twin.yaml`. The mounts and variables the app
-needs are in `.veris/NOTES.md` under *How to run*. Take them from there, never from a
-template. On the hosted tier, follow the provider's provisioning and preparation
-commands in *How to run*, attaching the box to the sandbox from Gate 1, then drive
-the flow with its recorded execution command
-([../veris-reference/hosted.md](../veris-reference/hosted.md)).
-The mount has to land the working tree where the image expects the code,
-because a test image usually bakes the repository at a fixed path. Mount it somewhere
-else and the run exercises the baked copy: your edit never executes, and the receipt
-comes back green with nothing in it saying so. When you find the mount that works,
-correct *How to run* in `.veris/NOTES.md`. A fix left only in the PR sends the next
-task into the same exit 3.
+Use the edited source or a build produced from it. A wrong mount can execute the
+image's old baked code; use the verified mount/build recipe. For hosted execution,
+use the saved [provider command](../veris-reference/hosted.md). Keep production vendor
+hostnames and credentials; interception belongs outside the application. For an app
+wired without the proxy, use its existing production URL variables as described in
+[direct.md](../veris-reference/direct.md). Never weaken TLS or change a vendor call
+just to make a test pass.
 
-`--receipt <file>` keeps the receipt — the run's own record of what the sandbox
-received — as JSON for the PR. Then read what the twin stored, with
-`veris sandbox data get <twin> <table>`, and what it received, with
-`veris sandbox trace --tier handler`. Use `--tier fault` instead for an injected
-failure.
+The test must assert the expected response or persisted outcome, and its receipt or
+attributed trace must show the relevant application traffic reached the twin. Existing
+assertions that read the outcome are sufficient; do not repeat them with manual data
+reads. If the result is unclear, inspect the relevant rows by returned ids or the
+trace for this run. See [run.md](../veris-reference/run.md) for receipt/exit semantics
+and [webhooks.md](../veris-reference/webhooks.md) when a callback is part of the task.
 
-Both reads have to be of *this* run. Note the newest trace id for that twin before the
-run, and read back afterwards with `--service <twin> --since <id>`, because trace ids
-are each twin's own sequence. Find your rows by the ids the run produced, not by where
-they sit in the listing. A read taken before the changed code ran says nothing about
-it.
+An existing execution counts if it tested the final relevant code/build and conditions.
+One suite can cover several requirements; a retry case can make multiple calls in one
+test. There is no required second successful run or separate proof phase. Honor the
+repository's required checks, reuse their evidence, and rerun affected checks after
+changes or failures.
 
-**Done when the receipt shows at least one request to the twin from that run and
-the stored state is what the change promises.**
+If the assertions fail, change the implementation or correct the diagnosed setup
+problem. If required behavior remains untested, report that gap. A successful process
+exit or unrelated twin traffic alone is not verification of the change.
 
-Exit 3 means a requirement was unmet: read which one. A missing callback
-can fail after successful outbound traffic; follow the webhook reference. Fix the
-wiring or receiver issue the evidence identifies, never the vendor call.
-Exit 4 means the sandbox's ledger could
-not be read: run it again, then `veris status`. `--strict` makes the receipt a
-stronger claim: that the code reached nothing but the sandbox.
+## Finish
 
-On a repository wired without the proxy, the app reads vendor URLs from the environment
-([../veris-reference/direct.md](../veris-reference/direct.md)). There the same gate
-reads the trace instead of a receipt. Note the newest trace id before the run, drive
-the flow against the wired sandbox, and then
-`veris sandbox trace --service <twin> --since <id>` is the run's receipt. The same
-holds on the hosted tier, where the flow runs in the provisioned box using the
-provider's commands ([../veris-reference/hosted.md](../veris-reference/hosted.md)).
+Summarize what changed, the test/command and outcome with an existing evidence
+reference, and material limitations. [evidence.md](../veris-reference/evidence.md)
+shows the short form. Note any task premise disproved by the investigation when it
+affected the solution. A known contradiction is a defect to resolve, not an assumption.
 
-One green proves one path. Before the PR, list every entry point that reaches the
-lines you changed: grep the changed symbols for their callers, and the constants
-those callers branch on, out to the endpoints, workers and jobs that own them. Say
-which of them this run drove. The rest are not covered, so name them under
-*limitations and risks*, with what a caller reaching the change that way still gets.
+Follow the repository's PR convention; open a draft when that is the requested
+handoff. Without a PR-capable remote, save the description locally and say no PR was
+opened. Git history, task ids and the optional [audit helpers](../veris-reference/proof.md#optional-audit-helpers)
+are not prerequisites for working on code. Do not initialize Git or add a remote
+implicitly. Use available package/version metadata if useful for debugging; it is
+not a separate completion requirement.
 
-Also search for branches that duplicate the behaviour instead of calling it: the same
-response handled inline, selected by a mode or type switch. A grep for your symbol
-cannot find those. Drive each one in the green run, or list it. In a large repository
-this sweep is worth a subagent where one exists: ask for the entry points, each marked
-driven or not driven. The matrix shape is in
-[../veris-reference/proof.md](../veris-reference/proof.md), **The route and branch
-matrix**. Read that section and **The three layers** above it.
-
-The measurement ledger and its diff check belong to `fix`, because a build has no task
-id and no ledger. A build still names each measurement in the PR body, with the same
-four dispositions.
-
-## Gate 4: the reconciliation
-
-A measurement can be taken correctly, transcribed accurately, called encoded, and
-contradicted by the code that shipped in the same change. That has happened three
-times, on three repositories and three vendors, and no structural check catches it: a
-list of measurements beside a diff cannot say whether the code obeys them. This gate is
-what can, and it happens before the PR is written, not while writing it.
-
-For each measurement you are about to call **encoded**:
-
-1. **Write the falsifier**: the concrete input, or the state, under which the shipped
-   code would violate that measurement. Where the decision leans on an escape hatch —
-   a different key, a later slot, another branch on retry — the falsifier is the reason
-   that hatch is unreachable, named in the shipped code. A hatch you cannot describe
-   reaching is a hatch the code does not have.
-2. **Drive it** through the shipping code path under `veris run`, against this sandbox.
-   Not a unit test, not a stub, not a hand-addressed call at the twin's URL. Read the
-   twin back afterwards with `veris sandbox data get <twin> <table>` and
-   `veris sandbox trace --service <twin> --since <id>`.
-3. If the bad outcome reproduces, the measurement is **contradicted**: change the code,
-   run this gate again, and only then write the PR. No PR is opened on a contradiction.
-
-Then the **default path**. Name the call the task describes; make it the way a caller
-that changed nothing makes it — no new argument, no new flag, no new option — drive it
-**twice** under `veris run`, and count what the twin stored across both drives. A
-mechanism that does not engage there is not done. That does not go under *limitations
-and risks*: it is not a finding, it is the task unfinished. One run shipped the right
-mechanism behind a parameter no caller passes, measured that exact consequence itself,
-filed it under limitations, and left behaviour identical to changing nothing.
-
-Both go in the PR body: the falsifier per measurement with the run that drove it, and
-the default-path drive with its counts.
-
-## The PR
-
-Open a draft the way the repository does. If there is no PR-capable remote, save
-the same description locally as `.veris/evidence/PR-<flow>.md` and report that no PR
-was opened; do not create a repository or remote implicitly.
-The description has three sections, in the shape of [../veris-reference/evidence.md](../veris-reference/evidence.md):
-
-- *What I verified, and how*: each claim, the probe that answered it, the receipt of
-  the green run pasted, and the default-path drive with its counts.
-- *What I am assuming rather than verifying*, and why that is acceptable.
-- *Limitations and risks*.
-
-Every task premise that measured false is its own line: the premise, the probe, the
-answer. Never restate such a premise as fact later in the body.
-
-Paste the sandbox id, the receipt, and the plugin version: the `version` in this
-installation's `.claude-plugin/plugin.json`, two directories above the skill file you
-are reading. The gates change between versions, so a report that does not name one
-cannot be read beside another. Ids stop resolving once the sandbox is deleted. So before
-`veris down`, save the rows and trace entries the body cites to
-`.veris/evidence/<flow>.json`; `--json` on `veris sandbox data get` and
-`veris sandbox trace` writes them. Name that path beside the ids. Whether that file is
-committed with the change or only kept on disk is `artifact_policy` in
-`.veris/setup.json`, which `setup` set at step 9. Save identifiers, counts and excerpts
-only, never credentials. Then run `veris down` only in a CLI-owned workflow;
-a plugin session uses
-[session handoff](../veris-reference/session.md#hand-back-code-and-evidence).
-
-When a step needs it: [../veris-reference/faults.md](../veris-reference/faults.md)
-for faults, credentials and the clock; [../veris-reference/webhooks.md](../veris-reference/webhooks.md)
-when the app receives callbacks; [../veris-reference/troubleshooting.md](../veris-reference/troubleshooting.md)
-for what a receipt, an exit code or a vendor-shaped error means. Note anything the
-twin got wrong or lacked and tell the engineer at the end. Ask before sending
-repository code anywhere new.
+Save cited redacted evidence before cleanup, honoring `.veris/setup.json`'s existing
+`artifact_policy`. Update **How to run** if you repaired it. Use `veris down` only for
+a CLI-owned task sandbox; hosted work follows its provider cleanup, and plugin sessions
+use [change sync](../veris-reference/session.md#hand-back-code-and-evidence).
+Do not promote from this command. Ask before sending repository code anywhere new.
