@@ -16,6 +16,11 @@ from `veris sandbox trace`, a row from `veris sandbox data get <twin> <table>`.>
 - **What the vendor recorded:** <the `veris sandbox data get` or
   `veris sandbox trace` read-back that shows the change did what it claims, not
   a layer below it; for a file, the row's SHA-256 matching the local file>
+- **The falsifier, driven:** <for each measurement the change encodes: the input
+  or state that would violate it, the run that drove that through the shipping
+  path, and what the twin said back>
+- **The default path:** <the call the task names, made by a caller that changed
+  nothing, driven twice; the rows the twin stored across both>
 
 ## What I am assuming rather than verifying
 
@@ -30,5 +35,7 @@ way belongs here, stated, not omitted.>
 depends on a vendor setting this sandbox could not exercise.>
 ```
 
-A measurement that contradicts a design decision is either a decision to
-revisit or a line under *assuming rather than verifying*.
+A measurement that contradicts a design decision is a decision to revisit. It is
+not a line under *assuming rather than verifying*, and it is not a limitation:
+those headings are for what was never measured, not for a measurement the code
+disagrees with.

@@ -45,9 +45,24 @@ from code evidence; it does not choose it. In a large repository, hand this surv
 subagent where one exists, subject to the session rules below, and keep the list,
 each candidate with its file and line.
 
+Write that list down as a **differential before the first twin call**: at least two
+hypotheses, each with the file and line that makes it plausible, and at least one of
+them ruled out from the code alone, naming the line that rules it out. One hypothesis
+is not a differential. It is the first thing you read, kept.
+
+**Then the checkpoint, after the survey and before you arm anything.** Ask it in these
+words: *does the code I have read explain the symptom on its own, without the fault the
+twin advertises?* If it does, that fault is not the diagnosis, whatever the manual puts
+first. Say in the PR which way the checkpoint went and what settled it. Three runs of
+one task read the defective file three times each, took the twin's headline fault as
+the selector, and fixed a defect that was not the one reported.
+
 Then say where the vendor boundary sits. A defect with no vendor claim on its path is
 verified the repository's own way, and the twin is spent on one end-to-end run of the
-changed flow. A defect that rests on what the vendor does gets every gate below.
+changed flow. **That run is a deliverable, not a discount**: its receipt is pasted into
+the PR body, and a task that cannot produce one stops and says why. A task that drove
+nothing through the twin has left the change unproven, whatever else it ran. A defect
+that rests on what the vendor does gets every gate below.
 
 Read `.veris/NOTES.md` first. Append what you measure here that outlives the task.
 
@@ -82,6 +97,13 @@ record, and its ledger of measurements, live under `.veris/tasks/<task-id>/`.
    when you create the sandbox: `veris up --ttl <minutes>` overrides the environment's
    TTL for this one. Before starting anything long, weigh what `veris status` says is
    left against the work still to do. Every id in Gates 1 to 3 dies with the sandbox.
+
+   **If no sandbox is reachable, stop here and report that.** `veris up` failing,
+   `veris status` answering `✗ No sandbox for this folder`, or the plane rejecting the
+   key are each that case. Do not carry on and fix the defect blind: the report of why
+   the sandbox was unreachable is worth more than a change nobody can check, and a
+   whole task has been run that way, against no sandbox at all, and read afterwards as
+   evidence.
 2. `veris sandbox services manual <twin> --raw`. Read it whole, once. `--raw` puts
    the markdown on stdout; without it the manual renders on stderr. The manual is
    authoritative for the credentials, the API versions, the injectable faults and the
@@ -222,17 +244,59 @@ provider's commands ([../veris-reference/hosted.md](../veris-reference/hosted.md
 
 ## Gate 4: the measurements against the diff
 
-Every measurement is one row in the task's ledger, written when you take it and not
-reconstructed at the end. `sh .veris/bin/ledger.sh init --task <id>` prints the field
-contract; `sh .veris/bin/ledger.sh check --task <id>` validates the rows. Before the
-PR, run `sh .veris/bin/ledger.sh --against-diff --task <id>`. It reads the base pinned
-at the start, and exits 2 on a gate failure.
+Every measurement is one row in the task's ledger, appended **when you take it**:
+`sh .veris/bin/ledger.sh add --task <id> --row '<json>'`, which stamps the time it was
+written. `sh .veris/bin/ledger.sh init --task <id>` prints the field contract;
+`sh .veris/bin/ledger.sh check --task <id>` validates the rows as you go. A ledger typed
+out at the end is a summary of the task, and a summary cannot contradict the code: the
+gate refuses one whose rows all carry the same timestamp.
 
 Each row ends as exactly one of four dispositions. **Encoded**: name the changed file
 and symbol that honours the measurement. **Non-load-bearing**: give the different value
 it could have taken without changing the fix. **Contradicted**. **Unresolved**. The
 last two fail the gate, and a contradiction means change the code, not the report. The
 row format is in [../veris-reference/proof.md](../veris-reference/proof.md).
+
+## Gate 5: the reconciliation
+
+The ledger check is structural. It confirms each row is complete, typed and locatable,
+and it **cannot tell whether the shipped code obeys the measurement** — that is a
+judgement about behaviour, and no pattern match on a row's text is one. This gate is the
+only step that can. It is the step that has been missing: three times, on three
+repositories and three vendors, the deciding fact was measured correctly, transcribed
+accurately, marked `ENCODED`, and contradicted by the code that shipped in the same
+change. Every one of those rows passed Gate 4.
+
+For each row you marked `ENCODED`:
+
+1. **Write the falsifier**, into the row's `falsifier`: the concrete input, or the
+   state, under which the shipped code would violate that measurement. If the row's own
+   decision leans on an escape hatch — a different key, a later slot, a retry that takes
+   another branch — the falsifier is the reason that hatch is unreachable, named in the
+   shipped code. This is where a row usually dies: a hatch you cannot describe reaching
+   is a hatch the code does not have.
+2. **Drive it** through the shipping code path, under `veris run`, against this
+   sandbox. Not a unit test, not a stub, not a hand-addressed call at the twin's URL.
+   Then read the twin back — `veris sandbox data get <twin> <table>` for what it stored,
+   `veris sandbox trace --service <twin> --since <id>` for what it received — and put
+   that receipt path or trace read in the row's `run_ref`.
+3. **Read the answer.** If the bad outcome reproduces, the row is `CONTRADICTED`. That
+   is not a limitation and not a line in the PR: **change the code, run this gate
+   again, and only then go on.** No PR is opened while any row is `CONTRADICTED`.
+
+Then the **default path**, as its own row, `row_type` `DEFAULT_PATH`, with
+`caller_unchanged: true`. Name the call the task describes. Make it the way a caller
+that changed nothing makes it: no new argument, no new flag, no new option. Drive it
+**twice** under `veris run` and count what the twin stored across both drives. A guard
+that does not engage there is not done. That finding does not go under *limitations and
+risks* — it is not a finding, it is the task unfinished. One run shipped the right
+mechanism behind a parameter no caller passes, measured that exact consequence itself,
+filed it under limitations, and left behaviour identical to changing nothing.
+
+Close with `sh .veris/bin/ledger.sh --against-diff --task <id>`. It takes the base from
+the `record.json` pinned before the first edit and refuses to run without one; there is
+no `--base`. It exits 2 on a missing `falsifier` or `run_ref`, a missing `DEFAULT_PATH`
+row, a `CONTRADICTED` or `UNRESOLVED` row, or a ledger written all at once.
 
 ## The PR
 
@@ -242,13 +306,16 @@ was opened; do not create a repository or remote implicitly.
 The description has three sections, in the shape of [../veris-reference/evidence.md](../veris-reference/evidence.md):
 
 - *What I verified, and how*: the fault armed, the before ledger, the after ledger, the
-  receipt line.
+  receipt of the green run pasted, and the default-path drive with its counts.
 - *What I am assuming rather than verifying*.
 - *Limitations and risks*, including what a caller could still do wrong.
 
 Every premise that measured false is its own line, and is never restated as fact.
 
-Paste the sandbox id. Where the diagnosis, ledger and record go is `artifact_policy` in
+Paste the sandbox id and the receipt, and name the plugin version: the `version` in
+this installation's `.claude-plugin/plugin.json`, two directories above the skill file
+you are reading. The gates change between versions, so a report that does not name one
+cannot be read beside another. Where the diagnosis, ledger and record go is `artifact_policy` in
 `.veris/setup.json`, which `setup` set at step 9: rendered into the PR body
 (`pr-body`), kept on disk only (`local`), or committed under
 `.veris/tasks/<task-id>/` (`commit`). Then run `veris down` only in a CLI-owned workflow;

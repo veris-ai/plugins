@@ -40,18 +40,42 @@ dispositions below are how it names each one there.
 
 The scripts live in `.veris/bin/` once `setup` step 9 has run.
 `sh .veris/bin/ledger.sh init --task <id>` prints the field contract;
-`sh .veris/bin/ledger.sh check --task <id>` validates it;
-`sh .veris/bin/ledger.sh --against-diff --task <id>` closes Gate 4 and exits 2 on
-a gate failure. `--task` may be omitted when `VERIS_TASK_ID` is set. The ledger
-lives under `.veris/tasks/<task-id>/`. Every measurement ends as one of:
+`sh .veris/bin/ledger.sh add --task <id> --row '<json>'` appends one row and
+stamps the time it was written; `check` validates the rows as you go;
+`--against-diff` closes Gates 4 and 5 and exits 2 on a gate failure. `--task`
+may be omitted when `VERIS_TASK_ID` is set. The ledger lives under
+`.veris/tasks/<task-id>/`.
 
-- **`ENCODED`**: name the changed file and the symbol or decision honouring it.
+**Append each row when you take the measurement.** A ledger typed out at the end
+is a summary of the task, and a summary is exactly the artifact that cannot
+contradict the code: three or more rows sharing one `written_at` fail the gate.
+The base likewise comes only from the `record.json` that `record.sh base` pinned
+before the first edit; `--against-diff` refuses to run without it and takes no
+`--base`, because a base the change names at gate time is chosen by the thing
+being measured.
+
+Every measurement ends as one of:
+
+- **`ENCODED`**: name the changed file and the symbol or decision honouring it,
+  and carry two more fields. **`falsifier`**: the concrete input, or the state,
+  under which the shipped code would violate this measurement — or, when the
+  decision leans on an escape hatch, the reason that hatch is unreachable, named
+  in the shipped code. **`run_ref`**: the run that drove that falsifier through
+  the shipping path, with the twin read back. Both are required and neither is
+  a warning.
 - **`NON_LOAD_BEARING`**: carries a **counterfactual**, the different value this
   measurement could have taken *without changing the promised outcome*. If you
   cannot write one, it is load-bearing and this is not the row.
 - **`CONTRADICTED`**: the change does what the measurement says is wrong.
   **A gate failure. Change the code, never the report.**
 - **`UNRESOLVED`**: never settled. A gate failure.
+
+One row is not a measurement but a drive: `row_type: "DEFAULT_PATH"`, with
+`caller_unchanged: true` and a `run_ref`. It records the call the task names,
+made the way a caller that changed nothing makes it, driven twice, with what the
+twin stored counted across both. The gate does not close without one. A
+mechanism that engages only for a caller that passes something new has not
+changed what the application does.
 
 Ids stop resolving when the sandbox is deleted, so a `TWIN` row saves the redacted
 excerpt under `.veris/tasks/<task-id>/snapshots/`. A `build` has no task id, so it
@@ -60,7 +84,20 @@ commands and excerpts only, never credentials; the check scans for secret shapes
 
 The check confirms the ledger is complete, typed and locatable. It **cannot**
 tell whether the code obeys a measurement, or whether a sentence smuggles in a
-second layer. A person reads those.
+second layer; no pattern match on a row's text could. Writing the falsifier and
+driving it is the only step that can, and it is the step whose absence has cost
+the most: three times, on three repositories and three vendors, the deciding
+fact was measured correctly, written down accurately, marked `ENCODED`, and
+contradicted by the code shipped in the same change. Every one of those rows
+passed the structural check.
+
+The same asymmetry holds for how an instruction reaches you. A gate stated in
+the task text, or arriving on the turn from a session hook, changes work that
+the same words in a reference like this one do not: matched runs of one task
+put it at 3 of 3 from the task, 2 of 6 from a hook, and 0 of 4 from prose that
+was demonstrably read. So an instruction from the engineer's own prompt outranks
+this file where the two differ, and these documents carry the procedure rather
+than trying to carry the imperative alone.
 
 ## The identity, when Gate 2 binds
 

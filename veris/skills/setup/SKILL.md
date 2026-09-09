@@ -535,23 +535,25 @@ Append these lines to `.gitignore` if they are not there already. Never ignore
 
 ```gitignore
 .veris/bin/
-.veris/tasks/
 .veris/evidence/
 ```
 
-Then ask the engineer once where a task's diagnosis, ledger, record and saved evidence
-should go. Record the answer in `.veris/setup.json` as `artifact_policy`. There are
-three answers:
+**`.veris/tasks/` is not on that list, deliberately.** It holds the task's record, its
+measurement ledger and the snapshots that outlive the sandbox — the evidence the change
+rests on. Ignored, a reviewer sees the account of the work and never the work, and a
+ledger nobody reads is a ledger nobody can contradict. The cost is one small directory
+per task on the default branch. Say that to the engineer; if they refuse, add
+`.veris/tasks/` and note in the handoff that the ledger will not reach review.
 
-- `pr-body`, the default: rendered into the change description.
-- `local`: kept on disk only.
-- `commit`: commit task artifacts under `.veris/tasks/<task-id>/` and build evidence
-  under `.veris/evidence/<flow>.json`. For `pr-body` and `local`, both directories
-  stay ignored; `pr-body` includes selected redacted evidence in the description.
+Then ask the engineer once where a task's diagnosis and saved evidence should go beyond
+that. Record the answer in `.veris/setup.json` as `artifact_policy`. There are three
+answers:
 
-Before the engineer chooses `commit`, say plainly that it merges into the default
-branch and accumulates one directory per task. If they choose it anyway, drop the
-`.veris/tasks/` and `.veris/evidence/` lines you just added to `.gitignore`.
+- `pr-body`, the default: selected redacted evidence rendered into the change
+  description, alongside the committed ledger.
+- `local`: build evidence under `.veris/evidence/<flow>.json` kept on disk only.
+- `commit`: build evidence committed too. Drop the `.veris/evidence/` line you just
+  added to `.gitignore`.
 
 ## 10. Finish
 

@@ -40,9 +40,10 @@ repeat does.
 
 Then say where the vendor boundary sits. A feature with no vendor claim on its path is
 verified the repository's own way, and the twin is spent on one end-to-end run of the
-changed flow. That one run is a floor, not a discount: a task that drove nothing
-through the twin has left the change unproven. A feature that rests on what the vendor
-does gets every gate below.
+changed flow. **That run is a deliverable, not a discount**: its receipt is pasted into
+the PR body, and a task that cannot produce one stops and says why. A task that drove
+nothing through the twin has left the change unproven, whatever else it ran. A feature
+that rests on what the vendor does gets every gate below.
 
 Read `.veris/NOTES.md` first. It holds what earlier tasks measured; do not measure
 it again. Append what you measure here that a later task will need.
@@ -63,6 +64,10 @@ small things inline: a row count, one table's shape, a filtered trace.
 1. `veris up`. One sandbox for the whole task. Done when it exits 0 and lists the
    twins. Check `veris status` for expiry before long work. Set `veris up --ttl <minutes>` before creation to budget for the probes, builds and evidence reads;
    an existing sandbox cannot be extended. Save evidence as gates finish.
+   **If no sandbox is reachable, stop here and report that** — `veris up` failing,
+   `veris status` answering `✗ No sandbox for this folder`, or the plane rejecting the
+   key. Do not build the feature blind: the report of why the sandbox was unreachable
+   is worth more than a change nobody can check.
 2. `veris sandbox services manual <twin> --raw`. Read it whole, once. `--raw` puts
    the markdown on stdout; without it the manual renders on stderr. The manual is
    authoritative for the credentials the twin accepts, the API versions, the faults
@@ -205,9 +210,42 @@ driven or not driven. The matrix shape is in
 [../veris-reference/proof.md](../veris-reference/proof.md), **The route and branch
 matrix**. Read that section and **The three layers** above it.
 
-The measurement ledger and Gate 4 belong to `fix`, because a build has no task id and
-no ledger. A build still names each measurement in the PR body, with the same four
-dispositions.
+The measurement ledger and its diff check belong to `fix`, because a build has no task
+id and no ledger. A build still names each measurement in the PR body, with the same
+four dispositions.
+
+## Gate 4: the reconciliation
+
+A measurement can be taken correctly, transcribed accurately, called encoded, and
+contradicted by the code that shipped in the same change. That has happened three
+times, on three repositories and three vendors, and no structural check catches it: a
+list of measurements beside a diff cannot say whether the code obeys them. This gate is
+what can, and it happens before the PR is written, not while writing it.
+
+For each measurement you are about to call **encoded**:
+
+1. **Write the falsifier**: the concrete input, or the state, under which the shipped
+   code would violate that measurement. Where the decision leans on an escape hatch —
+   a different key, a later slot, another branch on retry — the falsifier is the reason
+   that hatch is unreachable, named in the shipped code. A hatch you cannot describe
+   reaching is a hatch the code does not have.
+2. **Drive it** through the shipping code path under `veris run`, against this sandbox.
+   Not a unit test, not a stub, not a hand-addressed call at the twin's URL. Read the
+   twin back afterwards with `veris sandbox data get <twin> <table>` and
+   `veris sandbox trace --service <twin> --since <id>`.
+3. If the bad outcome reproduces, the measurement is **contradicted**: change the code,
+   run this gate again, and only then write the PR. No PR is opened on a contradiction.
+
+Then the **default path**. Name the call the task describes; make it the way a caller
+that changed nothing makes it — no new argument, no new flag, no new option — drive it
+**twice** under `veris run`, and count what the twin stored across both drives. A
+mechanism that does not engage there is not done. That does not go under *limitations
+and risks*: it is not a finding, it is the task unfinished. One run shipped the right
+mechanism behind a parameter no caller passes, measured that exact consequence itself,
+filed it under limitations, and left behaviour identical to changing nothing.
+
+Both go in the PR body: the falsifier per measurement with the run that drove it, and
+the default-path drive with its counts.
 
 ## The PR
 
@@ -216,14 +254,18 @@ the same description locally as `.veris/evidence/PR-<flow>.md` and report that n
 was opened; do not create a repository or remote implicitly.
 The description has three sections, in the shape of [../veris-reference/evidence.md](../veris-reference/evidence.md):
 
-- *What I verified, and how*: each claim, the probe that answered it, the receipt line.
+- *What I verified, and how*: each claim, the probe that answered it, the receipt of
+  the green run pasted, and the default-path drive with its counts.
 - *What I am assuming rather than verifying*, and why that is acceptable.
 - *Limitations and risks*.
 
 Every task premise that measured false is its own line: the premise, the probe, the
 answer. Never restate such a premise as fact later in the body.
 
-Paste the sandbox id. Ids stop resolving once the sandbox is deleted. So before
+Paste the sandbox id, the receipt, and the plugin version: the `version` in this
+installation's `.claude-plugin/plugin.json`, two directories above the skill file you
+are reading. The gates change between versions, so a report that does not name one
+cannot be read beside another. Ids stop resolving once the sandbox is deleted. So before
 `veris down`, save the rows and trace entries the body cites to
 `.veris/evidence/<flow>.json`; `--json` on `veris sandbox data get` and
 `veris sandbox trace` writes them. Name that path beside the ids. Whether that file is
