@@ -6,6 +6,9 @@ disable-model-invocation: true
 ---
 
 Wire this repository to Veris, once. Re-running skips what is already done.
+Setup owns transport selection and configuration. Save the chosen path's preparation,
+execution, evidence and cleanup steps in **How to run** so `build` and `fix` can reuse
+them without selecting a transport again.
 
 Setup delivers both a proven application run and the handoff that `build` and `fix`
 consume: `.veris/twin.yaml`, `.veris/NOTES.md` and `.veris/setup.json` (a verified
@@ -454,19 +457,28 @@ identity, so *not measured* is the expected entry for both at setup. `build` or 
 fills them in on first use, with the reads in
 [../veris-reference/twin.md](../veris-reference/twin.md).
 
-- **How to run.** The full `veris run` line that produced the receipt, mounts and
-  variables included. Real paths, not placeholders. For a mount from outside the
-  repository, say what is in it and how to make one. Prove dependency-cache
-  preparation from an empty directory, using the same cache mount as the run;
-  an offline build cannot populate an empty cache. Say how the app gets its
-  credentials, and which image was used and how it is built. In the direct tier there
-  is no `veris run` line. Record how the variables are set and from what, and record
-  the trace entry that proved the first real call;
-  [../veris-reference/direct.md](../veris-reference/direct.md) calls it *The trust
-  anchor*. On the hosted tier, record the provider's actual run and teardown commands,
-  the watermark read and the same trace entry, as
-  [../veris-reference/hosted.md](../veris-reference/hosted.md#what-goes-in-the-files)
-  shows.
+- **How to run.** Save the chosen path's working preparation/start/reconnect steps,
+  required services, source/build command and application test command, including how
+  to select an affected test. Record how to check expiry and refresh the current
+  sandbox binding, URLs or credentials when needed; setup's old ids are observations.
+  Record how that execution's receipt or trace is collected, including before/after
+  reads where the selected path needs them. Name the lifecycle owner and its cleanup
+  or change-handoff steps. Link that path's reference for interpreting receipts,
+  exit codes or connection failures.
+  For container execution, save the full verified `veris run` line with its receipt
+  file, mounts and variables. Use real paths. For an external mount, say what is in
+  it and how to create it. Prove dependency-cache preparation from an empty directory
+  using the same cache mount; an offline build cannot populate an empty cache. Record
+  the image and build command, and how the app gets credentials without saving secrets.
+  For direct execution, save the variable initialization and application command,
+  plus the per-service watermark and after-run trace reads in
+  [direct.md](../veris-reference/direct.md#what-the-direct-tier-is-not).
+  For hosted execution, save the provider's preparation/run/teardown commands and
+  evidence procedure from [hosted.md](../veris-reference/hosted.md#what-goes-in-the-files).
+  For a plugin-managed session, save the application command, provider tools and
+  evidence/handoff procedure from [session.md](../veris-reference/session.md).
+  Keep the existing evidence that established this recipe; recording it needs no
+  additional application run.
 - **What the twin cannot represent.** Hostnames without a twin, data-plane twins,
   anything the smoke could not exercise.
 - **Identity and matching.** Which fields the vendor treats as the same record, and

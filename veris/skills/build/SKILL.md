@@ -17,19 +17,21 @@ affected application flow tested against the twin.
 
 ## Use the working setup
 
-Read `.veris/NOTES.md` for the saved application command and useful observations.
-Reuse them unless the relevant code, service configuration or evidence has changed.
-Run `setup` when the needed wiring or handoff is missing or broken.
+Read relevant findings in `.veris/NOTES.md` and reuse those whose conditions still
+apply. Follow **How to run** for preparation, the application command, evidence
+collection and cleanup. Setup owns connection selection and configuration.
+Run `setup` only when a needed handoff step is missing, the connection is broken,
+or the change invalidates its wiring, such as adding a vendor service or hostname.
+An application assertion failure alone is not a reason to redo setup.
 
-In a plugin-managed session, follow
-[session.md](../veris-reference/session.md): use the verified remote repository,
-attached twin and provider tools. Reuse a binding established in this live session;
-revalidate after reconnect or a relevant identity change. Provider execution replaces
-the CLI commands below. Leave plugin-owned resources alive.
+In a plugin-managed session, follow [session.md](../veris-reference/session.md)
+for the live repository/twin binding and provider tools. Reuse a binding already
+verified in this session; revalidate after reconnect or a relevant identity change.
+Saved metadata alone is not a live binding. Leave plugin-owned resources alive.
 
-For CLI-owned work, use `.veris/twin.yaml` and the saved command. Reuse this task's
-sandbox; `veris up` creates one if needed. Budget its TTL when creating it; an existing
-sandbox cannot be extended. Check expiry before work that may outlast it.
+Use the saved start/reconnect steps only when needed, reuse this task's active
+sandbox, and check its expiry before long work. Refresh expiring URLs or credentials
+through the saved preparation steps.
 
 An unavailable twin blocks verification that needs it. Report the concrete error;
 independent code work and local checks can continue. Retry only when the error suggests
@@ -74,27 +76,22 @@ a search for callers of the changed symbol can miss them.
 
 ## Test the changed application
 
-Prefer the repository's affected integration test, run with the command from
-**How to run**. For a CLI container, its shape is:
+Run the affected application test or flow using **How to run**'s saved execution
+and evidence steps. Prefer the repository's existing integration test. Select the
+affected test or flow as documented while preserving the configured environment
+and connection settings.
 
-```
-veris run --patch-bundled-cas --require-service <twin> <saved mounts and variables> --receipt <file> -- <affected test or flow>
-```
-
-Use the edited source or a build produced from it. A wrong mount can execute the
-image's old baked code; use the verified mount/build recipe. For hosted execution,
-use the saved [provider command](../veris-reference/hosted.md). Keep production vendor
-hostnames and credentials; interception belongs outside the application. For an app
-wired without the proxy, use its existing production URL variables as described in
-[direct.md](../veris-reference/direct.md). Never weaken TLS or change a vendor call
-just to make a test pass.
+Use the edited source or a build produced from it, following the saved source/build
+recipe. A wrong mount can execute the image's old baked code. Preserve the configured
+routing and TLS trust; do not change a production vendor call to make a test pass.
 
 The test must assert the expected response or persisted outcome, and its receipt or
 attributed trace must show the relevant application traffic reached the twin. Existing
 assertions that read the outcome are sufficient; do not repeat them with manual data
 reads. If the result is unclear, inspect the relevant rows by returned ids or the
-trace for this run. See [run.md](../veris-reference/run.md) for receipt/exit semantics
-and [webhooks.md](../veris-reference/webhooks.md) when a callback is part of the task.
+trace for this run using the saved evidence procedure. Interpret receipt/exit results
+with the reference for that configured path; use
+[webhooks.md](../veris-reference/webhooks.md) when a callback is part of the task.
 
 An existing execution counts if it tested the final relevant code/build and conditions.
 One suite can cover several requirements; a retry case can make multiple calls in one
@@ -124,6 +121,6 @@ Save cited redacted evidence before cleanup, honoring `.veris/setup.json`'s exis
 `artifact_policy`. Add new reusable service or SDK findings to `.veris/NOTES.md`,
 with their relevant conditions and existing redacted evidence reference. Correct
 stale entries without duplicating the task report. Update **How to run** if you
-repaired it. Use `veris down` only for a CLI-owned task sandbox; hosted work follows
-its provider cleanup, and plugin sessions use [change sync](../veris-reference/session.md#hand-back-code-and-evidence).
-Do not promote from this command. Ask before sending repository code anywhere new.
+repaired it. Follow the saved cleanup or change-handoff steps for the recorded
+lifecycle owner; leave plugin-owned resources alive. Do not promote from this command.
+Ask before sending repository code anywhere new.
