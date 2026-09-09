@@ -9,6 +9,7 @@ sh tests/ledger_repository.sh
 sh tests/ledger_gates.sh
 sh tests/record_argv.sh
 sh tests/skill_version_claims.sh
+sh tests/hook_directives.sh
 sh tests/opencode_plugin.sh
 ```
 
@@ -19,6 +20,12 @@ rather than an account of it: an `ENCODED` row without a `falsifier` and the
 `--base`), and a ledger whose every row carries one `written_at`. Each case
 names the run whose failure it closes. Point `LEDGER_SH` and `RECORD_SH` at
 other copies to check them.
+
+`hook_directives.sh` holds the `UserPromptSubmit` hook to the shape the plugin
+loader reads. That hook fails silently -- malformed JSON, a top-level
+`additionalContext`, a missing `hookEventName` all read as no context, with no
+error anywhere -- so the file checks the shape, that all four imperatives are
+still there, and that the injected text stays under twelve lines.
 
 `skill_version_claims.sh` denies three ways a skill document freezes a fact about a
 moving release: a package specifier pinned to a version or a `<version>` placeholder

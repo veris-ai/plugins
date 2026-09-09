@@ -102,6 +102,30 @@ Any other agent, through the `skills` CLI:
 npx skills add veris-ai/plugins --all
 ```
 
+### The sentence in your prompt
+
+A few instructions decide whether a change is proven or only described, and they
+carry force in proportion to how close they sit to the task. Measured across
+matched runs of one task, the same directive changed the work 3 times out of 3
+when it was a line in the prompt, 2 out of 6 from a hook, and 0 out of 4 from
+skill prose that was demonstrably read in 4 of those runs. The skills are a good
+channel for a procedure and a poor one for an imperative.
+
+So the plugin ships those imperatives outside the skill text. In Claude Code,
+installing it installs a `UserPromptSubmit` hook (`veris/hooks/`) that puts four
+short lines on each turn: make a named failure happen against the twin before
+the design is fixed, drive the default path, claim no red and no green without
+the receipt, and give every premise you measured false its own line in the
+change description. It is conditional on a twin being in play, and five lines
+long, because it rides every prompt of every session. Nothing else in the plugin
+depends on it; deleting `veris/hooks/hooks.json` turns it off.
+
+Your own prompt is the stronger channel. Paste this beside the ticket:
+
+```
+Before you fix this: make the failure happen against the twin and drive the current code through it; then drive the call this ticket names from a caller you did not change, twice, and count what the twin stored.
+```
+
 ### The credential
 
 In a plugin-managed OpenCode session, use the provider host variables described

@@ -66,6 +66,7 @@ jobs:
           sh tests/ledger_repository.sh
           sh tests/ledger_gates.sh
           sh tests/record_argv.sh
+          sh tests/hook_directives.sh
           sh tests/opencode_plugin.sh
 
       - name: Publish the packed artifact

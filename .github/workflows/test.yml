@@ -18,4 +18,5 @@ jobs:
       - run: sh tests/ledger_gates.sh
       - run: sh tests/record_argv.sh
       - run: sh tests/skill_version_claims.sh
+      - run: sh tests/hook_directives.sh
       - run: sh tests/opencode_plugin.sh

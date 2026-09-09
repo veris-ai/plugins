@@ -1,0 +1,16 @@
+{
+  "description": "Puts the four imperatives whose absence loses a graded outcome on the turn itself, where they carry force, instead of in skill prose, where they do not.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/veris-directives.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
