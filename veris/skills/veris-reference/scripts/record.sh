@@ -205,7 +205,7 @@ if [ "$MODE" = block ]; then
     (if (.flags | length) > 0 then "  flags         \(.flags | join(", "))" else empty end),
     (if (.worktree_at_base | length) > 0 then "  at base       the worktree already carried changes (recorded)" else empty end),
     "",
-    (.runs[] | "  \(.phase | ascii_upcase)  \(.verdict)\n    command     \(.command)\n    expect      \(.expect)\n    exit        \(.exit)\(if .first_edit_seen then "\n    note        production source had changed before this run" else "" end)")
+    (.runs[] | "  \(.phase | ascii_upcase)  \(.verdict)\n    at          \(.at // "unrecorded")\n    command     \(.command)\n    expect      \(.expect)\n    exit        \(.exit)\(if .first_edit_seen then "\n    note        production source had changed before this run" else "" end)")
   ' "$RECORD"
   exit 0
 fi
@@ -315,10 +315,14 @@ if [ "$met" = true ]; then verdict="$(printf '%s' "$MODE" | tr a-z A-Z)_EXPECTAT
 else verdict="$(printf '%s' "$MODE" | tr a-z A-Z)_EXPECTATION_NOT_MET"; fi
 
 tmp="$(mktemp)" || die "cannot create a temporary file"
+# `at` is the time this run finished, in UTC. A ledger row's run_ref points back
+# at one of these, so a reader can put the run and the row that cites it in one
+# order instead of taking the order from a sentence.
 jq --arg phase "$MODE" --arg cmd "$CMD" --arg expect "$EXPECT" \
    --arg detail "$detail" --arg verdict "$verdict" \
+   --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
    --argjson code "$CODE" --argjson fe "$first_edit_seen" \
-   '.runs += [{phase: $phase, command: $cmd, expect: $expect, exit: $code,
+   '.runs += [{phase: $phase, at: $at, command: $cmd, expect: $expect, exit: $code,
                detail: $detail, verdict: $verdict, first_edit_seen: $fe}]' \
    "$RECORD" > "$tmp" && mv "$tmp" "$RECORD"
 rm -f "$OUT"

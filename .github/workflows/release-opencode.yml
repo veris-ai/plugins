@@ -64,6 +64,7 @@ jobs:
           VERIS_TEST_TARBALL: ${{ github.workspace }}/veris/.opencode-plugin/${{ steps.pack.outputs.tarball }}
         run: |
           sh tests/ledger_repository.sh
+          sh tests/ledger_gates.sh
           sh tests/record_argv.sh
           sh tests/opencode_plugin.sh
 

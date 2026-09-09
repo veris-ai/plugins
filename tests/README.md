@@ -6,10 +6,19 @@ Run the repository checks with Node 20+ and `git`, `sh`, `jq`, `tar`, npm,
 ```sh
 npm ci --prefix veris/.opencode-plugin
 sh tests/ledger_repository.sh
+sh tests/ledger_gates.sh
 sh tests/record_argv.sh
 sh tests/skill_version_claims.sh
 sh tests/opencode_plugin.sh
 ```
+
+`ledger_gates.sh` covers the gates that keep the ledger a record of the task
+rather than an account of it: an `ENCODED` row without a `falsifier` and the
+`run_ref` of the run that drove it, a ledger with no `DEFAULT_PATH` row, a
+`--against-diff` with no `record.json` pinning the base (and the removed
+`--base`), and a ledger whose every row carries one `written_at`. Each case
+names the run whose failure it closes. Point `LEDGER_SH` and `RECORD_SH` at
+other copies to check them.
 
 `skill_version_claims.sh` denies three ways a skill document freezes a fact about a
 moving release: a package specifier pinned to a version or a `<version>` placeholder
