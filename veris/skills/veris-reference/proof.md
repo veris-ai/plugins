@@ -39,8 +39,9 @@ scenarios can run in one execution.
 | Distinct operations stay distinct | Vary the input that distinguishes two valid operations and assert both results exist |
 | A retryable failure can recover | Inject the relevant failure, retry through the actual application path, and assert eventual success |
 
-For a key derived from multiple inputs, target plausible collisions or omissions in
-the changed derivation. Read a schema rule when a design depends on uniqueness; a
+For identities the change computes, copies or reuses, check that they distinguish
+valid operations in the relevant scope. Target plausible collisions or omitted
+inputs in the affected test. Read a schema rule when a design depends on uniqueness; a
 value the vendor accepts for distinct records is not an identity by itself. Do not
 expand an unrelated task into a per-field experiment. An unchanged caller and a new
 optional caller have different promised behavior: test the one the task specifies,

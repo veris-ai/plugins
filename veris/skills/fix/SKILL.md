@@ -12,6 +12,8 @@ specific unanswered requirement warrants it.
 
 For a change with no meaningful vendor interaction, skip Veris setup and twin work;
 use the repository's validation and state that scope in the result.
+A local queue or cache defect that changes vendor-facing behavior still needs the
+affected application flow tested against the twin.
 
 ## Use the working setup
 
@@ -34,6 +36,9 @@ independent code work and local checks can continue. Retry only when the error s
 a recoverable condition or something changed. Do not report unrun checks as passed.
 
 ## Diagnose and implement
+
+Keep reads and tool output focused. Save large logs or responses to a file and
+inspect relevant excerpts instead of loading them repeatedly into the conversation.
 
 Read the issue (`gh issue view <ref> --json title,body,comments` for GitHub) or the
 supplied prompt, then inspect the affected code. Identify the reported outcome and
@@ -65,6 +70,8 @@ distinct-operation and recovery behavior in that test; the focused recipes are i
 [proof.md](../veris-reference/proof.md#retry-and-identity-changes). Exercise the caller
 the task promises to fix, including relevant dispatch branches. A test-only option
 that bypasses the real caller does not establish that caller's behavior.
+Inspect relevant sibling branches that implement the same behavior inline;
+a search for callers of the changed symbol can miss them.
 
 ## Test the changed application
 
@@ -115,7 +122,9 @@ implicitly. Use available package/version metadata if useful for debugging; it i
 not a separate completion requirement.
 
 Save cited redacted evidence before cleanup, honoring `.veris/setup.json`'s existing
-`artifact_policy`. Update **How to run** if you repaired it. Use `veris down` only for
-a CLI-owned task sandbox; hosted work follows its provider cleanup, and plugin sessions
-use [change sync](../veris-reference/session.md#hand-back-code-and-evidence).
+`artifact_policy`. Add new reusable service or SDK findings to `.veris/NOTES.md`,
+with their relevant conditions and existing redacted evidence reference. Correct
+stale entries without duplicating the task report. Update **How to run** if you
+repaired it. Use `veris down` only for a CLI-owned task sandbox; hosted work follows
+its provider cleanup, and plugin sessions use [change sync](../veris-reference/session.md#hand-back-code-and-evidence).
 Do not promote from this command. Ask before sending repository code anywhere new.
