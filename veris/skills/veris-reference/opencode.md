@@ -109,6 +109,12 @@ exists), or use host service metadata. Do not generate a vendor request just to
 populate the list. An unknown-service error lists the available names. Data-plane
 services and their connection settings require service metadata.
 
+The control plane is the `veris` CLI. Nothing in `setup`, `build` or `fix`
+reaches it through MCP, and no plugin in this repository registers an MCP server.
+What follows describes a provider session in which the CLI is not installed and
+the host has chosen to configure one itself: read it as a fallback for service
+metadata in that session, never as a way to seed, read schema or arm a fault.
+
 Inspect the actual available MCP tools and their schemas. Daytona fills missing
 permissions with create/delete denied and reset/promote asking; existing user
 values win, including a scalar global permission. Leave these settings intact.
