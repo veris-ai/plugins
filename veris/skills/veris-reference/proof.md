@@ -1,97 +1,72 @@
-# What closes a gate: the layer that owns the claim
+# Evidence from normal development
 
-The first section is read on every task. The rest only when Gate 2 binds.
+Use this reference when interpreting evidence, investigating retry/identity behavior,
+or explicitly collecting an audit record. Ordinary `build` and `fix` tasks do not
+require a ledger or a separate proof phase.
 
-## The three layers
+## What a test establishes
 
-A claim belongs to exactly one, and each has one admissible proof.
+An application test against the twin can establish several requirements together.
+Use its assertions to check the expected response or persisted outcome and its receipt
+or attributed trace to confirm the relevant application traffic reached the twin.
+A receipt alone establishes traffic, not correctness. A mock checks local behavior,
+not the vendor boundary; a direct twin probe checks the twin, not the application.
 
-| layer | asserts | closed by | never by |
-|---|---|---|---|
-| `REPOSITORY` | application behaviour and state | the repository's own code driven end to end, asserting on **state read back** | a call-shape assertion against a stub |
-| `TWIN` | **what this twin produced in this sandbox** | a row from `veris sandbox data get <twin> <table>` or an exchange from `veris sandbox trace`, with ids **and a saved excerpt** | any mock; a stubbed provider; another sandbox |
-| `VENDOR_CONTRACT` | what the vendor's documentation promises | the page, quoted, with its URL, or *silent*, recorded as silent | another provider's behaviour; memory |
+Reuse an execution that covered the final relevant source/build and conditions.
+If the test already reads and asserts the resulting state, another manual read adds
+no requirement. Inspect data or traces when needed to establish an unasserted outcome
+or diagnose failure. Read only this run's evidence, using returned ids or trace
+watermarks; provider sessions follow [session.md](session.md#evidence-from-this-run).
+Tests that clean up their rows can assert before cleanup or retain the relevant trace.
 
-That the traffic arrived at all is not a ledger row: it is the receipt, and a
-gate already refuses to close without it.
+Keep claims within their evidence: a repository test establishes application behavior,
+a twin observation establishes that sandbox's behavior, and vendor documentation states
+a vendor contract. A twin is not the real vendor, and silence in documentation is not
+a guarantee. This distinction does not require separate rows for every statement.
+If evidence contradicts the implementation, resolve the defect; do not relabel it as
+an assumption. If the twin cannot represent a relevant condition, verify the applicable
+application behavior and state what remains unverified.
 
-**The twin is not the vendor.** It is strong evidence about the vendor, not the
-same thing. Never write "I measured" unqualified for something a twin produced.
+## Retry and identity changes
 
-**Documentation corroborates, contradicts, or is silent.** Silence is not
-agreement: a design that needs an unpromised behaviour rests on a premise. Name it.
+Use these cases when the task changes retry, deduplication, identity or replay behavior.
+Put the applicable assertions in the affected application test; several calls or
+scenarios can run in one execution.
 
-**One row, one layer.** *"A retry does not charge twice"* is not one claim. It
-is a claim about the repository's code, one about what this twin stored, and one
-about what the vendor documents. Proving one and asserting all three is how a
-mock becomes a vendor proof.
+| Behavior | Useful case |
+|---|---|
+| Equivalent retries do not duplicate a side effect | Retry the same logical operation and assert its final state/count |
+| Distinct operations stay distinct | Vary the input that distinguishes two valid operations and assert both results exist |
+| A retryable failure can recover | Inject the relevant failure, retry through the actual application path, and assert eventual success |
 
-**Mocks are branch coverage**, never the evidence a `TWIN` claim closes on.
+For identities the change computes, copies or reuses, check that they distinguish
+valid operations in the relevant scope. Target plausible collisions or omitted
+inputs in the affected test. Read a schema rule when a design depends on uniqueness; a
+value the vendor accepts for distinct records is not an identity by itself. Do not
+expand an unrelated task into a per-field experiment. An unchanged caller and a new
+optional caller have different promised behavior: test the one the task specifies,
+plus the compatibility behavior the change must preserve.
 
-**When the twin cannot represent the case**, the claim is not downgraded to fit:
-it is a `REPOSITORY` claim with repository proof, or it is `UNRESOLVED`, and
-that is the finding.
+## Optional audit helpers
 
-## The ledger, and the four dispositions
+Use these only when the engineer requests a detailed audit or an investigation needs
+source history and structured measurements. They remain available from
+`veris-reference/scripts/`; `setup` step 9 explains optional staging into `.veris/bin/`.
 
-This section is `fix`'s: the ledger is what its Gate 4 checks. A `build` has no
-ledger, no task id and no Gate 4. Its measurements go in the PR body, and the
-dispositions below are how it names each one there.
+- `record.sh base --task <id> --paths <paths>` pins the declared source. It needs an
+  existing Git commit. Use it before a reproduction when that history is needed.
+- `record.sh red/green --task <id> --expect <mode> -- <command>` records the actual
+  execution, timestamp and expectation. `record.sh block --task <id>` renders it.
+  It refuses a red run if the pinned source or build output has moved; do not
+  reconstruct a pre-edit history after the fact.
+- `ledger.sh init --task <id>` describes the measurement-row contract;
+  `ledger.sh check --task <id>` validates rows and retained snapshots.
+  `ledger.sh --against-diff --task <id>` uses the recorded base, or an explicitly
+  supplied full starting SHA via `--base`. It checks that encoded rows name changed
+  files. It cannot determine whether the code obeys a measurement.
 
-The scripts live in `.veris/bin/` once `setup` step 9 has run.
-`sh .veris/bin/ledger.sh init --task <id>` prints the field contract;
-`sh .veris/bin/ledger.sh check --task <id>` validates it;
-`sh .veris/bin/ledger.sh --against-diff --task <id>` closes Gate 4 and exits 2 on
-a gate failure. `--task` may be omitted when `VERIS_TASK_ID` is set. The ledger
-lives under `.veris/tasks/<task-id>/`. Every measurement ends as one of:
-
-- **`ENCODED`**: name the changed file and the symbol or decision honouring it.
-- **`NON_LOAD_BEARING`**: carries a **counterfactual**, the different value this
-  measurement could have taken *without changing the promised outcome*. If you
-  cannot write one, it is load-bearing and this is not the row.
-- **`CONTRADICTED`**: the change does what the measurement says is wrong.
-  **A gate failure. Change the code, never the report.**
-- **`UNRESOLVED`**: never settled. A gate failure.
-
-Ids stop resolving when the sandbox is deleted, so a `TWIN` row saves the redacted
-excerpt under `.veris/tasks/<task-id>/snapshots/`. A `build` has no task id, so it
-saves the same excerpts to `.veris/evidence/<flow>.json`. Save identifiers, paths,
-commands and excerpts only, never credentials; the check scans for secret shapes.
-
-The check confirms the ledger is complete, typed and locatable. It **cannot**
-tell whether the code obeys a measurement, or whether a sentence smuggles in a
-second layer. A person reads those.
-
-## The identity, when Gate 2 binds
-
-An identity is a function of what the caller knows. **Name its inputs.** If two
-inputs the caller must keep apart map to the same value, that is a collision, and
-**dropping an input** is one way to cause one. Joining, normalizing, truncating and
-hashing collide; so does projection, and copying discharges nothing.
-
-For retry, idempotency, deduplication or replay, three properties, each proven at
-its own layer:
-
-| invariant | the property | usually owned by |
-|---|---|---|
-| `DUPLICATE_SAFETY` | equivalent retries produce **at most one** external side effect | `TWIN`: count the rows stored |
-| `NON_INTERFERENCE` | distinct valid operations are not collapsed, blocked, or made to share an authorization | often `REPOSITORY`: the application's own accounting, which the vendor never sees |
-| `LIVENESS` | after a retryable failure the operation **can eventually succeed**: the row *exists*, not merely that no duplicate does | `TWIN`, through the shipping path |
-
-Safety alone reads as success while an operation is permanently stuck. State all
-three, or say which does not apply and why.
-
-## The route and branch matrix
-
-A caller grep cannot find a branch that duplicates the behaviour instead of
-calling it: that branch is defined by *not* referencing what you changed. From
-the changed lines, walk to the files that dispatch to them:
-
-| entry point | dispatcher | predicate + constant | values | driven? |
-|---|---|---|---|---|
-| | | | | |
-
-Every predicate selecting behaviour for the same request gets a row, with the
-value your green run carried. If you cannot say which side of a predicate your run
-drove, that predicate is not covered. **An undriven branch that can reach the same
-defect is a gate failure; one that cannot is a limitation, named.**
+The ledger's dispositions are `ENCODED`, `NON_LOAD_BEARING` (with a counterfactual),
+`CONTRADICTED` and `UNRESOLVED`. The last two fail its diff check. Twin snapshots live
+under `.veris/tasks/<id>/snapshots/`, with hashes so the check can verify them after
+the sandbox is gone. Save redacted excerpts and identifiers, never credentials.
+Follow the existing artifact policy; these helpers do not require committing a ledger.

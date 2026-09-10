@@ -165,7 +165,7 @@ a second box.
    the twin received from this run, `sbx.veris.assertTouched(service, match?)`
    when the run must have reached a twin, and the CLI's
    `veris sandbox trace --service <twin> --since <watermark>` for tiers and
-   bodies, which is what the ledger snapshots.
+   bodies when the assertion or diagnosis needs them.
 7. **Delete the box** with `sbx.delete()` when the task is done; the attached
    twin is left running, and `veris down` takes it.
 
@@ -180,7 +180,7 @@ Read [the shared receipt rule](hosted.md#the-receipt) from the project root
 before and after the test, including after a failed command. `baseline` and
 `receipt` give this run's twin traffic through the SDK; `veris sandbox trace
 --service <twin> --since <watermark>` gives the same from the CLI with tiers
-and bodies, and is what the ledger snapshots.
+and bodies when the assertion or diagnosis needs them.
 
 ## Proxy and trust
 
@@ -254,7 +254,7 @@ leaves an attached twin, which belongs to the task.
 
 - The box and the twin have separate lifetimes; neither extends the other.
   A 120-minute twin fits a setup, a red, a fix and a green, but not with much
-  to spare: snapshot every exchange the ledger cites as it happens.
+  to spare: save cited evidence while it is still available.
 - `receiptSince()` counts what the twin logged since the baseline, across
   everything that reached it; the CLI's trace with `--tier handler` is what
   separates the application's calls from control traffic.

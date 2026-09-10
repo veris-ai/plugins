@@ -9,7 +9,7 @@ and the evidence to tell them apart is already recorded.
 
 | signal | what it says |
 |---|---|
-| the receipt from `veris run` | completed requests per twin, two counts: what the proxy saw leave the app (`the sandbox received N request(s)`) and what the sandbox recorded (`the sandbox recorded N request(s) since the watermark`), then the verdict line (`✓ required <twin> ≥1: saw N   ✓ ledgers agree (N = N)`; `! ledgers differ` when they do not). A requirement passes when either count meets it; a `✓` one side alone decided says which, `(engine; …)` or `(sandbox ledger; not proxied)`. A green suite with an empty receipt is not a pass; a red suite whose receipt shows the traffic arrived is a real integration finding. Your own `veris sandbox` reads never count: the counts are taken since a watermark the run sets, and any `/veris/*` reads that fall inside the run appear on a separate `control-plane (/veris/*)` line marked not counted. The suite's own setup traffic at a vendor hostname does count. `--receipt <file>` keeps it as JSON |
+| the receipt from `veris run` | completed requests per twin, two counts: what the proxy saw leave the app (`the sandbox received N request(s)`) and what the sandbox recorded (`the sandbox recorded N request(s) since the watermark`), then the verdict line (`✓ required <twin> ≥1: saw N   ✓ ledgers agree (N = N)`; `! ledgers differ` when they do not). A requirement passes when either count meets it; a `✓` one side alone decided says which, `(engine; …)` or `(sandbox ledger; not proxied)`. An empty receipt does not verify a vendor-reaching change; a red suite whose receipt shows the traffic arrived is a real integration finding. Your own `veris sandbox` reads never count: the counts are taken since a watermark the run sets, and any `/veris/*` reads that fall inside the run appear on a separate `control-plane (/veris/*)` line marked not counted. The suite's own setup traffic at a vendor hostname does count. `--receipt <file>` keeps it as JSON |
 | `veris sandbox trace` | the wire trace of every request and response. The failing exchange can be replayed with curl before the sandbox, the proxy or the code is blamed. Ask for the tier the evidence is on |
 | `veris sandbox data get <twin> <table>` | what the vendor stored: the row a create produced, the replay it recorded, the state a callback left |
 
@@ -55,8 +55,8 @@ you are proving:
 `control` is your own seeding and read-back. It is recorded like anything else, so an
 unfiltered page after a heavy seed can be mostly your own writes, which reads as "the
 application sent nothing" when it sent plenty. `handler` is not the universal
-read-back either: a gate that reproduces a failure is usually looking at `fault`, and
-a gate proving recovery usually needs both.
+read-back either: a test that reproduces a failure is usually looking at `fault`, and
+a test of recovery usually needs both.
 
 ## An SDK refuses the proxy's certificate
 

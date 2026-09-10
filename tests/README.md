@@ -1,6 +1,6 @@
 # Validation
 
-Run the repository checks with Node 20+ and `git`, `sh`, `jq`, `tar`, npm,
+Run the repository checks with Node 20+, Python 3 and `git`, `sh`, `jq`, `tar`, npm,
 `sha256sum` and `shasum` (both checksum branches are exercised):
 
 ```sh
@@ -9,7 +9,13 @@ sh tests/ledger_repository.sh
 sh tests/record_argv.sh
 sh tests/skill_version_claims.sh
 sh tests/opencode_plugin.sh
+python3 -m unittest discover -s tests -v
 ```
+
+`test_setup_handoff.py` checks the required handoff without executing a build.
+A normal setup works without Git or optional record/ledger helpers; missing
+required files and invalid metadata still fail. Optional remote helper staging
+retains hash verification in the OpenCode tests.
 
 `skill_version_claims.sh` denies three ways a skill document freezes a fact about a
 moving release: a package specifier pinned to a version or a `<version>` placeholder
@@ -53,10 +59,10 @@ newer releases; do not treat a source checkout as a published package.
 
 Live acceptance requires separate sessions with each provider and an attached
 environment covering the fixture's vendor. Run setup; build a vendor-reaching
-feature; reproduce and fix a meaningful failure with source pinned before red.
+feature; investigate and fix a meaningful application failure.
 Capture per-service receipt baselines and raw traces/state, prove a diagnostic
-probe cannot satisfy an application gate, and recheck identity after reconnect.
-Exercise helper staging and edits with a GPT model that hides write/edit. Keep
+probe cannot satisfy application verification, and recheck identity after reconnect.
+Exercise optional helper staging and application edits with a GPT model that hides write/edit. Keep
 tests and repository/twin operations in the parent; do not start task subagents
 with the inspected providers. Finish with gitSync and verify code and retained
 evidence on local `opencode/N`.

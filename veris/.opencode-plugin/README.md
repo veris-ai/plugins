@@ -2,8 +2,9 @@
 
 The canonical [Veris skills](https://github.com/veris-ai/plugins/tree/main/veris/skills)
 for OpenCode: `/veris:setup`, `/veris:build <request>`, `/veris:fix <request>`.
-Setup proves the application's vendor traffic reaches a twin; build measures vendor
-claims before designing; fix reproduces a failure before editing and proves it closed.
+Setup verifies the application's vendor traffic reaches a twin and saves a working
+command. Build and fix use the twin for relevant service questions and reuse
+application tests to verify the change, without a separate proof phase.
 
 ## Install
 
@@ -30,7 +31,7 @@ for credentials, E2B's optional host MCP configuration, trust and release limita
 The reasoning loop runs locally and the sandbox plugin runs application tools
 remotely. The skills' `verisSkill` tool reads entrypoints, references and helper
 scripts from this installed package on the host, so a remote `read` never needs
-access to a local npm-cache path. Setup copies helper content through remote write
+access to a local npm-cache path. When an investigation needs an optional helper, stage it through remote write
 or a hash-verified remote bash fallback when model filtering hides write/edit.
 Native `apply_patch` operates on the host and is not a remote editing fallback.
 `veris/skills` remains the only maintained copy.
@@ -39,8 +40,8 @@ user-defined commands. Commands are engineer-invoked; no automatic skill paths
 are registered.
 
 `setup` verifies the active session before CLI/Docker checks. `build` and `fix`
-revalidate the attached twin and source repository, run application commands with
-existing interception, and retain the same evidence gates. Receipts are cumulative
+reuse the verified binding within that live session, revalidate after reconnect or
+a relevant identity change, and run application commands with existing interception. Receipts are cumulative
 and truncated: use before/after evidence and application response/state assertions,
 and report missing attribution rather than claiming a run was observed. The plugin
 owns cleanup. Finish with `gitSync`; ignored evidence needs an explicit handoff.
@@ -74,8 +75,10 @@ configs if present: npm does not migrate a renamed package automatically, and th
 two skills packages should not load together. The prior source name `opencode-veris`
 was also unpublished and should be replaced if configured.
 
-As checked on 2026-09-04, the new npm name is not published. The intended first
-version is **0.7.3**, matching the other plugin manifests. Its initial publication
+As checked on 2026-09-04, the new npm name is not published. The release workflow
+takes the version from `veris/.claude-plugin/plugin.json`, so the first publication
+carries whatever that manifest holds on the day; `package.json` here is only the
+placeholder it overwrites. Its initial publication
 and trusted-publisher setup are release prerequisites; this PR does neither and
 does not deprecate or republish the old package.
 

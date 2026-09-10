@@ -1,6 +1,6 @@
 interface:
   display_name: "Veris setup"
-  short_description: "Wire or verify this repository's Veris setup; prove one application run reaches the twins."
+  short_description: "Wire Veris and save a working application command."
   default_prompt: "$setup"
 policy:
   allow_implicit_invocation: true

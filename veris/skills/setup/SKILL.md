@@ -1,16 +1,20 @@
 ---
 name: setup
-description: Wire or verify this repository's Veris execution path - establish session and lifecycle ownership, identify the vendors the code calls, and prove with one application run that its vendor calls reach the twins. Run before build or fix. Run when the engineer names this command.
+description: Wire or repair this repository's Veris execution path, verify an application run, and save the working command for later development. Use for initial setup or changed wiring when the engineer names this command.
 argument-hint: "[service names...]"
 disable-model-invocation: true
 ---
 
 Wire this repository to Veris, once. Re-running skips what is already done.
+Setup owns transport selection and configuration. Save the chosen path's preparation,
+execution, evidence and cleanup steps in **How to run** so `build` and `fix` can reuse
+them without selecting a transport again.
 
 Setup delivers both a proven application run and the handoff that `build` and `fix`
-consume: `.veris/twin.yaml`, `.veris/NOTES.md`, `.veris/setup.json`, and the two staged
-ledger helpers. Track those deliverables before starting. A green run alone does
-not finish setup. Without Git, create the same files and skip only the commits.
+consume: `.veris/twin.yaml`, `.veris/NOTES.md` and `.veris/setup.json` (a verified
+plugin session uses its session metadata instead of `twin.yaml`). Ledger helpers are
+optional. Reuse a successful execution of the exact saved command for the handoff;
+do not repeat it at finish. Without Git, create the same files and skip the commits.
 
 Three rules, always:
 
@@ -46,14 +50,15 @@ Before any local CLI, login or Docker checks, inspect the available plugin tools
 and runtime context. If they indicate that this session already executes inside a
 plugin-managed sandbox, read [../veris-reference/session.md](../veris-reference/session.md),
 verify it live and follow its setup path. It replaces the provisioning/run/cleanup
-steps below, then rejoins the shared notes and helper staging. A plugin with no
+steps below, then rejoins the shared notes and metadata. A plugin with no
 attached twin has an unmet provider prerequisite; do not provision a replacement.
 Missing Docker or an API key alone does not select this path.
 
 ## 1. Check the machine
 
 Check `git rev-parse --verify HEAD` and `git remote -v` as well. Without a Git
-commit, setup and `build` can still run, but `fix` cannot pin its comparison base.
+commit, setup, `build` and `fix` can still run; only the optional source-record helper
+needs a commit to pin its comparison base.
 Without a PR remote, keep a local change description; do not initialize Git or add a
 remote unless the engineer asks. Instructions to commit below apply when Git exists.
 
@@ -452,19 +457,28 @@ identity, so *not measured* is the expected entry for both at setup. `build` or 
 fills them in on first use, with the reads in
 [../veris-reference/twin.md](../veris-reference/twin.md).
 
-- **How to run.** The full `veris run` line that produced the receipt, mounts and
-  variables included. Real paths, not placeholders. For a mount from outside the
-  repository, say what is in it and how to make one. Prove dependency-cache
-  preparation from an empty directory, using the same cache mount as the run;
-  an offline build cannot populate an empty cache. Say how the app gets its
-  credentials, and which image was used and how it is built. In the direct tier there
-  is no `veris run` line. Record how the variables are set and from what, and record
-  the trace entry that proved the first real call;
-  [../veris-reference/direct.md](../veris-reference/direct.md) calls it *The trust
-  anchor*. On the hosted tier, record the provider's actual run and teardown commands,
-  the watermark read and the same trace entry, as
-  [../veris-reference/hosted.md](../veris-reference/hosted.md#what-goes-in-the-files)
-  shows.
+- **How to run.** Save the chosen path's working preparation/start/reconnect steps,
+  required services, source/build command and application test command, including how
+  to select an affected test. Record how to check expiry and refresh the current
+  sandbox binding, URLs or credentials when needed; setup's old ids are observations.
+  Record how that execution's receipt or trace is collected, including before/after
+  reads where the selected path needs them. Name the lifecycle owner and its cleanup
+  or change-handoff steps. Link that path's reference for interpreting receipts,
+  exit codes or connection failures.
+  For container execution, save the full verified `veris run` line with its receipt
+  file, mounts and variables. Use real paths. For an external mount, say what is in
+  it and how to create it. Prove dependency-cache preparation from an empty directory
+  using the same cache mount; an offline build cannot populate an empty cache. Record
+  the image and build command, and how the app gets credentials without saving secrets.
+  For direct execution, save the variable initialization and application command,
+  plus the per-service watermark and after-run trace reads in
+  [direct.md](../veris-reference/direct.md#what-the-direct-tier-is-not).
+  For hosted execution, save the provider's preparation/run/teardown commands and
+  evidence procedure from [hosted.md](../veris-reference/hosted.md#what-goes-in-the-files).
+  For a plugin-managed session, save the application command, provider tools and
+  evidence/handoff procedure from [session.md](../veris-reference/session.md).
+  Keep the existing evidence that established this recipe; recording it needs no
+  additional application run.
 - **What the twin cannot represent.** Hostnames without a twin, data-plane twins,
   anything the smoke could not exercise.
 - **Identity and matching.** Which fields the vendor treats as the same record, and
@@ -498,21 +512,10 @@ that sandbox. Done when `veris baseline get` shows the pin. Every later `veris u
 starts from that state, and this is the only place setup promotes. Write what is in the
 sandbox into `.veris/NOTES.md`: owners, paths, hashes.
 
-## 9. Stage the ledger scripts
+## 9. Save build facts and artifact preferences
 
-`fix` keeps a ledger of what it measured, and checks that ledger against the diff. Two
-scripts that ship in this plugin do the work. Copy `record.sh` and `ledger.sh` from
-this plugin's `veris-reference/scripts/` directory into `.veris/bin/`; derive the
-absolute path of that directory from the path of the file you are reading. In
-OpenCode, use `verisSkill` to read the installed scripts and verify the returned
-SHA-256 after staging. In a provider session use its remote write tool, or the
-[remote bash fallback](../veris-reference/session.md#stage-through-remote-bash)
-when write is hidden; native `apply_patch` edits the host. Re-running
-setup copies them again, which is how a stale copy is repaired.
-
-`record.sh` reads three facts from `.veris/setup.json`, and `ledger.sh` reads none.
-Write that file now, from the repository's own build definition and never from
-memory:
+Keep `.veris/setup.json` in sync with the repository's build definition. Reuse valid
+existing facts; update them when the build or working command changes:
 
 ```json
 {"source_roots": ["api/app"], "build_command": "make build", "build_outputs": ["dist"]}
@@ -530,8 +533,18 @@ An interpreted language often writes no build directory at all, and
 `[]` is the honest answer there. Do not name a build that has nothing to do with the
 code under test.
 
-Append these lines to `.gitignore` if they are not there already. Never ignore
-`.veris/` as a whole: that would take `twin.yaml` and `NOTES.md` with it.
+Preserve an existing `artifact_policy` and the engineer's ignore/retention choices.
+If no preference is recorded, use `pr-body`; do not ask again on each task:
+
+- `pr-body`: a concise verification summary and selected redacted evidence in the
+  change description. Saved task artifacts stay local.
+- `local`: artifacts stay on disk. A remote session needs an explicit export to
+  keep them after its sandbox expires.
+- `commit`: include the selected redacted task artifacts/evidence in Git.
+
+For a new setup using `pr-body` or `local`, append the following missing ignore
+entries. For an existing setup, preserve deliberate choices. Never ignore `.veris/`
+as a whole: that would hide `twin.yaml` and `NOTES.md` too.
 
 ```gitignore
 .veris/bin/
@@ -539,34 +552,37 @@ Append these lines to `.gitignore` if they are not there already. Never ignore
 .veris/evidence/
 ```
 
-Then ask the engineer once where a task's diagnosis, ledger, record and saved evidence
-should go. Record the answer in `.veris/setup.json` as `artifact_policy`. There are
-three answers:
+For `commit`, leave `.veris/bin/` ignored and make the selected task/evidence paths
+trackable. Do not commit task artifacts merely because they are unignored.
 
-- `pr-body`, the default: rendered into the change description.
-- `local`: kept on disk only.
-- `commit`: commit task artifacts under `.veris/tasks/<task-id>/` and build evidence
-  under `.veris/evidence/<flow>.json`. For `pr-body` and `local`, both directories
-  stay ignored; `pr-body` includes selected redacted evidence in the description.
+### Optional audit helpers
 
-Before the engineer chooses `commit`, say plainly that it merges into the default
-branch and accumulates one directory per task. If they choose it anyway, drop the
-`.veris/tasks/` and `.veris/evidence/` lines you just added to `.gitignore`.
+Skip staging unless the engineer requested an audit or the investigation needs the
+[record/ledger helpers](../veris-reference/proof.md#optional-audit-helpers).
+Copy the needed `record.sh`/`ledger.sh` from this installation's
+`veris-reference/scripts/` into `.veris/bin/`. Derive the path from this skill;
+in OpenCode, read the installed script with `verisSkill` and verify its SHA-256 after
+staging. Use the provider's remote write tool or
+[remote bash fallback](../veris-reference/session.md#stage-through-remote-bash),
+not host `apply_patch`. Verify or refresh a staged helper before using it after an
+upgrade; ordinary setup/build/fix does not depend on having a copy.
 
 ## 10. Finish
 
-Run the installed plugin's `veris-reference/scripts/check-setup.py` with Python 3,
+For CLI-owned setup, run the installed plugin's `veris-reference/scripts/check-setup.py` with Python 3,
 using its absolute path and `--project` pointing to this repository. It checks the
-handoff files, build metadata and staged helper versions without executing anything
+handoff files and build metadata without executing anything
 from the project. Repair any reported omissions. If Python 3 is unavailable, check
 the same files and metadata from steps 7 and 9 manually; do not install a runtime
 just for this check. This is a structural check, not a substitute for step 6's
-application proof. Before claiming setup complete, execute the exact saved
-**How to run** commands, including empty-cache preparation, and read back each
-local flow with `veris env get <flow> --json`. If you simplify a successful
-command (for example, remove a TLS wrapper), rerun that saved form. A warm-cache
-run cannot prove cold-cache setup. Mark any untested recipe or missing read-back
-as incomplete in the final handoff instead of saying "no blockers".
+application verification. An earlier successful execution of the exact saved
+**How to run** command satisfies it. Reuse the flow configuration read-back from
+`veris env get <flow> --json` too. Rerun only if the saved recipe changes or a required
+setup condition remains untested; for example, a warm-cache run does not establish a
+claimed cold-cache recipe. State any untested recipe or missing read-back precisely.
+Plugin sessions use the equivalent session metadata and handoff in
+[session.md](../veris-reference/session.md#persist-setup-observations); they do not
+need a CLI configuration file or local checker run.
 
 Review **How to run** as a fresh session: include commands to
 recreate temporary credential files and external caches, with no credential values

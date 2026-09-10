@@ -69,8 +69,9 @@ follow-up audit found **1.18.29**, with the same tool-context/config contracts u
 here. Local OpenCode remains **1.18.25**; inspecting newer API types is not a live
 run on that version.
 The old skills tarball uses `/veris-sim:*` commands and host-file templates.
-The next release is **@veris-ai/veris-opencode 0.7.3**, aligning the name with
-`veris` in Claude and Codex and adding `verisSkill`. That new npm name is not yet
+The next release is **@veris-ai/veris-opencode**, aligning the name with
+`veris` in Claude and Codex and adding `verisSkill`; its version is the one in the
+plugin manifest on the day it is cut. That new npm name is not yet
 published; its first release and trusted-publisher setup remain prerequisites.
 After release, replace the old package entry in all applicable OpenCode configs
 with the new one and restart; do not load both skills packages. Commands use
@@ -107,6 +108,13 @@ For E2B at zero traffic, check a code-inferred HTTP service with
 exists), or use host service metadata. Do not generate a vendor request just to
 populate the list. An unknown-service error lists the available names. Data-plane
 services and their connection settings require service metadata.
+
+CLI-owned work uses the `veris` CLI for control operations. No plugin in this
+repository registers an MCP server; plugin-managed work uses the verified interfaces
+below when the CLI is absent.
+What follows describes a provider session in which the CLI is not installed and
+the host has chosen to configure one itself: read it as a fallback for service
+metadata in that session, never as a way to seed, read schema or arm a fault.
 
 Inspect the actual available MCP tools and their schemas. Daytona fills missing
 permissions with create/delete denied and reset/promote asking; existing user
@@ -163,7 +171,7 @@ Confirm the installed service supports the required operation; a schema does not
 establish vendor behavior. The request-log default is a bounded page (50 in the
 inspected control implementation), explaining why the SDK's count can plateau.
 An empty page only ends pagination after a successful read on the same service;
-check for resets and gaps. Bodies may be redacted or unavailable: keep the gate's
+check for resets and gaps. Bodies may be redacted or unavailable: keep the assertion's
 response/state assertion, and report exactly what cannot be observed.
 
 Use [twin.md](twin.md), [state.md](state.md) and [faults.md](faults.md) for the
@@ -172,7 +180,7 @@ seed files are keyed by service: do not send a CLI envelope to `/veris/data`.
 Treat all these operations as probes/control work, outside application receipt
 windows. If neither the host interface nor the intercepted control route supports
 the operation, name exactly what is missing (for example E2B manual access, fault
-writes, trace bodies or file upload) and leave the dependent gate unproven. Do not
+writes, trace bodies or file upload) and report the dependent behavior as unverified. Do not
 substitute a mock or a new twin.
 
 ## Trust, network, lifetime and synchronization

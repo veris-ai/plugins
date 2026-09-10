@@ -109,7 +109,7 @@ It does not weaken the promotion rule, which is never to promote a task sandbox.
 does not weaken the identity rules in [twin.md](twin.md), or the fault discipline in
 [faults.md](faults.md).
 
-`build` and `fix` work unchanged here. Wherever a gate says "through `veris run`, a
+`build` and `fix` use their normal workflow here. Wherever execution says "through `veris run`, a
 receipt per run", the direct-tier equivalent is "against the wired sandbox, trace per
 run". Note the newest trace id before the run, read back with
 `veris sandbox trace --service <twin> --since <id>` after it, and count the difference
