@@ -505,8 +505,9 @@ represent** and move on: a half-seeded baseline is worse than none.
 Otherwise seed the files once, so that every later sandbox starts with them. The steps
 are in [../veris-reference/state.md](../veris-reference/state.md), **Files**. Read the
 files back and check each row's SHA-256 against the local file. Ask the engineer, then
-run `veris baseline promote`. It captures this folder's sandbox, pins it as the
-environment's baseline, and deletes the source sandbox afterwards. `--keep-source`
+run `veris baseline promote`. It captures this folder's sandbox, saves it as a
+snapshot, makes that snapshot the environment's default, and deletes the source
+sandbox afterwards. `--keep-source`
 keeps that sandbox instead, frozen and scrubbed. Promote is the last thing you do with
 that sandbox. Done when `veris baseline get` shows the pin. Every later `veris up`
 starts from that state, and this is the only place setup promotes. Write what is in the
