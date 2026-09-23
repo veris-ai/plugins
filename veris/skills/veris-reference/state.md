@@ -151,12 +151,12 @@ keep them, chosen by who should start from them:
 - **Every future sandbox of this environment:** `veris baseline promote`. It saves
   the sandbox's state, files included, as a new snapshot and makes that snapshot the
   environment's default; every later `veris up`, including the fresh sandbox a
-  `veris run --fresh` makes, starts from it. The snapshot stays in
-  `veris snapshot list` after a later promote replaces the default.
+  `veris run --fresh` makes, starts from it. `--name <name>` labels that snapshot. It
+  stays in `veris snapshot list` after a later promote replaces the default.
   The capture is a boundary: the source sandbox is left frozen and scrubbed, then
   deleted. `--keep-source` keeps it instead. Either way, promote is the last thing done
-  with that sandbox. Done when `veris baseline get` shows the pin. Only `setup`
-  promotes, and only with the engineer's yes.
+  with that sandbox. Done when `veris baseline get` shows the pin and its snapshot.
+  Only `setup` promotes, and only with the engineer's yes.
 - **Only some runs**, an empty account and a populated one, a trial and an expired
   trial: `veris snapshot create --name <name>`. Many per environment; the default
   boot is unchanged. Names are not unique; the newest wins a name lookup, so
@@ -164,6 +164,7 @@ keep them, chosen by who should start from them:
   scrubbed for you to delete (`--delete-source` does it at once).
   `veris up --boot snapshot --snapshot <name>` boots one (`--snapshot` alone is
   refused), and an explicit snapshot beats the environment's baseline.
+  `veris snapshot list` marks the one that is the default.
   `veris baseline set <snapshot>` makes any snapshot the default, an earlier promote
   included, in seconds: nothing is captured again. `veris baseline clear` returns to
   the packaged data and keeps every snapshot. A snapshot cannot be deleted while it is
