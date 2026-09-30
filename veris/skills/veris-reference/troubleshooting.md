@@ -160,8 +160,7 @@ verification: each modifies the code path under test.
 ## A `/veris/*` call answers 401 or 404
 
 - 401 `invalid or missing API key` from a `veris sandbox` command: the CLI is older
-  than 0.18.0; upgrade it. From a curl: the request lacks
-  `-H "X-API-Key: $VERIS_API_KEY"`, or the key is revoked (`veris whoami`).
+  than 0.19.0, so upgrade it, or the key is revoked (`veris whoami`).
 - 404 `sandbox not found` at the control URL: the key belongs to another
   organisation than the sandbox. Compare `veris whoami` with the sandbox's owner.
 - The vendor's own 404 for `/veris/...`: the request went to the service's `url` or a
