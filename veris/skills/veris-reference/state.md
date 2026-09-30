@@ -118,8 +118,10 @@ support folder imports". That is a plain refusal, and it is evidence, not noise.
    veris sandbox files import <twin> ./fixtures --owner <owner id> --prefix "Client Uploads"
    ```
    It uploads in bounded, checkpointed batches and merges: matching paths are
-   replaced, existing ones kept. `--resume` continues an interrupted import. To make a
-   subtree exactly the upload, `veris sandbox reset <twin> --yes` first, then import.
+   replaced, existing ones kept. `--resume` continues an interrupted import. The CLI
+   cannot make a subtree exactly the upload: files already under the prefix stay. When
+   a test depends on that, say so rather than resetting the twin, which would also drop
+   the rows the files hang off and any other state the test set up.
 4. Read back with `veris sandbox data get <twin> <files table>`. A file's content
    column shows the SHA-256 of its bytes; compare with `shasum -a 256` of the local
    file. The vendor's own download endpoint returns the exact bytes.
