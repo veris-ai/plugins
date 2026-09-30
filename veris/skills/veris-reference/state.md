@@ -15,20 +15,35 @@ A sandbox can hold a twin the environment never named: a service that signs in t
 a family issuer is deployed with that issuer, and `veris status` marks it `+`. That is
 the platform's doing, not a stray twin to remove.
 
+## The control URL and its key
+
+`veris sandbox services get <twin>` prints two addresses. `url` is the data plane, the
+address the app's traffic reaches; `/veris/*` there answers the vendor's own 404.
+`control_url` (a `/c/<sandbox>/<twin>` path on the Veris API host) is where `/veris/*`
+lives, and it wants the Veris API key on every request. `--json` shows `control_auth`:
+`"api_key"` means the key is required; `null` is an older sandbox whose control URL is
+still its data URL. Never hand `control_url` to the code under test, and never probe
+`/veris/*` at `url` or at an intercepted vendor hostname: both are the vendor's own 404.
+
+Reach the control URL through `veris sandbox` commands, never with curl. The CLI sends
+the key from the login profile (or `VERIS_API_KEY`) itself, so nothing here needs the
+key in hand: do not export it, read it out of `~/.veris`, or print it. Every control
+operation has a verb: rows (`data get|add|set|delete`, with `--all` for every page),
+shapes (`data schema`), the manual (`services manual`), the operations list
+(`services operations`), a per-twin reset (`reset <twin>`), files (`files import`) and
+the trace (`trace`). They need CLI 0.19.0 or newer; an older CLI answers 401
+`invalid or missing API key` on a sandbox whose `control_auth` is `"api_key"`. A key of
+another organisation gets 404 `sandbox not found`.
+
 ## Reading complete tables
 
 `data get <twin> <table>` is a page, including with `--json`; older CLI versions
 print the array without a truncation notice. Compare its length with the table count
-before drawing conclusions. Check `veris sandbox data get --help`: when `--all` is
-available, use `--all --json` to collect every page, then filter the saved array by
-the ids or owner from the run. `--offset` advances a single page. Stop writers during
-pagination; it is not an atomic snapshot.
-
-On older CLIs, `--limit` is bounded at 1000. For larger tables, page
-`<control_url>/veris/data?entity_type=<table>&limit=1000&offset=<offset>` and read
-`rows` and `total` from each response, advancing by the number returned. Stop and
-report a changed total, failed request or empty page before the total. Do not treat
-a partial read as a count of the whole table. Keep credential-bearing rows out of
+before drawing conclusions. Use `--all --json` to collect every page, then filter the
+saved array by the ids or owner from the run. `--offset` advances a single page. Stop
+writers during pagination; it is not an atomic snapshot. Report a changed total or a
+failed read before the total rather than treating a partial read as a count of the
+whole table. Keep credential-bearing rows out of
 evidence; save only the identifiers, counts and nonsecret fields needed for the claim.
 
 ## Seeding rows
@@ -67,15 +82,17 @@ evidence; save only the identifiers, counts and nonsecret fields needed for the 
 - A twin refuses to delete its singleton rows: the clock, the client registration, the
   auth mode and the delivery log. It says what to do instead; change those rows with
   `veris sandbox data set`.
-- A clean slate for one twin between probes, leaving the others and the clock alone.
-  There is no verb for this, so it is a curl at the twin's control URL, which
-  `veris sandbox services get <twin>` prints:
+- A clean slate for one twin between probes, leaving the others and the clock alone:
   ```
-  curl --fail-with-body -sS -X POST "<control url>/veris/reset" -H 'Content-Type: application/json' -d '{"profile":"default"}'
+  veris sandbox reset <twin> --yes
   ```
-  `{"profile": …}` loads the packaged starting data, and `{"data": {…}}` loads exact
-  rows. Neither may leave an empty dataset. Any other key is refused with 422, and the
-  data is left as it was. This works on an image-booted sandbox too.
+  With no flag the twin returns to the seed profile it booted with.
+  `--seed-profile <name>` loads another packaged starting dataset, and `--data <file>`
+  loads exact rows: a file of that twin's tables (`{"<table>": [rows]}`), or a seed
+  file keyed by twin name whose `<twin>` entry is used. Neither may leave an empty
+  dataset; the twin refuses with 422, names why, and leaves the data as it was. This
+  works on an image-booted sandbox too. `veris sandbox reset` without a twin resets
+  every twin and sets the clock live.
 - File bytes are not rows. See **Files**.
 
 ## Files
@@ -94,19 +111,17 @@ support folder imports". That is a plain refusal, and it is evidence, not noise.
 2. Seed the rows the files need, an owner, a folder, a repository, with
    `veris sandbox data add`, or pick an owner already in the sandbox from
    `veris sandbox data get <twin> <table>`.
-3. Post the bytes to the twin's control URL with that owner's id. One file:
+3. Put the files in a local directory, laid out as they should appear under the
+   destination folder (unzip an archive first; one file is a directory of one), and
+   import it with that owner's id:
    ```
-   curl --fail-with-body -sS -X POST --data-binary @report.pdf \
-     "<control url>/veris/files?path=Inbox/report.pdf&owner=<owner id>"
+   veris sandbox files import <twin> ./fixtures --owner <owner id> --prefix "Client Uploads"
    ```
-   A whole tree, as a zip:
-   ```
-   curl --fail-with-body -sS -X POST --data-binary @fixtures.zip \
-     "<control url>/veris/files?prefix=Client%20Uploads&owner=<owner id>"
-   ```
-   `mode=merge` (default) replaces matching paths and keeps the rest; `mode=replace`
-   needs a `prefix` and makes that subtree exactly the upload. Leave `owner` out and
-   the manual's default identity owns the files. The reply lists what was created.
+   It uploads in bounded, checkpointed batches and merges: matching paths are
+   replaced, existing ones kept. `--resume` continues an interrupted import. The CLI
+   cannot make a subtree exactly the upload: files already under the prefix stay. When
+   a test depends on that, say so rather than resetting the twin, which would also drop
+   the rows the files hang off and any other state the test set up.
 4. Read back with `veris sandbox data get <twin> <files table>`. A file's content
    column shows the SHA-256 of its bytes; compare with `shasum -a 256` of the local
    file. The vendor's own download endpoint returns the exact bytes.

@@ -9,7 +9,7 @@
       "name": "veris",
       "source": "./veris",
       "description": "Setup, build and fix with Veris service twins during normal development, reusing application-test evidence through the CLI or an existing plugin-managed session.",
-      "version": "0.8.0",
+      "version": "0.8.1",
       "category": "testing",
       "tags": [
         "veris",

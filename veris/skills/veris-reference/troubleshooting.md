@@ -157,6 +157,16 @@ verification: each modifies the code path under test.
   can be much slower than a success path. Remove one left armed from an earlier probe
   with `veris sandbox data delete <twin> faults id=<fault id> --yes`.
 
+## A `/veris/*` call answers 401 or 404
+
+- 401 `invalid or missing API key` from a `veris sandbox` command: the CLI is older
+  than 0.19.0, so upgrade it, or the key is revoked (`veris whoami`).
+- 404 `sandbox not found` at the control URL: the key belongs to another
+  organisation than the sandbox. Compare `veris whoami` with the sandbox's owner.
+- The vendor's own 404 for `/veris/...`: the request went to the service's `url` or a
+  vendor hostname, not its `control_url`. See [state.md](state.md),
+  **The control URL and its key**.
+
 ## The agent is sandboxed
 
 Symptoms, on a machine where the engineer says the network and Docker both work:

@@ -92,7 +92,10 @@ the same checks on stdout.
   No root and no package manager are needed. On macOS and Linux the binary lands in
   `~/.local/bin`, so a second `command not found` means that directory is not on the
   PATH: say so and stop.
-  Done when `veris doctor` prints its version line.
+  Done when `veris doctor` prints its version line. It must be 0.19.0 or newer: an
+  older CLI does not send the key a twin's control URL now requires (its
+  `veris sandbox` commands fail with 401 `invalid or missing API key`) or lacks the
+  per-twin `reset` and `services operations` verbs. Rerun the install line to upgrade.
 - `✗ Not logged in`: run `veris login`. It prints a pairing code and a console link.
   Show both to the engineer and tell them to approve the pairing in the browser. Then
   wait: the command finishes by itself once the pairing is approved, and saves the key

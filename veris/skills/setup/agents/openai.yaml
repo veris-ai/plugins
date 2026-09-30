@@ -8,4 +8,4 @@ dependencies:
   tools:
     - type: "cli"
       value: "veris"
-      description: "For CLI-owned execution: the veris CLI on PATH (curl -LsSf https://raw.githubusercontent.com/veris-ai/veris-cli/main/scripts/install.sh | sh), signed in with `veris login`."
+      description: "For CLI-owned execution: the veris CLI 0.19.0 or newer on PATH (curl -LsSf https://raw.githubusercontent.com/veris-ai/veris-cli/main/scripts/install.sh | sh), signed in with `veris login`."

@@ -1,7 +1,7 @@
 {
   "name": "veris",
   "displayName": "Veris",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Use Veris stateful service twins during normal development. Three commands: setup (wire or repair a repository), build <issue|prompt> (answer service questions and test a feature), fix <issue|prompt> (investigate a defect and test the fix). Reuse application-test evidence through the Veris CLI or an existing plugin-managed session.",
   "author": {
     "name": "Veris",

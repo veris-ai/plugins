@@ -96,7 +96,7 @@ claims about a run or network isolation.
 | Optional host settings | `DAYTONA_SNAPSHOT`, `VERIS_API_BASE`; SDK honors Daytona API settings | `VERIS_E2B_TEMPLATE`, `VERIS_API_BASE` |
 | Current identity | `verisTwin` without arguments lists twin id and services; compare with unfiltered `verisReceipt` | Unfiltered `verisReceipt` supplies the twin id even at zero traffic, but omits service names when the total is zero; no `verisTwin` tool |
 | Repository | Provider context identifies it; verify remotely (published default `/home/daytona/project`) | Provider context identifies it; verify remotely (published default `/home/user/project`) |
-| Manual | `verisTwin` with `service` | No manual plugin tool; discover a reachable service control route or host interface |
+| Manual | `verisTwin` with `service` | No manual plugin tool; use the service `control_url` from a host interface (below) |
 | MCP | Registers host `veris` at the configured API base's `/mcp` when `VERIS_API_KEY` exists | Does not register MCP |
 
 Both plugins require the named host environment variables before provisioning;
@@ -149,16 +149,19 @@ obtain service coordinates when its schema supports that lookup. Do not infer
 MCP tool names for seeding, schema or faults.
 
 For service operations, use the returned service `control_url` through an available
-host HTTP tool, or test the intercepted vendor hostname's `/veris/manual` and
-`/veris/schema` with a **read-only** remote request. Only use the latter after the
-provider identifies that service and the response is the expected Veris control
-shape. Closed PR #30 measured this route in one Daytona session; it is not a
-universal gateway guarantee. A direct control URL can be blocked remotely even
-when the vendor route works. Never widen egress to reach it.
+host HTTP tool, sending `X-API-Key` with the host's `VERIS_API_KEY` on every request.
+The key stays on the host: never copy it into the sandbox or send it to the service's
+`url` or a vendor hostname. `/veris/*` at the service's `url` or at an intercepted
+vendor hostname is not a control route; it answers the vendor's own 404. A service
+whose `control_auth` is `"api_key"` answers 401 without the key and 404
+`sandbox not found` for another organisation's key; `null` marks an older sandbox
+whose control URL is its data URL, where the header is ignored. A direct control URL
+can be blocked remotely; call it from the host, and never widen egress to reach it.
+See [state.md](state.md), **The control URL and its key**.
 
-After verifying a service control route, the shared HTTP control contract provides:
+After a successful read at the control URL, the shared HTTP control contract provides:
 
-| Operation | Interface (relative to that service's control base) |
+| Operation | Interface (relative to that service's `control_url`, with `X-API-Key`) |
 |---|---|
 | Manual, schema, operation coverage | `GET /veris/manual`, `/veris/schema`, `/veris/operations` |
 | Counts and rows | `GET /veris/data`; select a table with `entity_type`, page with `limit`/`offset` and match returned ids |
@@ -178,7 +181,7 @@ Use [twin.md](twin.md), [state.md](state.md) and [faults.md](faults.md) for the
 measurement/seed rules. Service control payloads are keyed by table, while CLI
 seed files are keyed by service: do not send a CLI envelope to `/veris/data`.
 Treat all these operations as probes/control work, outside application receipt
-windows. If neither the host interface nor the intercepted control route supports
+windows. If neither the host interface nor the keyed control URL supports
 the operation, name exactly what is missing (for example E2B manual access, fault
 writes, trace bodies or file upload) and report the dependent behavior as unverified. Do not
 substitute a mock or a new twin.
