@@ -15,6 +15,26 @@ A sandbox can hold a twin the environment never named: a service that signs in t
 a family issuer is deployed with that issuer, and `veris status` marks it `+`. That is
 the platform's doing, not a stray twin to remove.
 
+## The control URL and its key
+
+`veris sandbox services get <twin>` prints two addresses. `url` is the data plane, the
+address the app's traffic reaches; `/veris/*` there answers the vendor's own 404.
+`control_url` (a `/c/<sandbox>/<twin>` path on the Veris API host) is where `/veris/*`
+lives, and it wants the Veris API key on every request: `-H "X-API-Key: $VERIS_API_KEY"`
+(`Authorization: Bearer` also works). It is the same key the CLI sends, and
+`veris whoami` shows which one and where it comes from. A machine signed in only with
+`veris login` keeps it in the profile, not in `VERIS_API_KEY`; ask the engineer to
+export it rather than reading it out of `~/.veris`, and never print it. `--json` shows
+`control_auth`: `"api_key"` means the key is required; `null` is an older sandbox whose
+control URL is still its data URL, where the key is ignored. Without the key the
+control URL answers 401 `invalid or missing API key`; a key of another organisation
+gets 404 `sandbox not found`. Never send the key to `url` or to a vendor hostname, and
+never hand `control_url` to the code under test. `/veris/*` at an intercepted vendor
+hostname is not a control route either: it is that vendor's 404.
+
+`veris sandbox` commands send the key themselves from CLI 0.18.0; an older CLI gets
+the same 401 on a sandbox whose `control_auth` is `"api_key"`.
+
 ## Reading complete tables
 
 `data get <twin> <table>` is a page, including with `--json`; older CLI versions
@@ -25,7 +45,8 @@ the ids or owner from the run. `--offset` advances a single page. Stop writers d
 pagination; it is not an atomic snapshot.
 
 On older CLIs, `--limit` is bounded at 1000. For larger tables, page
-`<control_url>/veris/data?entity_type=<table>&limit=1000&offset=<offset>` and read
+`<control_url>/veris/data?entity_type=<table>&limit=1000&offset=<offset>` with
+`-H "X-API-Key: $VERIS_API_KEY"` (above) and read
 `rows` and `total` from each response, advancing by the number returned. Stop and
 report a changed total, failed request or empty page before the total. Do not treat
 a partial read as a count of the whole table. Keep credential-bearing rows out of
@@ -71,7 +92,8 @@ evidence; save only the identifiers, counts and nonsecret fields needed for the 
   There is no verb for this, so it is a curl at the twin's control URL, which
   `veris sandbox services get <twin>` prints:
   ```
-  curl --fail-with-body -sS -X POST "<control url>/veris/reset" -H 'Content-Type: application/json' -d '{"profile":"default"}'
+  curl --fail-with-body -sS -X POST "<control url>/veris/reset" -H "X-API-Key: $VERIS_API_KEY" \
+    -H 'Content-Type: application/json' -d '{"profile":"default"}'
   ```
   `{"profile": …}` loads the packaged starting data, and `{"data": {…}}` loads exact
   rows. Neither may leave an empty dataset. Any other key is refused with 422, and the
@@ -96,12 +118,12 @@ support folder imports". That is a plain refusal, and it is evidence, not noise.
    `veris sandbox data get <twin> <table>`.
 3. Post the bytes to the twin's control URL with that owner's id. One file:
    ```
-   curl --fail-with-body -sS -X POST --data-binary @report.pdf \
+   curl --fail-with-body -sS -X POST -H "X-API-Key: $VERIS_API_KEY" --data-binary @report.pdf \
      "<control url>/veris/files?path=Inbox/report.pdf&owner=<owner id>"
    ```
    A whole tree, as a zip:
    ```
-   curl --fail-with-body -sS -X POST --data-binary @fixtures.zip \
+   curl --fail-with-body -sS -X POST -H "X-API-Key: $VERIS_API_KEY" --data-binary @fixtures.zip \
      "<control url>/veris/files?prefix=Client%20Uploads&owner=<owner id>"
    ```
    `mode=merge` (default) replaces matching paths and keeps the rest; `mode=replace`

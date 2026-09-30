@@ -20,7 +20,7 @@ Not a command. `setup`, `build` and `fix` link to the file a step needs:
 | [e2b.md](e2b.md) | the hosted tier selects E2B: published SDK, existing-twin attachment, templates, upload, trust, network policy, callbacks and deletion |
 | `faults.md` | the task is about a failure, or a case needs a condition the vendor will not produce on demand: fault rows, credentials, the clock |
 | `webhooks.md` | the application receives callbacks |
-| `troubleshooting.md` | what the receipt, an exit code, a trace tier, a certificate error, a vendor-shaped error or a sandboxed agent's `doctor` lines mean |
+| `troubleshooting.md` | what the receipt, an exit code, a trace tier, a certificate error, a vendor-shaped error, a 401/404 from `/veris/*` or a sandboxed agent's `doctor` lines mean |
 | `evidence.md` | writing a concise result with existing evidence and material limitations |
 | `proof.md` | interpreting test evidence, investigating retry/identity behavior, or using optional audit helpers |
 
@@ -30,6 +30,10 @@ runner commands are documented in their provider recipe. Three twin operations h
 no verb of their own: file upload, a per-twin reset, the operations list. Each of those
 is a `curl` to the twin's control URL, which
 `veris sandbox services get <twin>` prints, and the file that covers it shows the call.
+Every such curl carries the Veris API key, `-H "X-API-Key: $VERIS_API_KEY"`: the same
+key the CLI sends, and `veris whoami` shows which one and where it comes from. The
+control URL is not the address the app calls, and a vendor hostname's `/veris/*` is
+the vendor's own 404; details in [state.md](state.md), **The control URL and its key**.
 `scripts/` holds optional `record.sh` and `ledger.sh` audit helpers; `setup` step 9
 explains staging when an investigation needs them. Ordinary development does not
 require a task ledger or a separate proof phase.

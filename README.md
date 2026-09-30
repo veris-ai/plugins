@@ -146,6 +146,13 @@ These entries describe the source plugin history. The old
 matching version numbers across that old distribution and this source do not
 establish matching content.
 
+0.8.1 — a twin's control URL is keyed. On current sandboxes `control_url` is a
+separate address that requires the Veris API key (`X-API-Key`), and `/veris/*` at the
+data URL or an intercepted vendor hostname is the vendor's own 404. Every control-URL
+curl in the references sends the key, the OpenCode fallback no longer probes
+`/veris/*` at a vendor hostname, and `setup` requires CLI 0.18.0 or newer, which sends
+the key on `veris sandbox` commands.
+
 0.8.0 — use Veris in the normal development loop. `build` and `fix` reuse a
 relevant application test and its receipt instead of requiring a separate proof
 phase. Extra probes, fault cases and repeated calls answer task-specific questions;
