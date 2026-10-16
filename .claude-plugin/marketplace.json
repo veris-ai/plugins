@@ -16,6 +16,18 @@
         "integration-testing",
         "sandbox"
       ]
+    },
+    {
+      "name": "bench",
+      "source": "./bench",
+      "description": "Put your own agent on a Veris Bench bench: wire it, build and push its image, register it as a candidate, and prove it with a smoke trial.",
+      "version": "0.1.0",
+      "category": "testing",
+      "tags": [
+        "veris",
+        "bench",
+        "agent-evaluation"
+      ]
     }
   ]
 }
