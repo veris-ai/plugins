@@ -92,7 +92,7 @@ does.
 | --- | --- | --- |
 | Node agent: every database tool fails, and the log has a `pg` SSL warning | node-postgres treats the twin DSN's `sslmode=require` as `verify-full`, and the twin's certificate is self-signed | Append `uselibpqcompat=true` to the DSN in the server file |
 | Node agent: `agent_trace_reason` is `no_spans_received` | The trace hook writes into the working directory, which the run user can't write | The run user owns the app directory (`chown`) |
-| Node agent: `input_tokens` is `null`, and `candidate.log` has no `veris-otel-node: instrumented OpenAI` line | The `openai` package is older than 5 | Upgrade `openai` to 5 or later |
+| Node agent: `input_tokens` is `null`, and `candidate.log` has no `veris-otel-node: instrumented OpenAI` line | The `openai` package is older than 5 | Upgrade `openai` to 5 or later, and update the lockfile so the image build installs it |
 | The attempt fails within a minute, `exec format error` or a pull error | An arm64 image built on Apple Silicon, or the bench can't pull it | `--platform linux/amd64`; run `check-image` |
 | Agent replies are empty | `image.path` or the response field doesn't match the server | Match `bench/candidate.json` to the server |
 | Tools fail only on the bench | A literal address, or a variable the bench doesn't set | Step 5 |
