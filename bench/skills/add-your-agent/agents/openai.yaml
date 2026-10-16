@@ -1,0 +1,17 @@
+interface:
+  display_name: "Add your agent to Veris Bench"
+  short_description: "Wire this agent, push its image, register it, and prove it with a smoke trial."
+  default_prompt: "$add-your-agent"
+policy:
+  allow_implicit_invocation: true
+dependencies:
+  tools:
+    - type: "cli"
+      value: "docker"
+      description: "Docker with buildx, logged in to the registry the image is pushed to."
+    - type: "cli"
+      value: "curl"
+      description: "Calls the Veris Bench API."
+    - type: "cli"
+      value: "jq"
+      description: "Builds request bodies and reads API responses."
