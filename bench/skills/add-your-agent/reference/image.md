@@ -78,8 +78,9 @@ async def health() -> dict:
 @app.post("/chat")
 async def chat(turn: Turn) -> dict:
     session_id = turn.session_id or uuid.uuid4().hex
-    conversation = conversations.setdefault(session_id, new_conversation())
-    reply = await run_turn(conversation, turn.message)
+    if session_id not in conversations:
+        conversations[session_id] = new_conversation()
+    reply = await run_turn(conversations[session_id], turn.message)
     return {"response": reply, "session_id": session_id}
 ```
 
@@ -147,11 +148,13 @@ agent calls. The container gets their addresses as environment variables:
   address is a DSN; for an http service it is a base URL.
 - One variable per twin with the same address, named for what the vendor's
   clients usually read (`DATABASE_URL` for Postgres, `STRIPE_API_BASE` for
-  Stripe). If the agent already reads that variable, it needs no mapping.
+  Stripe). If the agent already reads that variable, it needs no mapping, but
+  the client fixes below still apply.
 
-The container has no DNS interception: an address written into the code, such
-as `https://api.stripe.com` or `localhost:5432`, reaches the real host, not
-the twin.
+Unless Veris turned on the gateway for the bench, the container has no DNS
+interception: an address written into the code, such as
+`https://api.stripe.com` or `localhost:5432`, reaches the real host, not the
+twin. A database always comes through its variable.
 
 Client fixes:
 
@@ -186,7 +189,8 @@ image turns this on. It works when:
   packages there; when it can't, it does nothing and says nothing.
 
 How to tell it worked, on a bench attempt: `agent_trace_reason` is `null` and
-`input_tokens` is above 0. A Node agent's `candidate.log` also has a line
+the attempt's `agent_trace.json` has `llm_calls` above 0 (`reference/api.md`,
+"Verify"). A Node agent's `candidate.log` also has a line
 `veris-otel-node: instrumented <SDK>` for each SDK the hook patched.
 
 ## Dockerfile
@@ -224,7 +228,9 @@ CMD ["node", "bench_server.mjs"]
 - Add the server's own dependencies (FastAPI and uvicorn for Python) to the
   project's dependency file, so the lockfile stays the source of truth.
 - `WORKDIR` is where the agent expects to run: files it opens by a relative
-  path must be there.
+  path must be there. Set the same directory as `image.working_dir` in the
+  candidate (`reference/api.md`, "Register"): on a world that holds files, the
+  container otherwise starts in `/workspace`.
 - Never `COPY` a `.env` or key file, and never set a secret with `ENV`. The
   `.dockerignore` excludes `.env`, `.git`, `node_modules` and local virtual
   environments.
@@ -233,9 +239,9 @@ CMD ["node", "bench_server.mjs"]
 
 ```bash
 docker build --platform linux/amd64 -t bench-local .
-docker run --rm -d --name bench-local -p 8008:8008 \
-  -e OPENAI_API_KEY="${OPENAI_API_KEY:-sk-placeholder}" bench-local
-curl -s localhost:8008/health
+[ -n "${OPENAI_API_KEY:-}" ] || export OPENAI_API_KEY=sk-placeholder
+docker run --rm -d --name bench-local -p 8008:8008 -e OPENAI_API_KEY bench-local
+for i in $(seq 30); do curl -sf localhost:8008/health && break; sleep 2; done
 curl -s -X POST localhost:8008/chat -H 'Content-Type: application/json' \
   -d '{"message": "Hello"}'
 docker logs bench-local

@@ -111,6 +111,9 @@ Any other agent, through the `skills` CLI:
 npx skills add veris-ai/plugins --all
 ```
 
+`--all` also installs the `bench` plugin's skill; name the skills with
+`--skill` to install only these.
+
 ### The credential
 
 In a plugin-managed OpenCode session, use the provider host variables described
@@ -283,7 +286,9 @@ codex plugin marketplace add veris-ai/plugins
 codex plugin add bench@veris
 ```
 
-and `$bench:add-your-agent`.
+and `$bench:add-your-agent`. The skill runs Docker and calls the Veris Bench
+API, and Codex's default sandbox allows neither: start Codex with
+`codex -s danger-full-access`, or approve `docker`, `curl` and `jq` when it asks.
 
 Any other agent, through the `skills` CLI:
 

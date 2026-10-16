@@ -1,6 +1,8 @@
 # Bench API calls
 
-Every call sends the key as a bearer token. Set these once per shell:
+Most coding agents run each command in a new shell, so a variable you set in
+one command is gone in the next. Start every command with these lines, and
+write ids into later commands as literal text after you print them:
 
 ```bash
 BENCH_API=${BENCH_API:-https://bench.api.veris.ai/v1}
@@ -9,16 +11,15 @@ BENCH_ID=bench_...
 ```
 
 Never print `$VERIS_API_KEY` or a secret's value, and never write one to a
-file. Pass a secret into a request body with `jq --arg`, as in "Secrets".
-A call that fails returns `{"detail": ...}` instead of the object you asked
-for, so check for `.detail` before you use the result. `{"detail": "not
-signed in"}` means the key is missing or malformed, for example with quotes or
-a trailing carriage return left on it.
+file or put one on a command line. A call that fails returns `{"detail": ...}`
+instead of the object you asked for, so every call below prints `detail` next
+to the `id`. `{"detail": "not signed in"}` means the key is missing or
+malformed, for example with quotes or a trailing carriage return left on it.
 
 ## Access
 
 ```bash
-curl -s "$BENCH_API/benches/$BENCH_ID" -H "$AUTH" | jq '{name, access}'
+curl -s "$BENCH_API/benches/$BENCH_ID" -H "$AUTH" | jq '{name, access, detail}'
 ```
 
 `"access": "write"` is required. `"read"` has three causes:
@@ -42,8 +43,11 @@ The bench's own world has `"scope": "bench"`. A task can name its own world
 
 ## Tasks
 
+A trial runs tasks from the bench's exam, so list the exam's tasks:
+
 ```bash
-curl -s "$BENCH_API/benches/$BENCH_ID/tasks?limit=200" -H "$AUTH" \
+EXAM_ID=$(curl -s "$BENCH_API/benches/$BENCH_ID/exams" -H "$AUTH" | jq -r '.items[0].id')
+curl -s "$BENCH_API/benches/$BENCH_ID/tasks?exam_id=$EXAM_ID&limit=200" -H "$AUTH" \
   | jq -r '.items[] | "\(.id)  \(.name)"'
 ```
 
@@ -56,21 +60,19 @@ that change data, so the twin check means something. Read a task's text with
 ```bash
 IMAGE=<registry>/<name>
 docker buildx build --platform linux/amd64 -t "$IMAGE:<version>" --push .
-DIGEST=$(docker buildx imagetools inspect "$IMAGE:<version>" --format '{{json .Manifest}}' | jq -r .digest)
-REF="$IMAGE@$DIGEST"
+echo "$IMAGE@$(docker buildx imagetools inspect "$IMAGE:<version>" --format '{{json .Manifest}}' | jq -r .digest)"
 ```
 
-Register `$REF`, the digest form. A bare name or `:latest` is refused, and a
-tag that moves would change the candidate under its trials.
-
-A push that hangs with no output is usually the registry's credential helper
-waiting for a login. Ask the user to sign in to the registry (for example
-`docker login ghcr.io`, or `gcloud auth login` for Google Artifact Registry),
-then retry.
+The printed `<image>@sha256:...` is the reference to register. A bare name or
+`:latest` is refused, and a tag that moves would change the candidate under
+its trials. A push that hangs with no output is usually the registry's
+credential helper waiting for a login: ask the user to sign in to the registry
+(for example `docker login ghcr.io`, or `gcloud auth login` for Google Artifact
+Registry), then retry.
 
 ```bash
 curl -s -X POST "$BENCH_API/registries/check-image" -H "$AUTH" \
-  -H "Content-Type: application/json" -d "$(jq -n --arg r "$REF" '{ref: $r}')"
+  -H "Content-Type: application/json" -d '{"ref": "<image>@sha256:..."}' | jq '{status, detail}'
 ```
 
 | `status` | Meaning | Next |
@@ -78,17 +80,20 @@ curl -s -X POST "$BENCH_API/registries/check-image" -H "$AUTH" \
 | `public` | Pulls without a login. | Register. |
 | `ok` | Pulls with a login the workspace saved. | Register. |
 | `needs_login` | The registry wants a login; the workspace has none. | Save one, below. |
-| `denied` | The saved login was refused, or can't read this repository. | Ask the user for a working read-only token. |
-| `not_found` | No such tag or digest. | Check `$REF`. |
+| `denied` | The saved login was refused, or can't read this repository. | The user replaces the login with a working read-only token. |
+| `not_found` | No such tag or digest. | Check the reference. |
+| `unreachable`, `invalid`, `error` | The registry didn't answer, the reference is malformed, or the check failed. | Read `detail`. |
 
-Save a registry login once per workspace. Ask the user for a read-only token
-(for GitHub, a classic token with only `read:packages`); have them export it
-rather than paste it into the chat.
+**Registry login.** Saved once per workspace. The simplest path is for the user
+to add it in the console: **Overview**, **Registries**, **Connect** (or
+**Manage**), **Add registry**. If the user started you with a read-only token in
+`REGISTRY_TOKEN` (for GitHub, a classic token with only `read:packages`), you
+can save it yourself:
 
 ```bash
-jq -n --arg s "$REGISTRY_TOKEN" \
-  '{kind: "github", prefix: "ghcr.io/<org>", username: "<user>", secret: $s}' \
-  | curl -s -X PUT "$BENCH_API/registries" -H "$AUTH" -H "Content-Type: application/json" -d @-
+jq -n '{kind: "github", prefix: "ghcr.io/<org>", username: "<user>", secret: $ENV.REGISTRY_TOKEN}' \
+  | curl -s -X PUT "$BENCH_API/registries" -H "$AUTH" -H "Content-Type: application/json" -d @- \
+  | jq '{id, prefix, detail}'
 ```
 
 `kind` is one of `dockerhub`, `github`, `gitlab`, `azure`, `ecr`, `gar`,
@@ -105,18 +110,22 @@ List what the bench already holds (values never come back):
 curl -s "$BENCH_API/benches/$BENCH_ID/candidate-env" -H "$AUTH" | jq -r '.items[] | "\(.key)  secret=\(.is_secret)"'
 ```
 
-Add a missing one from an environment variable the user exported:
+For each secret the agent needs and the bench lacks, ask the user to add it in
+the console: the bench, **Candidates**, **Add variable**, with **Secret** on. If
+the user started you with the value in your environment, you can add it
+yourself:
 
 ```bash
-jq -n --arg v "$OPENAI_API_KEY" '{value: $v, is_secret: true}' \
+jq -n '{value: $ENV.OPENAI_API_KEY, is_secret: true}' \
   | curl -s -X PUT "$BENCH_API/benches/$BENCH_ID/candidate-env/OPENAI_API_KEY" \
-      -H "$AUTH" -H "Content-Type: application/json" -d @-
+      -H "$AUTH" -H "Content-Type: application/json" -d @- | jq '{key, is_secret, detail}'
 ```
 
 Every candidate on the bench gets the bench's candidate-env. Plain
-per-candidate settings, such as `MODEL`, go in `image.env` instead; anyone who
-can read the bench can read it. Names that start with `VERIS_` are refused in
-both.
+per-candidate settings go in `image.env` instead; anyone who can read the bench
+can read it. Names that start with `VERIS_` are refused in both. The
+candidate-env also refuses names that Veris's own agents use, such as `MODEL`
+and `SYSTEM_PROMPT`; put those in `image.env`.
 
 ## Register
 
@@ -131,6 +140,7 @@ be committed, and CI can reuse it with a new `ref`.
     "port": 8008,
     "path": "/chat",
     "health_path": "/health",
+    "working_dir": "/app",
     "env": {"MODEL": "gpt-4.1-mini"}
   },
   "channel_config": {
@@ -147,11 +157,13 @@ be committed, and CI can reuse it with a new `ref`.
 ```
 
 ```bash
-CANDIDATE_ID=$(jq --arg r "$REF" '.image.ref = $r' bench/candidate.json \
-  | curl -s -X POST "$BENCH_API/benches/$BENCH_ID/candidates" \
-      -H "$AUTH" -H "Content-Type: application/json" -d @- | jq -r .id)
+curl -s -X POST "$BENCH_API/benches/$BENCH_ID/candidates" \
+  -H "$AUTH" -H "Content-Type: application/json" -d @bench/candidate.json | jq '{id, name, detail}'
 ```
 
+- `working_dir` is the Dockerfile's `WORKDIR`. Without it, on a world that
+  holds files, the container starts in `/workspace` and the server's relative
+  paths break.
 - `channel.url` stays `null`: the bench builds it from `image.port` and
   `image.path`.
 - For a ws server: `"channel": {"type": "ws", "url": null}`, and `image.path`
@@ -180,47 +192,56 @@ shape.
 ## Smoke trial
 
 ```bash
-TRIAL_ID=$(jq -n --arg c "$CANDIDATE_ID" --arg a "<task id>" --arg b "<task id>" \
-  '{name: "smoke", kind: "smoke", candidate_ids: [$c], task_ids: [$a, $b], persona_ids: [], repeats: 1}' \
-  | curl -s -X POST "$BENCH_API/benches/$BENCH_ID/trials" \
-      -H "$AUTH" -H "Content-Type: application/json" -d @- | jq -r .id)
+curl -s -X POST "$BENCH_API/benches/$BENCH_ID/trials" -H "$AUTH" -H "Content-Type: application/json" \
+  -d '{"name": "smoke", "kind": "smoke", "candidate_ids": ["cand_..."],
+       "task_ids": ["task_...", "task_..."], "persona_ids": [], "repeats": 1}' \
+  | jq '{id, status, detail}'
 ```
 
-Wait until nothing is pending. Keep polling: the bench moves a trial forward
-when someone reads it. Right after creation the candidate may have no rollup
-yet, which prints nothing.
+Check progress about once a minute, until `pending` is 0. Keep checking: the
+bench moves a trial forward when someone reads it. Right after creation the
+candidate may have no row yet.
 
 ```bash
-while :; do
-  left=$(curl -s "$BENCH_API/trials/$TRIAL_ID/results" -H "$AUTH" \
-    | jq --arg c "$CANDIDATE_ID" '.rollups[] | select(.candidate_id == $c) | .pending')
-  echo "$(date +%T) pending: ${left:-not started}"
-  [ "$left" = 0 ] && break
-  sleep 30
-done
+curl -s "$BENCH_API/trials/trial_.../results" -H "$AUTH" \
+  | jq '.detail // (.rollups[] | select(.candidate_id == "cand_...") | {pending, n, passes})'
 ```
 
-A smoke trial usually takes a few minutes. Stop after 30 and read the
-attempts anyway.
+A smoke trial usually takes a few minutes. After 30, verify what has finished
+and tell the user what is still pending.
 
 ## Verify
 
+For each attempt, this prints the checks in `SKILL.md`: the attempt's fields,
+the model calls in its trace, and whether the agent sent requests to each twin.
+
 ```bash
+TRIAL_ID=trial_...; CANDIDATE_ID=cand_...
 curl -s "$BENCH_API/trials/$TRIAL_ID/attempts?candidate_id=$CANDIDATE_ID&limit=50" -H "$AUTH" \
-  | jq '.items[] | {id, status, turns, input_tokens, tool_calls, agent_trace_reason,
-        twins: ([.ledger_summary.sources[]? | select(.kind == "service") | {(.name): .events}] | add),
-        passed, error: (.error // "" | .[0:500])}'
+  | jq -r '.items[].id' | while read -r a; do
+    att=$(curl -s "$BENCH_API/attempts/$a" -H "$AUTH")
+    llm=$(curl -s "$BENCH_API/attempts/$a/artifacts/agent_trace.json" -H "$AUTH" | jq '.llm_calls // 0' 2>/dev/null)
+    twins=""
+    for s in $(jq -r '.ledger_summary.sources[]? | select(.kind == "service") | .name' <<<"$att"); do
+      n=$(curl -s "$BENCH_API/attempts/$a/ledger?plane=vendor&source=$s&limit=1" -H "$AUTH" | jq '.events | length')
+      twins="$twins$s:$n "
+    done
+    jq -c --argjson llm "${llm:-0}" --arg twins "$twins" \
+      '{id, status, turns, llm_calls: $llm, tool_calls, agent_trace_reason, reached: $twins,
+        passed, error_end: (.error // "" | .[-300:])}' <<<"$att"
+  done
 ```
 
-Check each attempt against the table in `SKILL.md`. To see why a task did not
-pass, read `assertion_results` on the attempt: each entry has a `statement`,
-`passed` and the judge's `reasoning`.
+`reached` shows `1` for each twin that received at least one request from the
+agent, `0` otherwise. To see why a task did not pass, read `assertion_results`
+on the attempt: each entry has a `statement`, `passed` and the grader's
+`reasoning`.
 
 ### Artifacts
 
 ```bash
-curl -s "$BENCH_API/attempts/$ATTEMPT_ID" -H "$AUTH" | jq '.artifact_uris | keys'
-curl -s "$BENCH_API/attempts/$ATTEMPT_ID/artifacts/candidate.log" -H "$AUTH" | tail -50
+curl -s "$BENCH_API/attempts/att_..." -H "$AUTH" | jq '.artifact_uris | keys'
+curl -s "$BENCH_API/attempts/att_.../artifacts/candidate.log" -H "$AUTH" | tail -50
 ```
 
 | Artifact | What it shows |
@@ -230,26 +251,25 @@ curl -s "$BENCH_API/attempts/$ATTEMPT_ID/artifacts/candidate.log" -H "$AUTH" | t
 | `agent_trace.json` | The model calls the grader read. Tool results: `jq '.turns[] \| select(.role == "tool") \| .content'`. |
 | `ledger.jsonl` | Every request the twins received. |
 
-The console shows the same: `https://benchmark.veris.ai/benches/<bench id>?trial=<trial id>`.
+The console shows the same: `https://benchmark.veris.ai/benchmarks/<bench id>?trial=<trial id>`.
 
 ## Fix and re-run
 
-After a fix, push a new digest, point the candidate at it, and re-run the
-candidate in the same trial. `image` is replaced as a whole, so send all of
-it:
+After a fix, push a new digest, put it in `bench/candidate.json`, point the
+candidate at it, and re-run the candidate in the same trial. `image` is
+replaced as a whole, so send all of it:
 
 ```bash
-jq --arg r "$NEW_REF" '{image: (.image + {ref: $r})}' bench/candidate.json \
-  | curl -s -X PATCH "$BENCH_API/candidates/$CANDIDATE_ID" \
-      -H "$AUTH" -H "Content-Type: application/json" -d @-
+jq '{image}' bench/candidate.json \
+  | curl -s -X PATCH "$BENCH_API/candidates/cand_..." \
+      -H "$AUTH" -H "Content-Type: application/json" -d @- | jq '{id, image: .image.ref, detail}'
 
-jq -n --arg c "$CANDIDATE_ID" '{candidate_ids: [$c], replace: true}' \
-  | curl -s -X POST "$BENCH_API/trials/$TRIAL_ID/candidates" \
-      -H "$AUTH" -H "Content-Type: application/json" -d @-
+curl -s -X POST "$BENCH_API/trials/trial_.../candidates" -H "$AUTH" -H "Content-Type: application/json" \
+  -d '{"candidate_ids": ["cand_..."], "replace": true}' | jq '{id, status, detail}'
 ```
 
 The re-run is refused while any of the candidate's attempts is still pending
-(`... still in flight; re-run once they settle`); wait first. Update
-`bench/candidate.json` with the new `ref`. Then wait and verify again. Once the smoke trial is clean, every later version
+(`... still in flight; re-run once they settle`); wait first. Then check
+progress and verify again. Once the smoke trial is clean, every later version
 of the agent is a new candidate with its own digest, so trials can compare
 versions.
