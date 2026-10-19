@@ -1,0 +1,17 @@
+{
+  "name": "bench",
+  "displayName": "Veris Bench",
+  "version": "0.1.0",
+  "description": "Put your own agent on a Veris Bench bench as a Your image candidate. One command: add-your-agent (wire the agent, build and push its image, register it, and prove it with a smoke trial).",
+  "author": {
+    "name": "Veris",
+    "url": "https://veris.ai"
+  },
+  "repository": "https://github.com/veris-ai/plugins",
+  "license": "Apache-2.0",
+  "keywords": [
+    "veris",
+    "bench",
+    "agent-evaluation"
+  ]
+}
