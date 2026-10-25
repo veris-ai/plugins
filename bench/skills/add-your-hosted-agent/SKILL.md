@@ -50,7 +50,8 @@ Collect these before you change anything. Ask the user for what is missing.
    (`reference/api.md`, "Access").
 2. **Check the fit.** Read the bench's world and tasks (`reference/api.md`,
    "World"). A hosted agent does not get the bench's twins: each task runs with
-   no world, and the agent calls whatever services it is configured with.
+   no world, and the agent calls whatever services it is configured with. An
+   agent that calls no outside system has nothing to check here.
    - If the agent calls real systems, tell the user before any trial: every
      attempt makes real requests and writes, costs and rate limits multiply by
      the trial's `parallel`, results won't repeat exactly, and with step 7 the
@@ -105,7 +106,7 @@ Collect these before you change anything. Ask the user for what is missing.
 | Check | Where to read it (`reference/api.md`, "Verify") | If it fails |
 | --- | --- | --- |
 | It ran | `status` is `completed` | Read `error`. A failure before the first turn is the URL, the auth secret or the channel. |
-| The agent answered | `turns` is 2 or more, and the transcript has agent replies that answer the question | Field mapping (step 3), or the agent errored on the turn: read your own server's logs. |
+| The agent answered | `turns` (every message, both sides) is 2 or more, and the transcript has agent replies that answer the question | Field mapping (step 3), or the agent errored on the turn: read your own server's logs. |
 | The grader sees the model calls | `agent_trace_reason` is `null`, and `agent_trace.json` has `llm_calls` above 0 | `reference/tracing.md`, "If the grader sees nothing". `judge_disabled_trace` means the bench's grader doesn't read traces: skip this check. On ws or voice, or without step 7, `hosted_candidate` is expected: say so in the report. |
 | The agent used its tools | `tool_calls` above 0 if the agent has tools, and its tool results in `agent_trace.json` are not errors | Read the tool results; a connection error means the agent can't reach a service it calls. |
 | One conversation per attempt | Each attempt's transcript and trace hold only its own question | The agent keys conversation state wrongly. Attempts run in parallel against one endpoint. |

@@ -49,8 +49,11 @@ with it. A deployment that serves only the bench rules that out.
 - **A credential only the bench uses.** `from_bench` is only as good as the
   endpoint's ability to tell the bench apart. If every caller shares one token,
   propose a second one for the bench (`BENCH_CALLER_TOKEN`, accepted by the same
-  auth check), set `from_bench` from which one matched, and make that change only
-  with the user's OK. Give it the least access the bench needs and rotate it
+  auth check, compared in constant time with `hmac.compare_digest` or Node's
+  `crypto.timingSafeEqual`), set `from_bench` from which one matched, and make
+  that change only with the user's OK. Generate it without printing it, straight
+  into the deployment's secret store and the bench's candidate-env
+  (`reference/api.md`, "Secrets", with the variable you generated). Give it the least access the bench needs and rotate it
   after the trials: the bench's candidate-env reaches every image and harness
   candidate on the bench.
 - **Keys stay out of sight.** `BENCH_TRACE_KEY` goes in the deployment's secret
@@ -207,8 +210,9 @@ authenticated as the bench:
 3. With only `traceparent` (the same value as above), with `CANARY-2` in the
    message.
 
-The listener must never print `LEAK`. If it does, the module was changed or
-bypassed, or work runs outside the turn: fix that before going on.
+Pass: the listener prints `bench export` for turn 1 (an export can take a few
+seconds), and nothing at all for turns 2 and 3. It must never print `LEAK`. If
+it does, the module was changed or bypassed: fix that before going on.
 
 ## If the grader sees nothing
 

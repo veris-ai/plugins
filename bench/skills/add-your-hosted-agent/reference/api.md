@@ -94,6 +94,17 @@ jq -n '{value: $ENV.FENWICK_ORDERS_TOKEN, is_secret: true}' \
       -H "Content-Type: application/json" -d @- | jq '{key, is_secret, detail}'
 ```
 
+For a credential you generate (step 7's bench-only token), generate it in the
+same command that stores it, so it is never printed:
+
+```bash
+FENWICK_ORDERS_BENCH_TOKEN=$(openssl rand -hex 32) && export FENWICK_ORDERS_BENCH_TOKEN
+jq -n '{value: $ENV.FENWICK_ORDERS_BENCH_TOKEN, is_secret: true}' \
+  | bench -X PUT "$BENCH_API/benches/$BENCH_ID/candidate-env/FENWICK_ORDERS_BENCH_TOKEN" \
+      -H "Content-Type: application/json" -d @- | jq '{key, is_secret, detail}'
+# then, in the same command, hand it to the deployment's secret store from stdin
+```
+
 Every candidate on the bench shares the bench's candidate-env, so name the
 secret after the agent (`FENWICK_ORDERS_TOKEN`). If the name you want already
 exists, another candidate may use it: pick another name, and overwrite it only
