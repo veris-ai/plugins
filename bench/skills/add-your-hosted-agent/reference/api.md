@@ -6,19 +6,36 @@ write ids into later commands as literal text after you print them:
 
 ```bash
 BENCH_API=${BENCH_API:-https://bench.api.veris.ai/v1}
-AUTH="Authorization: Bearer $VERIS_API_KEY"
+bench() { curl -s -H @<(printf 'Authorization: Bearer %s\n' "$VERIS_API_KEY") "$@"; }
 BENCH_ID=bench_...
 ```
 
-Never print `$VERIS_API_KEY`, the endpoint's secret or `BENCH_TRACE_KEY`, and
-never write one to a file or put one on a command line. A call that fails
-returns `{"detail": ...}` instead of the object you asked for, so every call
-below prints `detail` next to the `id`.
+`bench` is `curl` with the key read from a file descriptor, so the key never
+appears on a command line, where other users and tools on the machine could
+read it (it needs bash or zsh). Print `$BENCH_API` once before the first call,
+so the user sees where the key goes. Never print `$VERIS_API_KEY`, the
+endpoint's secret or `BENCH_TRACE_KEY`. A call that fails returns
+`{"detail": ...}` instead of the object you asked for, so every call below
+prints `detail` next to the `id`.
+
+## The endpoint
+
+Send the endpoint's own secret the same way, from your environment:
+
+```bash
+curl -s -X POST "https://agent.example.com/v3/chat" -H "Content-Type: application/json" \
+  -H @<(printf 'Authorization: Bearer %s\n' "$FENWICK_ORDERS_TOKEN") \
+  -d '{"message": "What is the status of order 1234?", "session_id": "check-1"}'
+curl -s -o /dev/null -w '%{http_code}\n' -X POST "https://agent.example.com/v3/chat" \
+  -H "Content-Type: application/json" -d '{"message": "hello"}'
+```
+
+The second must not answer `200`.
 
 ## Access
 
 ```bash
-curl -s "$BENCH_API/benches/$BENCH_ID" -H "$AUTH" | jq '{name, access, detail}'
+bench "$BENCH_API/benches/$BENCH_ID" | jq '{name, access, detail}'
 ```
 
 `"access": "write"` is required. With `"read"`: the user is a viewer (they need
@@ -29,7 +46,7 @@ it is another workspace's bench shared for viewing (ask Veris for a copy).
 ## World
 
 ```bash
-curl -s "$BENCH_API/benches/$BENCH_ID/worlds" -H "$AUTH" \
+bench "$BENCH_API/benches/$BENCH_ID/worlds" \
   | jq '.items[] | {name, scope, services: [.services[].service]}'
 ```
 
@@ -41,17 +58,17 @@ in those services needs a twin sandbox, or the agent changes real data instead.
 
 A hosted agent can't reach the twins Veris starts for each attempt. Veris can
 set up one long-lived sandbox of the bench's world instead: write to
-hello@veris.ai. You get its id and the address of each twin. Point the agent's
-service settings at those addresses in its deployment, and put the id on the
-candidate as `twin_sandbox_id`. Every attempt shares that sandbox, so a trial
+hello@veris.ai. You get its id and the address of each twin. Point the service
+settings of the bench's own deployment at those addresses, never the production
+deployment's, and put the id on the candidate as `twin_sandbox_id`. Every attempt shares that sandbox, so a trial
 with this candidate runs `parallel: 1`, and a task that names its own world is
 refused for it.
 
 ## Tasks
 
 ```bash
-EXAM_ID=$(curl -s "$BENCH_API/benches/$BENCH_ID/exams" -H "$AUTH" | jq -r '.items[0].id')
-curl -s "$BENCH_API/benches/$BENCH_ID/tasks?exam_id=$EXAM_ID&limit=200" -H "$AUTH" \
+EXAM_ID=$(bench "$BENCH_API/benches/$BENCH_ID/exams" | jq -r '.items[0].id')
+bench "$BENCH_API/benches/$BENCH_ID/tasks?exam_id=$EXAM_ID&limit=200" \
   | jq -r '.items[] | "\(.id)  \(.name)  context=\(.agent_context // {} | keys)"'
 ```
 
@@ -64,7 +81,7 @@ The endpoint's auth secret goes in the bench's candidate-env, and the channel
 refers to it by name. List what the bench holds (values never come back):
 
 ```bash
-curl -s "$BENCH_API/benches/$BENCH_ID/candidate-env" -H "$AUTH" | jq -r '.items[] | "\(.key)  secret=\(.is_secret)"'
+bench "$BENCH_API/benches/$BENCH_ID/candidate-env" | jq -r '.items[] | "\(.key)  secret=\(.is_secret)"'
 ```
 
 Ask the user to add a missing one in the console: the bench, **Candidates**,
@@ -73,8 +90,8 @@ your environment, you can add it yourself:
 
 ```bash
 jq -n '{value: $ENV.FENWICK_ORDERS_TOKEN, is_secret: true}' \
-  | curl -s -X PUT "$BENCH_API/benches/$BENCH_ID/candidate-env/FENWICK_ORDERS_TOKEN" \
-      -H "$AUTH" -H "Content-Type: application/json" -d @- | jq '{key, is_secret, detail}'
+  | bench -X PUT "$BENCH_API/benches/$BENCH_ID/candidate-env/FENWICK_ORDERS_TOKEN" \
+      -H "Content-Type: application/json" -d @- | jq '{key, is_secret, detail}'
 ```
 
 Every candidate on the bench shares the bench's candidate-env, so name the
@@ -108,8 +125,8 @@ Write `bench/hosted-candidate.json` in the repository:
 ```
 
 ```bash
-curl -s -X POST "$BENCH_API/benches/$BENCH_ID/candidates" \
-  -H "$AUTH" -H "Content-Type: application/json" -d @bench/hosted-candidate.json | jq '{id, name, detail}'
+bench -X POST "$BENCH_API/benches/$BENCH_ID/candidates" \
+  -H "Content-Type: application/json" -d @bench/hosted-candidate.json | jq '{id, name, detail}'
 ```
 
 - `harness` and `image` are `null`: that makes it a hosted candidate.
@@ -156,15 +173,15 @@ To fix the current version's channel instead, send the whole `channel_config`:
 
 ```bash
 jq '{channel_config}' bench/hosted-candidate.json \
-  | curl -s -X PATCH "$BENCH_API/candidates/cand_..." \
-      -H "$AUTH" -H "Content-Type: application/json" -d @- | jq '{id, detail}'
+  | bench -X PATCH "$BENCH_API/candidates/cand_..." \
+      -H "Content-Type: application/json" -d @- | jq '{id, detail}'
 ```
 
 ## Connection check
 
 ```bash
-curl -s -X POST "$BENCH_API/benches/$BENCH_ID/candidates/cand_.../connection-check" \
-  -H "$AUTH" -H "Content-Type: application/json" -d '{}' | jq '{ok, stage, latency_ms, detail}'
+bench -X POST "$BENCH_API/benches/$BENCH_ID/candidates/cand_.../connection-check" \
+  -H "Content-Type: application/json" -d '{}' | jq '{ok, stage, latency_ms, detail}'
 ```
 
 With per-task values, send sample ones: `-d '{"context": {"trial_id": "..."}}'`.
@@ -183,7 +200,7 @@ class, never a header or a body.
 ## Smoke trial
 
 ```bash
-curl -s -X POST "$BENCH_API/benches/$BENCH_ID/trials" -H "$AUTH" -H "Content-Type: application/json" \
+bench -X POST "$BENCH_API/benches/$BENCH_ID/trials" -H "Content-Type: application/json" \
   -d '{"name": "smoke", "kind": "smoke", "candidate_ids": ["cand_..."],
        "task_ids": ["task_...", "task_..."], "persona_ids": [], "repeats": 1}' \
   | jq '{id, status, detail}'
@@ -193,7 +210,7 @@ With a twin sandbox, add `"parallel": 1`. Check progress about once a minute,
 until `pending` is 0:
 
 ```bash
-curl -s "$BENCH_API/trials/trial_.../results" -H "$AUTH" \
+bench "$BENCH_API/trials/trial_.../results" \
   | jq '.detail // (.rollups[] | select(.candidate_id == "cand_...") | {pending, n, passes})'
 ```
 
@@ -201,10 +218,10 @@ curl -s "$BENCH_API/trials/trial_.../results" -H "$AUTH" \
 
 ```bash
 TRIAL_ID=trial_...; CANDIDATE_ID=cand_...
-curl -s "$BENCH_API/trials/$TRIAL_ID/attempts?candidate_id=$CANDIDATE_ID&limit=50" -H "$AUTH" \
+bench "$BENCH_API/trials/$TRIAL_ID/attempts?candidate_id=$CANDIDATE_ID&limit=50" \
   | jq -r '.items[].id' | while read -r a; do
-    att=$(curl -s "$BENCH_API/attempts/$a" -H "$AUTH")
-    llm=$(curl -s "$BENCH_API/attempts/$a/artifacts/agent_trace.json" -H "$AUTH" | jq '.llm_calls // 0' 2>/dev/null)
+    att=$(bench "$BENCH_API/attempts/$a")
+    llm=$(bench "$BENCH_API/attempts/$a/artifacts/agent_trace.json" | jq '.llm_calls // 0' 2>/dev/null)
     jq -c --argjson llm "${llm:-0}" \
       '{id, status, turns, llm_calls: $llm, tool_calls, agent_trace_reason, passed, error_end: (.error // "" | .[-300:])}' <<<"$att"
   done
@@ -213,8 +230,8 @@ curl -s "$BENCH_API/trials/$TRIAL_ID/attempts?candidate_id=$CANDIDATE_ID&limit=5
 Read each attempt's conversation and what the grader saw:
 
 ```bash
-curl -s "$BENCH_API/attempts/att_.../artifacts/transcript.jsonl" -H "$AUTH" | jq -r '"[\(.speaker)] \(.content)"'
-curl -s "$BENCH_API/attempts/att_.../artifacts/agent_trace.json" -H "$AUTH" \
+bench "$BENCH_API/attempts/att_.../artifacts/transcript.jsonl" | jq -r '"[\(.speaker)] \(.content)"'
+bench "$BENCH_API/attempts/att_.../artifacts/agent_trace.json" \
   | jq '{llm_calls, tool_calls, turns: [.turns[] | {role, content: (.content // "" | .[:120]), calls: [.tool_calls[]?.name]}]}'
 ```
 
@@ -222,7 +239,7 @@ A tool result is its own turn after the call, carrying the call's
 `tool_call_id`: role `tool`, or role `user` for Anthropic-style traces.
 
 ```bash
-curl -s "$BENCH_API/attempts/att_.../artifacts/agent_trace.json" -H "$AUTH" \
+bench "$BENCH_API/attempts/att_.../artifacts/agent_trace.json" \
   | jq -r '.turns[] | select(.tool_call_id) | "\(.tool_call_id): \(.content[:200])"'
 ```
 
@@ -236,6 +253,6 @@ After a fix (a redeploy, or a PATCH above), re-run the candidate in the same
 trial once nothing of it is pending:
 
 ```bash
-curl -s -X POST "$BENCH_API/trials/trial_.../candidates" -H "$AUTH" -H "Content-Type: application/json" \
+bench -X POST "$BENCH_API/trials/trial_.../candidates" -H "Content-Type: application/json" \
   -d '{"candidate_ids": ["cand_..."], "replace": true}' | jq '{id, status, detail}'
 ```
