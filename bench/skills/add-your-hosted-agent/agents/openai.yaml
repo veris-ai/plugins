@@ -1,0 +1,14 @@
+interface:
+  display_name: "Add your hosted agent to Veris Bench"
+  short_description: "Register the agent you host at a URL, let the grader see its model calls, and prove it with a smoke trial."
+  default_prompt: "$add-your-hosted-agent"
+policy:
+  allow_implicit_invocation: true
+dependencies:
+  tools:
+    - type: "cli"
+      value: "curl"
+      description: "Calls the Veris Bench API and the agent's endpoint."
+    - type: "cli"
+      value: "jq"
+      description: "Builds request bodies and reads API responses."
