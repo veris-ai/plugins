@@ -6,20 +6,22 @@ write ids into later commands as literal text after you print them:
 
 ```bash
 BENCH_API=${BENCH_API:-https://bench.api.veris.ai/v1}
-AUTH="Authorization: Bearer $VERIS_API_KEY"
+bench() { curl -s -H @<(printf 'Authorization: Bearer %s\n' "$VERIS_API_KEY") "$@"; }
 BENCH_ID=bench_...
 ```
 
-Never print `$VERIS_API_KEY` or a secret's value, and never write one to a
-file or put one on a command line. A call that fails returns `{"detail": ...}`
-instead of the object you asked for, so every call below prints `detail` next
-to the `id`. `{"detail": "not signed in"}` means the key is missing or
+`bench` is `curl` with the key read from a file descriptor, so the key never
+appears on a command line, where other users and tools on the machine could
+read it (it needs bash or zsh). Never print `$VERIS_API_KEY` or a secret's
+value, and never write one to a file or put one on a command line. A call that
+fails returns `{"detail": ...}` instead of the object you asked for, so every
+call below prints `detail` next to the `id`. `{"detail": "not signed in"}` means the key is missing or
 malformed, for example with quotes or a trailing carriage return left on it.
 
 ## Access
 
 ```bash
-curl -s "$BENCH_API/benches/$BENCH_ID" -H "$AUTH" | jq '{name, access, detail}'
+bench "$BENCH_API/benches/$BENCH_ID" | jq '{name, access, detail}'
 ```
 
 `"access": "write"` is required. `"read"` has three causes:
@@ -34,7 +36,7 @@ curl -s "$BENCH_API/benches/$BENCH_ID" -H "$AUTH" | jq '{name, access, detail}'
 ## World
 
 ```bash
-curl -s "$BENCH_API/benches/$BENCH_ID/worlds" -H "$AUTH" \
+bench "$BENCH_API/benches/$BENCH_ID/worlds" \
   | jq '.items[] | {name, scope, services: [.services[].service]}'
 ```
 
@@ -46,8 +48,8 @@ The bench's own world has `"scope": "bench"`. A task can name its own world
 A trial runs tasks from the bench's exam, so list the exam's tasks:
 
 ```bash
-EXAM_ID=$(curl -s "$BENCH_API/benches/$BENCH_ID/exams" -H "$AUTH" | jq -r '.items[0].id')
-curl -s "$BENCH_API/benches/$BENCH_ID/tasks?exam_id=$EXAM_ID&limit=200" -H "$AUTH" \
+EXAM_ID=$(bench "$BENCH_API/benches/$BENCH_ID/exams" | jq -r '.items[0].id')
+bench "$BENCH_API/benches/$BENCH_ID/tasks?exam_id=$EXAM_ID&limit=200" \
   | jq -r '.items[] | "\(.id)  \(.name)"'
 ```
 
@@ -71,7 +73,7 @@ credential helper waiting for a login: ask the user to sign in to the registry
 Registry), then retry.
 
 ```bash
-curl -s -X POST "$BENCH_API/registries/check-image" -H "$AUTH" \
+bench -X POST "$BENCH_API/registries/check-image" \
   -H "Content-Type: application/json" -d '{"ref": "<image>@sha256:..."}' | jq '{status, detail}'
 ```
 
@@ -92,7 +94,7 @@ can save it yourself:
 
 ```bash
 jq -n '{kind: "github", prefix: "ghcr.io/<org>", username: "<user>", secret: $ENV.REGISTRY_TOKEN}' \
-  | curl -s -X PUT "$BENCH_API/registries" -H "$AUTH" -H "Content-Type: application/json" -d @- \
+  | bench -X PUT "$BENCH_API/registries" -H "Content-Type: application/json" -d @- \
   | jq '{id, prefix, detail}'
 ```
 
@@ -107,7 +109,7 @@ Registry; Docker Hub's anonymous pull limit fails attempts.
 List what the bench already holds (values never come back):
 
 ```bash
-curl -s "$BENCH_API/benches/$BENCH_ID/candidate-env" -H "$AUTH" | jq -r '.items[] | "\(.key)  secret=\(.is_secret)"'
+bench "$BENCH_API/benches/$BENCH_ID/candidate-env" | jq -r '.items[] | "\(.key)  secret=\(.is_secret)"'
 ```
 
 For each secret the agent needs and the bench lacks, ask the user to add it in
@@ -117,8 +119,8 @@ yourself:
 
 ```bash
 jq -n '{value: $ENV.OPENAI_API_KEY, is_secret: true}' \
-  | curl -s -X PUT "$BENCH_API/benches/$BENCH_ID/candidate-env/OPENAI_API_KEY" \
-      -H "$AUTH" -H "Content-Type: application/json" -d @- | jq '{key, is_secret, detail}'
+  | bench -X PUT "$BENCH_API/benches/$BENCH_ID/candidate-env/OPENAI_API_KEY" \
+      -H "Content-Type: application/json" -d @- | jq '{key, is_secret, detail}'
 ```
 
 Every candidate on the bench gets the bench's candidate-env. Plain
@@ -157,8 +159,8 @@ be committed, and CI can reuse it with a new `ref`.
 ```
 
 ```bash
-curl -s -X POST "$BENCH_API/benches/$BENCH_ID/candidates" \
-  -H "$AUTH" -H "Content-Type: application/json" -d @bench/candidate.json | jq '{id, name, detail}'
+bench -X POST "$BENCH_API/benches/$BENCH_ID/candidates" \
+  -H "Content-Type: application/json" -d @bench/candidate.json | jq '{id, name, detail}'
 ```
 
 - `working_dir` is the Dockerfile's `WORKDIR`. Without it, on a world that
@@ -192,7 +194,7 @@ shape.
 ## Smoke trial
 
 ```bash
-curl -s -X POST "$BENCH_API/benches/$BENCH_ID/trials" -H "$AUTH" -H "Content-Type: application/json" \
+bench -X POST "$BENCH_API/benches/$BENCH_ID/trials" -H "Content-Type: application/json" \
   -d '{"name": "smoke", "kind": "smoke", "candidate_ids": ["cand_..."],
        "task_ids": ["task_...", "task_..."], "persona_ids": [], "repeats": 1}' \
   | jq '{id, status, detail}'
@@ -203,7 +205,7 @@ bench moves a trial forward when someone reads it. Right after creation the
 candidate may have no row yet.
 
 ```bash
-curl -s "$BENCH_API/trials/trial_.../results" -H "$AUTH" \
+bench "$BENCH_API/trials/trial_.../results" \
   | jq '.detail // (.rollups[] | select(.candidate_id == "cand_...") | {pending, n, passes})'
 ```
 
@@ -217,13 +219,13 @@ the model calls in its trace, and whether the agent sent requests to each twin.
 
 ```bash
 TRIAL_ID=trial_...; CANDIDATE_ID=cand_...
-curl -s "$BENCH_API/trials/$TRIAL_ID/attempts?candidate_id=$CANDIDATE_ID&limit=50" -H "$AUTH" \
+bench "$BENCH_API/trials/$TRIAL_ID/attempts?candidate_id=$CANDIDATE_ID&limit=50" \
   | jq -r '.items[].id' | while read -r a; do
-    att=$(curl -s "$BENCH_API/attempts/$a" -H "$AUTH")
-    llm=$(curl -s "$BENCH_API/attempts/$a/artifacts/agent_trace.json" -H "$AUTH" | jq '.llm_calls // 0' 2>/dev/null)
+    att=$(bench "$BENCH_API/attempts/$a")
+    llm=$(bench "$BENCH_API/attempts/$a/artifacts/agent_trace.json" | jq '.llm_calls // 0' 2>/dev/null)
     twins=""
     for s in $(jq -r '.ledger_summary.sources[]? | select(.kind == "service") | .name' <<<"$att"); do
-      n=$(curl -s "$BENCH_API/attempts/$a/ledger?plane=vendor&source=$s&limit=1" -H "$AUTH" | jq '.events | length')
+      n=$(bench "$BENCH_API/attempts/$a/ledger?plane=vendor&source=$s&limit=1" | jq '.events | length')
       twins="$twins$s:$n "
     done
     jq -c --argjson llm "${llm:-0}" --arg twins "$twins" \
@@ -240,8 +242,8 @@ on the attempt: each entry has a `statement`, `passed` and the grader's
 ### Artifacts
 
 ```bash
-curl -s "$BENCH_API/attempts/att_..." -H "$AUTH" | jq '.artifact_uris | keys'
-curl -s "$BENCH_API/attempts/att_.../artifacts/candidate.log" -H "$AUTH" | tail -50
+bench "$BENCH_API/attempts/att_..." | jq '.artifact_uris | keys'
+bench "$BENCH_API/attempts/att_.../artifacts/candidate.log" | tail -50
 ```
 
 | Artifact | What it shows |
@@ -261,10 +263,10 @@ replaced as a whole, so send all of it:
 
 ```bash
 jq '{image}' bench/candidate.json \
-  | curl -s -X PATCH "$BENCH_API/candidates/cand_..." \
-      -H "$AUTH" -H "Content-Type: application/json" -d @- | jq '{id, image: .image.ref, detail}'
+  | bench -X PATCH "$BENCH_API/candidates/cand_..." \
+      -H "Content-Type: application/json" -d @- | jq '{id, image: .image.ref, detail}'
 
-curl -s -X POST "$BENCH_API/trials/trial_.../candidates" -H "$AUTH" -H "Content-Type: application/json" \
+bench -X POST "$BENCH_API/trials/trial_.../candidates" -H "Content-Type: application/json" \
   -d '{"candidate_ids": ["cand_..."], "replace": true}' | jq '{id, status, detail}'
 ```
 
