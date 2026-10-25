@@ -1,6 +1,6 @@
 {
   "name": "bench",
-  "version": "0.1.0",
-  "description": "Put your own agent on a Veris Bench bench as a Your image candidate. One command: add-your-agent (wire the agent, build and push its image, register it, and prove it with a smoke trial).",
+  "version": "0.2.0",
+  "description": "Put your own agent on a Veris Bench bench. Two commands: add-your-agent (a Your image candidate: wire the agent, build and push its image, register it, and prove it with a smoke trial) and add-your-hosted-agent (a Hosted endpoint candidate: register the agent you run at a URL, let the grader see its model calls, and prove it with a smoke trial).",
   "skills": "./skills/"
 }

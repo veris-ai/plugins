@@ -254,15 +254,17 @@ reads each service base URL from its `env_hint` variable.
 
 ## bench
 
-One skill, `add-your-agent`. It takes the agent in the current repository to a
-**Your image** candidate on a Veris Bench bench: it adds a small server the
-bench's simulated user talks to, points the agent at the bench's twins, writes
-the Dockerfile, builds and pushes the image, registers the candidate, and runs
-a smoke trial to prove it. The agent's own code stays as it is.
+Two skills, one for each way your agent can join a bench:
 
-It needs Docker with buildx, `curl` and `jq`, a registry Docker can push to, and
-a Veris Bench API key in `VERIS_API_KEY`. A person issues the key in the
-console: **Overview**, **API keys**, **Issue**.
+| Skill | The bench reaches your agent | What it does |
+| --- | --- | --- |
+| `add-your-agent` | Veris runs your **image**, one fresh copy per attempt. | Adds a small server the bench's simulated user talks to, points the agent at the bench's twins, writes the Dockerfile, builds and pushes the image, registers the candidate, and runs a smoke trial. Needs Docker with buildx and a registry Docker can push to. |
+| `add-your-hosted-agent` | You run the agent; the bench calls your **endpoint**. | Maps the endpoint's request and reply, stores its auth secret in the bench, registers the candidate, runs the connection check, adds `bench_tracing` so the grader sees the model calls of bench conversations (and only those), and runs a smoke trial. |
+
+Both keep the agent's own code as it is, need `curl` and `jq`, and a Veris
+Bench API key in `VERIS_API_KEY`. A person issues the key in the console:
+**Overview**, **API keys**, **Issue**. The hosted agent also needs a push-only
+key, `BENCH_TRACE_KEY`, in its own deployment.
 
 ### Install
 
@@ -277,6 +279,7 @@ Then, in the agent's repository:
 
 ```
 /bench:add-your-agent bench_...
+/bench:add-your-hosted-agent bench_...
 ```
 
 Codex:
@@ -286,20 +289,29 @@ codex plugin marketplace add veris-ai/plugins
 codex plugin add bench@veris
 ```
 
-and `$bench:add-your-agent`. The skill runs Docker and calls the Veris Bench
-API, and Codex's default sandbox allows neither: start Codex with
-`codex -s danger-full-access`, or approve `docker`, `curl` and `jq` when it asks.
+and `$bench:add-your-agent` or `$bench:add-your-hosted-agent`. The skills call
+the Veris Bench API, and `add-your-agent` also runs Docker; Codex's default
+sandbox allows neither. Approve `curl` and `jq` (and `docker` for
+`add-your-agent`) when it asks, or start Codex with `codex -s danger-full-access`.
 
 Any other agent, through the `skills` CLI:
 
 ```
 npx skills add veris-ai/plugins --skill add-your-agent
+npx skills add veris-ai/plugins --skill add-your-hosted-agent
 ```
 
-What the skill does, step by step, is the
+What the skills do, step by step, is the
 [Add your agent](https://docs.veris.ai/add-your-agent) page.
 
 ### Versions
+
+0.2.0 — `add-your-hosted-agent`: an endpoint you host, registered from
+`bench/hosted-candidate.json` with its secret as a bench candidate-env value, a
+connection check, `bench_tracing` (Python and Node) that sends only bench
+conversations' model calls to Veris with a push-only key, and a smoke trial
+checked attempt by attempt: completed, replies, model calls visible to the
+grader, tool calls, and one conversation per attempt.
 
 0.1.0 — `add-your-agent`: http or ws server around the agent (Python and Node
 patterns), twin addresses from `VERIS_DS_SERVICE_URLS`, a `linux/amd64` image

@@ -1,0 +1,16 @@
+{
+  "name": "bench-tracing-test",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test_bench_tracing.mjs"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "1.10.0",
+    "@opentelemetry/context-async-hooks": "3.0.0",
+    "@opentelemetry/core": "3.0.0",
+    "@opentelemetry/otlp-transformer": "0.300.0",
+    "@opentelemetry/resources": "3.0.0",
+    "@opentelemetry/sdk-trace": "3.0.0"
+  }
+}
