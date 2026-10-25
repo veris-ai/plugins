@@ -291,8 +291,8 @@ codex plugin add bench@veris
 
 and `$bench:add-your-agent` or `$bench:add-your-hosted-agent`. The skills call
 the Veris Bench API, and `add-your-agent` also runs Docker; Codex's default
-sandbox allows neither: start Codex with `codex -s danger-full-access`, or
-approve `docker`, `curl` and `jq` when it asks.
+sandbox allows neither. Approve `curl` and `jq` (and `docker` for
+`add-your-agent`) when it asks, or start Codex with `codex -s danger-full-access`.
 
 Any other agent, through the `skills` CLI:
 
